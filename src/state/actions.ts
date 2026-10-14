@@ -1,7 +1,7 @@
 import { createElement } from 'react'
 import { useDesignStore } from './designStore'
 import { useUiStore } from './uiStore'
-import { resolvedColor, type Design } from './design'
+import { resolvedColor, type Design, type LogoLayer } from './design'
 import { colorRegions } from './useColorRegions'
 import { describeLook } from '../lib/logoTransform'
 import { describePatterns } from '../patterns/describe'
@@ -17,7 +17,7 @@ const notify = (...args: Parameters<ReturnType<typeof useUiStore.getState>['noti
 export function saveLocally() {
   const res = saveDesignLocally(useDesignStore.getState().design)
   if (!res.ok) notify('error', res.reason)
-  else if (res.withoutLogo) notify('info', 'Saved in this browser — without the logo, which is too large for local storage. Use Export design to keep it.')
+  else if (res.withoutLogo) notify('info', 'Saved in this browser — without the logos, which are too large for local storage. Use Export design to keep them.')
   else notify('success', 'Design saved in this browser.')
 }
 
@@ -62,11 +62,20 @@ async function renderFlats(design: Design): Promise<string[]> {
   const garment = getGarment(design.productId)
   return (['front', 'back'] as const).map((side) => {
     const markup = renderToStaticMarkup(
-      createElement(FlatPreview, { garment, side, colors: design.colors, patterns: design.patterns, brand: design.brand, logo: design.logo, placement: design.placement }),
+      createElement(FlatPreview, { garment, side, colors: design.colors, patterns: design.patterns, brand: design.brand, logos: design.logos }),
     )
     const svg = markup.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="900" height="1100"')
     return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
   })
+}
+
+/** "Left chest · 8 cm wide · 0°" — the long form adds flips, fill, opacity and lock. */
+function describeLogo(design: Design, layer: LogoLayer, long: boolean) {
+  const p = layer.placement
+  const preset = getGarment(design.productId).placements.find((x) => x.id === p.placement)
+  if (!long) return `${preset?.label ?? ''} ${p.widthCm} cm${p.rotationDeg ? ` ${p.rotationDeg}°` : ''}`
+  const look = describeLook(p)
+  return `${preset?.label ?? ''} · ${p.widthCm} cm wide · ${p.rotationDeg}°${look ? ` · ${look}` : ''}`
 }
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
@@ -149,15 +158,17 @@ export async function exportPreviewImage() {
     chip('Body', resolvedColor(design.colors, 'body'))
     if (regions.includes('sleeves')) chip('Sleeves', resolvedColor(design.colors, 'sleeves'))
     if (regions.includes('collar')) chip('Collar', resolvedColor(design.colors, 'collar'))
-    if (design.logo) {
-      const preset = garment.placements.find((p) => p.id === design.placement.placement)
+    if (design.logos.length) {
       ctx.fillStyle = '#6B6A67'
       ctx.font = '600 15px "Manrope Variable", Manrope, system-ui, sans-serif'
-      ctx.fillText('LOGO', x, y - 26)
+      ctx.fillText(design.logos.length > 1 ? `LOGOS (${design.logos.length})` : 'LOGO', x, y - 26)
       ctx.fillStyle = '#0E0E0E'
       ctx.font = '600 20px "Manrope Variable", Manrope, system-ui, sans-serif'
-      const look = describeLook(design.placement)
-      ctx.fillText(`${preset?.label ?? ''} · ${design.placement.widthCm} cm wide · ${design.placement.rotationDeg}°${look ? ` · ${look}` : ''}`, x, y + 4)
+      const text =
+        design.logos.length === 1
+          ? describeLogo(design, design.logos[0], true)
+          : design.logos.map((l) => describeLogo(design, l, false)).join('   ·   ')
+      ctx.fillText(text, x, y + 4, W - 72 - x)
     }
     const patternLines = describePatterns(design.patterns, regions)
     const details = [

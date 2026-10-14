@@ -1,8 +1,21 @@
 import { create } from 'zustand'
-import type { PlacementId, RegionId, Side } from '../garments/types'
+import type { PlacementId, PrintArea, RegionId, Side } from '../garments/types'
 import { getGarment } from '../garments/catalog'
-import { clampTransform, type LogoTransform } from '../lib/logoTransform'
-import { cleanPatternFill, createDefaultDesign, DEFAULT_PLACEMENT, logoAspect, type BrandMarkSettings, type Design, type LogoAsset, type LogoPlacement, type PatternFill } from './design'
+import { clampTransform, rotatedExtents, type LogoTransform } from '../lib/logoTransform'
+import {
+  cleanPatternFill,
+  createDefaultDesign,
+  DEFAULT_PLACEMENT,
+  logoAspect,
+  MAX_LOGOS,
+  newLogoId,
+  type BrandMarkSettings,
+  type Design,
+  type LogoAsset,
+  type LogoLayer,
+  type LogoPlacement,
+  type PatternFill,
+} from './design'
 import { brandKeepOut } from '../garments/brand'
 import type { BrandSide } from '../config/brand'
 
@@ -32,12 +45,18 @@ interface DesignStore {
   copyPattern: (from: RegionId, to: RegionId[]) => void
   /** HONEG mark: chest side, style, colour (it can't be removed). */
   setBrand: (patch: Partial<BrandMarkSettings>) => void
-  setLogo: (asset: LogoAsset | null) => void
-  setSide: (side: Side) => void
-  setPlacement: (id: PlacementId) => void
-  /** Geometry (clamped to the print area) and appearance edits for the logo. */
-  updateTransform: (patch: Partial<LogoEdit>, opts?: CommitOptions) => void
-  resetTransform: () => void
+  /** Adds a logo or photo on a free print position. Returns its id, or null when the garment is full. */
+  addLogo: (asset: LogoAsset) => string | null
+  /** Swaps a logo's image, keeping its position and look. */
+  replaceLogo: (id: string, asset: LogoAsset) => void
+  removeLogo: (id: string) => void
+  /** Moves a logo one step up (+1, printed over the others) or down (-1) the stack. */
+  moveLogo: (id: string, dir: 1 | -1) => void
+  setSide: (id: string, side: Side) => void
+  setPlacement: (id: string, placement: PlacementId) => void
+  /** Geometry (clamped to the print area) and appearance edits for one logo. */
+  updateTransform: (id: string, patch: Partial<LogoEdit>, opts?: CommitOptions) => void
+  resetTransform: (id: string) => void
   replaceDesign: (design: Design) => void
   resetAll: () => void
   undo: () => void
@@ -47,54 +66,135 @@ interface DesignStore {
 const shallowEqual = <T extends object>(a: T, b: T) =>
   (Object.keys(a) as (keyof T)[]).every((k) => a[k] === b[k])
 
+const sameLayer = (a: LogoLayer, b: LogoLayer) => a.id === b.id && a.asset === b.asset && shallowEqual(a.placement, b.placement)
+
 export function sameDesign(a: Design, b: Design) {
   return (
     a.productId === b.productId &&
-    a.logo === b.logo &&
+    a.logos.length === b.logos.length &&
+    a.logos.every((l, i) => sameLayer(l, b.logos[i])) &&
     shallowEqual(a.colors, b.colors) &&
-    shallowEqual(a.placement, b.placement) &&
     shallowEqual(a.brand, b.brand) &&
     (Object.keys(a.patterns) as RegionId[]).every((r) => a.patterns[r] === b.patterns[r] || (!!a.patterns[r] && !!b.patterns[r] && shallowEqual(a.patterns[r]!, b.patterns[r]!)))
   )
 }
 
-/** Re-applies print-area constraints for the design's current garment and logo. */
-export function normalizePlacement(design: Design, placement: LogoPlacement): LogoPlacement {
+/** Re-applies print-area constraints for the design's current garment. */
+export function normalizePlacement(design: Design, placement: LogoPlacement, aspect: number): LogoPlacement {
   const garment = getGarment(design.productId)
   const preset = garment.placements.find((p) => p.id === placement.placement) ?? garment.placements[0]
   const area = garment.printAreas[preset.side]
   // Front prints always leave the HONEG mark and its clear space untouched.
   const keepOut = preset.side === 'front' ? brandKeepOut(garment, design.brand) : undefined
-  const clamped = clampTransform(placement, logoAspect(design), area, preset.anchor, keepOut)
+  const clamped = clampTransform(placement, aspect, area, preset.anchor, keepOut)
   return { ...placement, side: preset.side, placement: preset.id, ...clamped }
 }
+
+const normalizeLogos = (design: Design): Design => ({
+  ...design,
+  logos: design.logos.map((l) => ({ ...l, placement: normalizePlacement(design, l.placement, logoAspect(l.asset)) })),
+})
+
+const withPlacement = (design: Design, id: string, placement: LogoPlacement): Design => ({
+  ...design,
+  logos: design.logos.map((l) => (l.id === id ? { ...l, placement } : l)),
+})
+
+/** Axis-aligned footprint of a logo on its side, view-space metres. */
+export function logoRect(design: Design, layer: LogoLayer): PrintArea {
+  const garment = getGarment(design.productId)
+  const p = layer.placement
+  const preset = garment.placements.find((x) => x.id === p.placement) ?? garment.placements[0]
+  const [w, h] = rotatedExtents(p.widthCm / 100, logoAspect(layer.asset), p.rotationDeg)
+  const cx = preset.anchor[0] + p.offsetXCm / 100
+  const cy = preset.anchor[1] + p.offsetYCm / 100
+  return { xMin: cx - w / 2, xMax: cx + w / 2, yMin: cy - h / 2, yMax: cy + h / 2 }
+}
+
+const overlaps = (a: PrintArea, b: PrintArea) => a.xMax > b.xMin && a.xMin < b.xMax && a.yMax > b.yMin && a.yMin < b.yMax
 
 /** Chest presets and the wearer's side they sit on. */
 const CHEST_SIDE: Partial<Record<PlacementId, BrandSide>> = { leftChest: 'left', rightChest: 'right' }
 const otherSide = (s: BrandSide): BrandSide => (s === 'left' ? 'right' : 'left')
 const chestPreset = (side: BrandSide) => (side === 'left' ? 'leftChest' : 'rightChest') as PlacementId
+const chestOf = (l: LogoLayer) => CHEST_SIDE[l.placement.placement]
+const chestsUsed = (design: Design, except?: string) => new Set(design.logos.filter((l) => l.id !== except).map(chestOf))
 
-/** A chest logo and the HONEG mark never share a side: the mark moves to the free chest. */
-export function makeRoomForLogo(design: Design): Design {
-  const chest = CHEST_SIDE[design.placement.placement]
-  return chest && chest === design.brand.side ? { ...design, brand: { ...design.brand, side: otherSide(chest) } } : design
+/**
+ * Whether logo `id` (null for a new one) may take `placement`. Taking the
+ * HONEG mark's chest moves the mark across, so the other chest must be free.
+ */
+export function canUsePlacement(design: Design, id: string | null, placement: PlacementId): boolean {
+  const chest = CHEST_SIDE[placement]
+  if (!chest || chest !== design.brand.side) return true
+  return !chestsUsed(design, id ?? undefined).has(otherSide(chest))
+}
+
+/**
+ * A chest logo and the HONEG mark never share a side: the mark moves to the
+ * free chest. If logos sit on both chests (only possible in hand-edited files),
+ * the ones on the mark's chest move to the centre chest instead.
+ */
+export function makeRoomForLogos(design: Design): Design {
+  const used = chestsUsed(design)
+  if (!used.has(design.brand.side)) return design
+  const other = otherSide(design.brand.side)
+  if (!used.has(other)) return { ...design, brand: { ...design.brand, side: other } }
+  const center = getGarment(design.productId).placements.find((p) => p.side === 'front' && !CHEST_SIDE[p.id])
+  if (!center) return design
+  return {
+    ...design,
+    logos: design.logos.map((l) =>
+      chestOf(l) === design.brand.side ? { ...l, placement: { ...l.placement, placement: center.id, offsetXCm: 0, offsetYCm: 0 } } : l,
+    ),
+  }
+}
+
+/** Fixes a loaded or imported design: HONEG mark conflicts, then print-area clamping. */
+export function fixDesign(design: Design): Design {
+  return normalizeLogos(makeRoomForLogos(design))
 }
 
 /** Geometry defaults for a preset; appearance (opacity, tint, lock) carries over. */
-function presetDefaults(design: Design, id: PlacementId): LogoPlacement {
+function presetDefaults(design: Design, layer: LogoLayer, id: PlacementId): LogoPlacement {
   const garment = getGarment(design.productId)
   const preset = garment.placements.find((p) => p.id === id) ?? garment.placements[0]
-  return normalizePlacement(design, {
-    ...design.placement,
-    flipX: false,
-    flipY: false,
-    side: preset.side,
-    placement: preset.id,
-    widthCm: Math.round(preset.defaultWidth * 1000) / 10,
-    rotationDeg: 0,
-    offsetXCm: 0,
-    offsetYCm: 0,
-  })
+  return normalizePlacement(
+    design,
+    {
+      ...layer.placement,
+      flipX: false,
+      flipY: false,
+      side: preset.side,
+      placement: preset.id,
+      widthCm: Math.round(preset.defaultWidth * 1000) / 10,
+      rotationDeg: 0,
+      offsetXCm: 0,
+      offsetYCm: 0,
+    },
+    logoAspect(layer.asset),
+  )
+}
+
+/** Where new logos go first: a chest, then the back, then the larger front and back prints. */
+const AUTO_ORDER: PlacementId[] = ['leftChest', 'rightChest', 'upperBack', 'centerChest', 'centerBack']
+
+/**
+ * Print position for a logo that's new or changing side: never the HONEG
+ * mark's chest, preferably a preset no other logo uses and where it doesn't
+ * cover another logo.
+ */
+function pickPlacement(design: Design, layer: LogoLayer, side?: Side): LogoPlacement | null {
+  const garment = getGarment(design.productId)
+  const others = design.logos.filter((l) => l.id !== layer.id)
+  const order = [...AUTO_ORDER, ...garment.placements.map((p) => p.id)]
+  const candidates = [...new Set(order)]
+    .map((id) => garment.placements.find((p) => p.id === id))
+    .filter((p) => !!p && (!side || p.side === side) && CHEST_SIDE[p.id] !== design.brand.side)
+    .map((p) => presetDefaults(design, layer, p!.id))
+  const unused = candidates.filter((c) => !others.some((o) => o.placement.placement === c.placement))
+  const clear = unused.filter((c) => !others.some((o) => o.placement.side === c.side && overlaps(logoRect(design, o), logoRect(design, { ...layer, placement: c }))))
+  return clear[0] ?? unused[0] ?? candidates[0] ?? null
 }
 
 export const useDesignStore = create<DesignStore>()((set, get) => {
@@ -110,6 +210,7 @@ export const useDesignStore = create<DesignStore>()((set, get) => {
       lastCommit: opts?.coalesce ? { key: opts.coalesce, at: now } : null,
     })
   }
+  const layer = (id: string) => get().design.logos.find((l) => l.id === id)
 
   return {
     design: createDefaultDesign(),
@@ -120,9 +221,7 @@ export const useDesignStore = create<DesignStore>()((set, get) => {
     setProduct: (id) => {
       const { design } = get()
       if (design.productId === id) return
-      const next = { ...design, productId: id }
-      next.placement = normalizePlacement(next, design.placement)
-      commit(next)
+      commit(normalizeLogos({ ...design, productId: id }))
     },
 
     setColor: (region, hex, opts) => {
@@ -156,64 +255,94 @@ export const useDesignStore = create<DesignStore>()((set, get) => {
       commit({ ...design, colors: createDefaultDesign().colors })
     },
 
-    setLogo: (asset) => {
+    addLogo: (asset) => {
       const { design } = get()
-      const next = { ...design, logo: asset }
-      // A new logo starts at the preset's recommended size; aspect changes the clamp.
-      next.placement = asset && !design.logo ? presetDefaults(next, design.placement.placement) : normalizePlacement(next, design.placement)
-      commit(next)
+      if (design.logos.length >= MAX_LOGOS) return null
+      const draft: LogoLayer = { id: newLogoId(), asset, placement: { ...DEFAULT_PLACEMENT } }
+      const placement = pickPlacement(design, draft)
+      if (!placement) return null
+      commit({ ...design, logos: [...design.logos, { ...draft, placement }] })
+      return draft.id
     },
 
-    setSide: (side) => {
+    replaceLogo: (id, asset) => {
       const { design } = get()
-      if (design.placement.side === side) return
-      const first = getGarment(design.productId).placements.find((p) => p.side === side)
-      if (!first) return
-      const draft = makeRoomForLogo({ ...design, placement: { ...design.placement, placement: first.id } })
-      commit({ ...draft, placement: presetDefaults(draft, first.id) })
+      const current = layer(id)
+      if (!current) return
+      const next: Design = { ...design, logos: design.logos.map((l) => (l.id === id ? { ...l, asset } : l)) }
+      commit(withPlacement(next, id, normalizePlacement(next, current.placement, logoAspect(asset))))
     },
 
-    setPlacement: (id) => {
+    removeLogo: (id) => {
       const { design } = get()
-      if (design.placement.placement === id) return
-      const { rotationDeg, flipX, flipY } = design.placement
-      const draft = makeRoomForLogo({ ...design, placement: { ...design.placement, placement: id } })
-      commit({ ...draft, placement: normalizePlacement(draft, { ...presetDefaults(draft, id), rotationDeg, flipX, flipY }) })
+      commit({ ...design, logos: design.logos.filter((l) => l.id !== id) })
+    },
+
+    moveLogo: (id, dir) => {
+      const { design } = get()
+      const i = design.logos.findIndex((l) => l.id === id)
+      const j = i + dir
+      if (i < 0 || j < 0 || j >= design.logos.length) return
+      const logos = [...design.logos]
+      ;[logos[i], logos[j]] = [logos[j], logos[i]]
+      commit({ ...design, logos })
+    },
+
+    setSide: (id, side) => {
+      const { design } = get()
+      const current = layer(id)
+      if (!current || current.placement.side === side) return
+      const placement = pickPlacement(design, current, side)
+      if (placement) commit(withPlacement(design, id, placement))
+    },
+
+    setPlacement: (id, placement) => {
+      const { design } = get()
+      const current = layer(id)
+      if (!current || current.placement.placement === placement || !canUsePlacement(design, id, placement)) return
+      const { rotationDeg, flipX, flipY } = current.placement
+      // Taking the HONEG mark's chest moves the mark across; every front print is then re-clamped around it.
+      const draft = makeRoomForLogos(withPlacement(design, id, { ...current.placement, placement }))
+      const moved = { ...presetDefaults(draft, current, placement), rotationDeg, flipX, flipY }
+      commit(normalizeLogos(withPlacement(draft, id, moved)))
     },
 
     setBrand: (patch) => {
       const { design } = get()
       let next: Design = { ...design, brand: { ...design.brand, ...patch } }
-      // The mark takes the chosen chest; a chest logo already there moves across, keeping its size.
-      if (patch.side && CHEST_SIDE[design.placement.placement] === patch.side) {
-        const { rotationDeg, flipX, flipY, widthCm } = design.placement
-        next = { ...next, placement: { ...presetDefaults(next, chestPreset(otherSide(patch.side))), rotationDeg, flipX, flipY, widthCm } }
+      // The mark takes the chosen chest; chest logos already there move across, keeping their size.
+      if (patch.side) {
+        const across = chestPreset(otherSide(patch.side))
+        next = {
+          ...next,
+          logos: next.logos.map((l) => {
+            if (chestOf(l) !== patch.side) return l
+            const { rotationDeg, flipX, flipY, widthCm } = l.placement
+            return { ...l, placement: { ...presetDefaults(next, l, across), rotationDeg, flipX, flipY, widthCm } }
+          }),
+        }
       }
-      commit({ ...next, placement: normalizePlacement(next, next.placement) })
+      commit(normalizeLogos(next))
     },
 
-    updateTransform: (patch, opts) => {
+    updateTransform: (id, patch, opts) => {
       const { design } = get()
-      const placement = normalizePlacement(design, { ...design.placement, ...patch })
-      commit({ ...design, placement }, opts)
+      const current = layer(id)
+      if (!current) return
+      const placement = normalizePlacement(design, { ...current.placement, ...patch }, logoAspect(current.asset))
+      // Keys are per logo, so quick edits on two different logos stay separate undo steps.
+      commit(withPlacement(design, id, placement), opts?.coalesce ? { coalesce: `${id}:${opts.coalesce}` } : undefined)
     },
 
-    resetTransform: () => {
+    resetTransform: (id) => {
       const { design } = get()
-      commit({ ...design, placement: presetDefaults(design, design.placement.placement) })
+      const current = layer(id)
+      if (current) commit(withPlacement(design, id, presetDefaults(design, current, current.placement.placement)))
     },
 
-    replaceDesign: (incoming) => {
-      const fixed = makeRoomForLogo(incoming)
-      const next = { ...fixed, placement: normalizePlacement(fixed, fixed.placement) }
-      commit(next)
-    },
+    replaceDesign: (incoming) => commit(fixDesign(incoming)),
 
-    resetAll: () => {
-      const fresh = createDefaultDesign()
-      fresh.placement = normalizePlacement(fresh, DEFAULT_PLACEMENT)
-      commit(fresh)
-    },
+    resetAll: () => commit(fixDesign(createDefaultDesign())),
 
     undo: () => {
       const { past, design, future } = get()

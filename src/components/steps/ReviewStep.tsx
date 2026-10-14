@@ -21,7 +21,7 @@ export function ReviewStep() {
         <DesignSummary />
       </Section>
 
-      <Section title="Flats" description="Front and back, as the logo sits within the printable area.">
+      <Section title="Flats" description="Front and back, as your logos sit within the printable area.">
         <div className="flats">
           {(['front', 'back'] as const).map((side) => (
             <figure key={side} className="flat-card">
@@ -31,8 +31,7 @@ export function ReviewStep() {
                 colors={design.colors}
                 patterns={design.patterns}
                 brand={design.brand}
-                logo={design.logo}
-                placement={design.placement}
+                logos={design.logos}
                 label={`${side} flat sketch`}
               />
               <figcaption>{side === 'front' ? 'Front' : 'Back'}</figcaption>

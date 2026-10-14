@@ -21,8 +21,6 @@ export function DesignSummary() {
   const garment = getGarment(design.productId)
   const regions = useColorRegions()
   const patternLines = describePatterns(design.patterns, regions)
-  const preset = garment.placements.find((p) => p.id === design.placement.placement)
-  const p = design.placement
 
   const edit = (step: StepId, what: string) => (
     <button type="button" className="icon-btn icon-btn-sm" aria-label={`Edit ${what}`} data-tip="Edit" data-tip-side="left" onClick={() => setStep(step)}>
@@ -83,31 +81,33 @@ export function DesignSummary() {
         {edit('logo', 'HONEG mark')}
       </div>
       <div className="summary-row">
-        <dt>Logo</dt>
-        <dd>
-          {design.logo ? (
-            <>
-              <span className="summary-logo checker">
-                <img src={design.logo.dataUrl} alt="" />
+        <dt>{design.logos.length > 1 ? 'Logos' : 'Logo'}</dt>
+        <dd className={design.logos.length > 1 ? 'summary-stack' : undefined}>
+          {design.logos.length ? (
+            design.logos.map(({ id, asset, placement: p }) => (
+              <span key={id} className="summary-logo-line">
+                <span className="summary-logo checker">
+                  <img src={asset.dataUrl} alt="" />
+                </span>
+                <span>
+                  {garment.placements.find((x) => x.id === p.placement)?.label} · {p.widthCm} cm wide · {p.rotationDeg}°
+                  {describeLook(p) && <span className="muted"> · {describeLook(p)}</span>}
+                  {(p.offsetXCm !== 0 || p.offsetYCm !== 0) && (
+                    <span className="muted">
+                      {' '}
+                      · offset {p.offsetXCm > 0 ? '+' : ''}
+                      {p.offsetXCm} / {p.offsetYCm > 0 ? '+' : ''}
+                      {p.offsetYCm} cm
+                    </span>
+                  )}
+                </span>
               </span>
-              <span>
-                {preset?.label} · {p.widthCm} cm wide · {p.rotationDeg}°
-                {describeLook(p) && <span className="muted"> · {describeLook(p)}</span>}
-                {(p.offsetXCm !== 0 || p.offsetYCm !== 0) && (
-                  <span className="muted">
-                    {' '}
-                    · offset {p.offsetXCm > 0 ? '+' : ''}
-                    {p.offsetXCm} / {p.offsetYCm > 0 ? '+' : ''}
-                    {p.offsetYCm} cm
-                  </span>
-                )}
-              </span>
-            </>
+            ))
           ) : (
             <span className="muted">No logo yet</span>
           )}
         </dd>
-        {edit('logo', 'logo')}
+        {edit('logo', 'logos')}
       </div>
     </dl>
   )

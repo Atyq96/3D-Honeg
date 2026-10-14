@@ -6,6 +6,7 @@ import { isLight, onColor } from '../../lib/color'
 import { Segmented } from '../ui/controls'
 
 const SIDE_LABEL: Record<BrandSide, string> = { left: 'left', right: 'right' }
+const otherChest = (side: BrandSide) => SIDE_LABEL[side === 'left' ? 'right' : 'left']
 
 /**
  * The HONEG mark is always printed (like a sportswear maker's logo); customers
@@ -18,12 +19,15 @@ export function BrandMarkControls() {
   const setBrand = useDesignStore((s) => s.setBrand)
 
   const changeSide = (side: BrandSide) => {
-    const before = useDesignStore.getState().design.placement.placement
+    const before = useDesignStore.getState().design.logos
     setBrand({ side })
-    const after = useDesignStore.getState().design.placement.placement
+    const after = useDesignStore.getState().design.logos
+    const moved = after.filter((l) => before.find((b) => b.id === l.id)?.placement.placement !== l.placement.placement)
     useUiStore.getState().setView('front')
-    if (before !== after)
-      useUiStore.getState().notify('info', `Your logo moved to the ${after === 'leftChest' ? 'left' : 'right'} chest to make room for the HONEG mark.`)
+    if (moved.length)
+      useUiStore
+        .getState()
+        .notify('info', `${moved.length > 1 ? 'Your chest logos' : 'Your logo'} moved to the ${otherChest(side)} chest to make room for the HONEG mark.`)
   }
 
   return (

@@ -29,21 +29,24 @@ export const draggedRecently = () => performance.now() - lastDragEnd < 300
  * when the cursor leaves the garment silhouette. Orbit is disabled for the
  * gesture, and the whole gesture becomes a single undo step.
  */
-export function useGizmoDrag(def: GarmentDefinition, planeZ: number) {
+export function useGizmoDrag(def: GarmentDefinition, planeZ: number, id: string) {
   const camera = useThree((s) => s.camera) as PerspectiveCamera
   const gl = useThree((s) => s.gl)
   const controls = useThree((s) => s.controls) as unknown as { enabled: boolean } | null
 
   return useCallback(
     (e: ThreeEvent<PointerEvent>, mode: DragMode) => {
-      const { design, updateTransform } = useDesignStore.getState()
-      const start = design.placement
+      const { design, updateTransform: update } = useDesignStore.getState()
+      const layer = design.logos.find((l) => l.id === id)
+      if (!layer) return
+      const start = layer.placement
       const preset = def.placements.find((p) => p.id === start.placement)
-      if (!preset || !design.logo || start.locked) return
+      if (!preset || start.locked) return
       e.stopPropagation()
+      const updateTransform = (patch: Parameters<typeof update>[1], opts: Parameters<typeof update>[2]) => update(id, patch, opts)
 
       const area = def.printAreas[preset.side]
-      const aspect = design.logo.width / design.logo.height
+      const aspect = layer.asset.width / layer.asset.height
       const sign = preset.side === 'front' ? 1 : -1
       const normal = new Vector3(0, 0, sign)
       const plane = new Plane().setFromNormalAndCoplanarPoint(normal, new Vector3(0, 0, planeZ))
@@ -113,6 +116,6 @@ export function useGizmoDrag(def: GarmentDefinition, planeZ: number) {
       window.addEventListener('pointerup', onUp)
       window.addEventListener('pointercancel', onUp)
     },
-    [camera, gl, controls, def, planeZ],
+    [camera, gl, controls, def, planeZ, id],
   )
 }

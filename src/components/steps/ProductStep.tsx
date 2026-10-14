@@ -19,7 +19,7 @@ export function ProductStep() {
 
   return (
     <>
-      <Section title="Choose your cut" description="Colors and your logo carry over when you switch cuts.">
+      <Section title="Choose your cut" description="Colors and your logos carry over when you switch cuts.">
         <div className="product-list" role="radiogroup" aria-label="Product">
           {GARMENTS.map((g) => {
             const selected = g.id === productId

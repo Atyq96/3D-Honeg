@@ -16,6 +16,7 @@ import {
 import { useDesignStore } from '../../state/designStore'
 import { useUiStore } from '../../state/uiStore'
 import { logoAspect } from '../../state/design'
+import { useActiveLogo } from '../../state/useActiveLogo'
 import { getGarment } from '../../garments/catalog'
 import { COLOR_PRESETS } from '../../config/palette'
 import { isLight, normalizeHex, onColor } from '../../lib/color'
@@ -23,6 +24,7 @@ import { alignOffsets, type AlignX, type AlignY } from '../../lib/logoTransform'
 import { LOGO_ACCEPT, LogoFileError, processLogoFile } from '../../lib/logoFile'
 
 type PopoverName = 'fill' | 'position' | 'transform' | null
+type Updater = ReturnType<typeof useDesignStore.getState>['updateTransform']
 
 /**
  * Contextual toolbar shown while the logo is selected — modelled on the
@@ -31,9 +33,7 @@ type PopoverName = 'fill' | 'position' | 'transform' | null
  */
 export function LogoToolbar() {
   const selected = useUiStore((s) => s.logoSelected)
-  const logo = useDesignStore((s) => s.design.logo)
-  const placement = useDesignStore((s) => s.design.placement)
-  const update = useDesignStore((s) => s.updateTransform)
+  const layer = useActiveLogo()
   const [open, setOpen] = useState<PopoverName>(null)
   const [busy, setBusy] = useState(false)
   const root = useRef<HTMLDivElement>(null)
@@ -51,7 +51,9 @@ export function LogoToolbar() {
     }
   }, [open])
 
-  if (!selected || !logo) return null
+  if (!selected || !layer) return null
+  const { placement } = layer
+  const update = (patch: Parameters<Updater>[1], opts?: Parameters<Updater>[2]) => useDesignStore.getState().updateTransform(layer.id, patch, opts)
 
   const toggle = (name: PopoverName) => setOpen((o) => (o === name ? null : name))
   const notify = useUiStore.getState().notify
@@ -61,8 +63,8 @@ export function LogoToolbar() {
     setBusy(true)
     try {
       const { asset, warning } = await processLogoFile(file)
-      useDesignStore.getState().setLogo(asset)
-      notify(warning ? 'info' : 'success', warning ?? 'Logo replaced — position and size kept.')
+      useDesignStore.getState().replaceLogo(layer.id, asset)
+      notify(warning ? 'info' : 'success', warning ?? 'Image replaced — position and size kept.')
     } catch (err) {
       notify('error', err instanceof LogoFileError ? err.message : "That file couldn't be used.")
     } finally {
@@ -72,9 +74,9 @@ export function LogoToolbar() {
   }
 
   const remove = () => {
-    useDesignStore.getState().setLogo(null)
+    useDesignStore.getState().removeLogo(layer.id)
     useUiStore.getState().selectLogo(false)
-    notify('info', 'Logo removed. Undo to bring it back.')
+    notify('info', `Removed “${layer.asset.name}”. Undo to bring it back.`)
   }
 
   return (
@@ -186,10 +188,10 @@ function PopoverAnchor({ open, label, popover, children }: { open: boolean; labe
 }
 
 function FillPopover() {
-  const tint = useDesignStore((s) => s.design.placement.tint)
-  const update = useDesignStore((s) => s.updateTransform)
+  const layer = useActiveLogo()
+  const tint = layer?.placement.tint ?? null
   const [hex, setHex] = useState(tint ?? '')
-  const apply = (value: string | null) => update({ tint: value })
+  const apply = (value: string | null) => layer && useDesignStore.getState().updateTransform(layer.id, { tint: value })
   const swatches = [...new Set(['#FFFFFF', '#0E0E0E', ...COLOR_PRESETS.map((p) => p.hex)])]
   return (
     <>
@@ -263,10 +265,12 @@ const GRID: [AlignX, AlignY, string][] = [
 ]
 
 function PositionPopover() {
-  const design = useDesignStore((s) => s.design)
-  const update = useDesignStore((s) => s.updateTransform)
-  const garment = getGarment(design.productId)
-  const p = design.placement
+  const productId = useDesignStore((s) => s.design.productId)
+  const layer = useActiveLogo()
+  if (!layer) return null
+  const update = (patch: Parameters<Updater>[1]) => useDesignStore.getState().updateTransform(layer.id, patch)
+  const garment = getGarment(productId)
+  const p = layer.placement
   const preset = garment.placements.find((x) => x.id === p.placement) ?? garment.placements[0]
   const area = garment.printAreas[preset.side]
   return (
@@ -288,7 +292,7 @@ function PositionPopover() {
             aria-label={label}
             data-tip={label}
             disabled={p.locked}
-            onClick={() => update(alignOffsets(p, logoAspect(design), area, preset.anchor, ax, ay))}
+            onClick={() => update(alignOffsets(p, logoAspect(layer.asset), area, preset.anchor, ax, ay))}
           >
             <span className={`align-dot align-${ax}-${ay}`} aria-hidden />
           </button>
@@ -299,9 +303,11 @@ function PositionPopover() {
 }
 
 function TransformPopover() {
-  const p = useDesignStore((s) => s.design.placement)
-  const update = useDesignStore((s) => s.updateTransform)
-  const reset = useDesignStore((s) => s.resetTransform)
+  const layer = useActiveLogo()
+  if (!layer) return null
+  const p = layer.placement
+  const update = (patch: Parameters<Updater>[1], opts?: Parameters<Updater>[2]) => useDesignStore.getState().updateTransform(layer.id, patch, opts)
+  const reset = () => useDesignStore.getState().resetTransform(layer.id)
   const pct = ((p.rotationDeg + 180) / 360) * 100
   return (
     <>

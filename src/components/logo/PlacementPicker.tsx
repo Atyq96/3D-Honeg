@@ -1,17 +1,22 @@
 import type { PlacementPreset, Side } from '../../garments/types'
-import { useDesignStore } from '../../state/designStore'
+import { canUsePlacement, logoRect, useDesignStore } from '../../state/designStore'
 import { useUiStore } from '../../state/uiStore'
+import { useActiveLogo } from '../../state/useActiveLogo'
 import { getGarment } from '../../garments/catalog'
 import { Segmented } from '../ui/controls'
 import type { BrandSide } from '../../config/brand'
 import { brandPlacement } from '../../garments/brand'
+import type { PrintArea } from '../../garments/types'
 import type { V2 } from '../../garments/flat/geom2d'
 
+// Map garment metres (x ±0.3, y 0–0.72) into a 40×40 glyph.
+const gx = (x: number) => 20 + x * 52
+const gy = (y: number) => 38 - y * 46
+
 /** Tiny tee glyph with the placement marked, so presets are recognisable at a glance. */
-function PlacementGlyph({ preset, brand }: { preset: PlacementPreset; brand: V2 }) {
-  // Map garment metres (x ±0.3, y 0–0.72) into a 40×40 glyph.
-  const x = 20 + preset.anchor[0] * 52
-  const y = 38 - preset.anchor[1] * 46
+function PlacementGlyph({ preset, brand, others }: { preset: PlacementPreset; brand: V2; others: PrintArea[] }) {
+  const x = gx(preset.anchor[0])
+  const y = gy(preset.anchor[1])
   const w = Math.max(3.5, preset.defaultWidth * 52)
   return (
     <svg viewBox="0 0 40 40" className="placement-glyph" aria-hidden>
@@ -20,10 +25,14 @@ function PlacementGlyph({ preset, brand }: { preset: PlacementPreset; brand: V2 
         className="placement-glyph-tee"
       />
       {preset.side === 'front' && (
-        <rect x={20 + brand[0] * 52 - 1.8} y={38 - brand[1] * 46 - 0.9} width={3.6} height={1.8} rx={0.6} className="placement-glyph-brand">
+        <rect x={gx(brand[0]) - 1.8} y={gy(brand[1]) - 0.9} width={3.6} height={1.8} rx={0.6} className="placement-glyph-brand">
           <title>HONEG mark</title>
         </rect>
       )}
+      {/* Your other logos on this side, so you can see what's already there. */}
+      {others.map((r, i) => (
+        <rect key={i} x={gx(r.xMin)} y={gy(r.yMax)} width={(r.xMax - r.xMin) * 52} height={(r.yMax - r.yMin) * 46} rx={0.8} className="placement-glyph-other" />
+      ))}
       <rect x={x - w / 2} y={y - w * 0.32} width={w} height={w * 0.64} rx={1.2} className="placement-glyph-mark" />
     </svg>
   )
@@ -35,14 +44,19 @@ function announceBrandMove(before: BrandSide) {
   if (after !== before) useUiStore.getState().notify('info', `HONEG mark moved to the ${after} chest to make room for your logo.`)
 }
 
+/** Side and print position of the active logo. */
 export function PlacementPicker() {
   const design = useDesignStore((s) => s.design)
   const setSide = useDesignStore((s) => s.setSide)
   const setPlacement = useDesignStore((s) => s.setPlacement)
   const setView = useUiStore((s) => s.setView)
+  const layer = useActiveLogo()
+  if (!layer) return null
   const garment = getGarment(design.productId)
-  const side = design.placement.side
+  const side = layer.placement.side
   const presets = garment.placements.filter((p) => p.side === side)
+  const others = design.logos.filter((l) => l.id !== layer.id)
+  const brand = brandPlacement(garment, design.brand).center
 
   return (
     <div className="placement">
@@ -55,31 +69,41 @@ export function PlacementPicker() {
         ]}
         onChange={(s) => {
           const before = useDesignStore.getState().design.brand.side
-          setSide(s)
+          setSide(layer.id, s)
           setView(s)
           announceBrandMove(before)
         }}
       />
       <div className="placement-grid" role="radiogroup" aria-label={`${side === 'front' ? 'Front' : 'Back'} placement`}>
-        {presets.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            role="radio"
-            aria-checked={design.placement.placement === p.id}
-            className="placement-card"
-            onClick={() => {
-              const before = useDesignStore.getState().design.brand.side
-              setPlacement(p.id)
-              setView(p.side)
-              announceBrandMove(before)
-            }}
-          >
-            <PlacementGlyph preset={p} brand={brandPlacement(garment, design.brand).center} />
-            <span className="placement-label">{p.label}</span>
-            <span className="placement-hint">{p.hint}</span>
-          </button>
-        ))}
+        {presets.map((p) => {
+          // Taking the mark's chest moves the mark across — unless another logo is already there.
+          const blocked = !canUsePlacement(design, layer.id, p.id)
+          return (
+            <button
+              key={p.id}
+              type="button"
+              role="radio"
+              aria-checked={layer.placement.placement === p.id}
+              aria-disabled={blocked || undefined}
+              className={`placement-card ${blocked ? 'is-blocked' : ''}`}
+              title={blocked ? 'The HONEG mark is here, and your other logo is on the opposite chest.' : undefined}
+              onClick={() => {
+                if (blocked) {
+                  useUiStore.getState().notify('info', `The HONEG mark needs a chest — your other logo is on the opposite one. Move that logo first.`)
+                  return
+                }
+                const before = useDesignStore.getState().design.brand.side
+                setPlacement(layer.id, p.id)
+                setView(p.side)
+                announceBrandMove(before)
+              }}
+            >
+              <PlacementGlyph preset={p} brand={brand} others={others.filter((o) => o.placement.side === p.side).map((o) => logoRect(design, o))} />
+              <span className="placement-label">{p.label}</span>
+              <span className="placement-hint">{blocked ? 'HONEG mark' : p.hint}</span>
+            </button>
+          )
+        })}
       </div>
     </div>
   )

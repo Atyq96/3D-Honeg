@@ -10,14 +10,14 @@ interface FlatPreviewProps {
   garment: GarmentDefinition
   side: Side
   colors: Design['colors']
-  logo?: Design['logo']
-  placement?: Design['placement']
+  /** Printed in order, so later logos sit on top. */
+  logos?: Design['logos']
   showPrintArea?: boolean
   /** Accessible label; omit for decorative thumbnails. */
   label?: string
   className?: string
-  /** Makes the logo clickable (the no-WebGL fallback uses it to select the logo). */
-  onLogoClick?: () => void
+  /** Makes logos clickable (the no-WebGL fallback uses it to select one). */
+  onLogoClick?: (id: string) => void
   /** All-over patterns per zone (same library and parameters as the 3D view). */
   patterns?: Design['patterns']
   /** HONEG chest mark; omit only for pure silhouettes. */
@@ -27,8 +27,8 @@ interface FlatPreviewProps {
 const path = (pts: V2[], close = true) =>
   pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(4)} ${(-p[1]).toFixed(4)}`).join(' ') + (close ? ' Z' : '')
 
-/** Flat technical sketch of the garment with live colours and logo placement (SVG, no WebGL needed). */
-export function FlatPreview({ garment, side, colors, logo, placement, showPrintArea, label, className, onLogoClick, patterns, brand }: FlatPreviewProps) {
+/** Flat technical sketch of the garment with live colours and logo placements (SVG, no WebGL needed). */
+export function FlatPreview({ garment, side, colors, logos = [], showPrintArea, label, className, onLogoClick, patterns, brand }: FlatPreviewProps) {
   const uid = useId().replace(/:/g, '')
   const flat = garment.flat[side]
   const all = [...garment.flat.front.body, ...garment.flat.back.body]
@@ -59,8 +59,6 @@ export function FlatPreview({ garment, side, colors, logo, placement, showPrintA
     )
   })
 
-  const preset = placement ? garment.placements.find((p) => p.id === placement.placement) : undefined
-  const showLogo = !!(logo && placement && preset && preset.side === side)
   const area = garment.printAreas[side]
 
   // HONEG mark (front only), recoloured with the same flood filter as a logo fill.
@@ -82,28 +80,31 @@ export function FlatPreview({ garment, side, colors, logo, placement, showPrintA
     )
   }
 
-  let logoEl = null
-  if (showLogo && logo && placement && preset) {
+  const logoEls = logos.map((layer, i) => {
+    const { asset, placement } = layer
+    const preset = garment.placements.find((p) => p.id === placement.placement)
+    if (!preset || preset.side !== side) return null
     const w = placement.widthCm / 100
-    const h = w * (logo.height / logo.width)
+    const h = w * (asset.height / asset.width)
     const cx = preset.anchor[0] + placement.offsetXCm / 100
     const cy = -(preset.anchor[1] + placement.offsetYCm / 100)
-    logoEl = (
+    return (
       <image
-        href={logo.dataUrl}
+        key={layer.id}
+        href={asset.dataUrl}
         x={cx - w / 2}
         y={cy - h / 2}
         width={w}
         height={h}
         preserveAspectRatio="none"
         opacity={placement.opacity}
-        filter={placement.tint ? `url(#tint-${uid})` : undefined}
+        filter={placement.tint ? `url(#tint-${uid}-${i})` : undefined}
         transform={`rotate(${placement.rotationDeg} ${cx} ${cy}) translate(${cx} ${cy}) scale(${placement.flipX ? -1 : 1} ${placement.flipY ? -1 : 1}) translate(${-cx} ${-cy})`}
-        onClick={onLogoClick}
+        onClick={onLogoClick ? () => onLogoClick(layer.id) : undefined}
         style={onLogoClick ? { cursor: 'pointer' } : undefined}
       />
     )
-  }
+  })
 
   return (
     <svg
@@ -118,12 +119,15 @@ export function FlatPreview({ garment, side, colors, logo, placement, showPrintA
         <clipPath id={`clip-${uid}`}>
           <path d={path(flat.body)} />
         </clipPath>
-        {placement?.tint && (
-          // Same as the 3D "Fill color": recolour every visible pixel, keep alpha.
-          <filter id={`tint-${uid}`} colorInterpolationFilters="sRGB">
-            <feFlood floodColor={placement.tint} />
-            <feComposite in2="SourceAlpha" operator="in" />
-          </filter>
+        {logos.map(
+          ({ placement }, i) =>
+            placement.tint && (
+              // Same as the 3D "Fill color": recolour every visible pixel, keep alpha.
+              <filter key={i} id={`tint-${uid}-${i}`} colorInterpolationFilters="sRGB">
+                <feFlood floodColor={placement.tint} />
+                <feComposite in2="SourceAlpha" operator="in" />
+              </filter>
+            ),
         )}
         {patternDefs}
         {brandInkColor && (
@@ -157,7 +161,7 @@ export function FlatPreview({ garment, side, colors, logo, placement, showPrintA
           />
         )}
         {brandEl}
-        {logoEl}
+        {logoEls}
       </g>
       {flat.sleeves.map((s, i) => (
         <path key={i} d={path(s)} fill="none" stroke="rgba(14,14,14,0.22)" strokeWidth={0.0022} strokeLinejoin="round" />

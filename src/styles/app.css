@@ -987,66 +987,9 @@ code {
   color: var(--amber);
 }
 
-.logo-card {
-  display: grid;
-  grid-template-columns: 92px minmax(0, 1fr);
-  gap: 14px;
-  padding: 12px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-}
-.logo-thumb {
-  width: 92px;
-  height: 92px;
-  border-radius: 10px;
-  display: grid;
-  place-items: center;
-  padding: 8px;
-  box-shadow: inset 0 0 0 1px var(--line);
-}
-.logo-thumb img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-}
-.logo-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-.logo-meta strong {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.logo-meta > span {
-  font-size: 12.5px;
-  color: var(--muted);
-}
-.logo-meta .logo-warning {
-  display: flex;
-  gap: 6px;
-  align-items: flex-start;
-  margin-top: 4px;
-  padding: 6px 8px;
-  border-radius: 8px;
-  background: var(--amber-soft);
-  color: var(--amber-ink);
-  font-weight: 600;
-}
 .logo-warning svg {
   flex: none;
   margin-top: 2px;
-}
-.logo-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
-}
-.logo-card-error {
-  grid-column: 1 / -1;
 }
 
 .placement {
@@ -2327,4 +2270,161 @@ code {
 }
 .placement-glyph-brand {
   fill: var(--subtle);
+}
+
+/* Logos & photos list (up to three layers) */
+.logo-library {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-radius: var(--radius-lg);
+  transition: box-shadow 0.15s var(--ease);
+}
+.logo-library.is-dragging {
+  box-shadow: 0 0 0 2px var(--amber);
+}
+.logo-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.logo-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease);
+}
+.logo-item:hover {
+  border-color: var(--line-strong);
+}
+.logo-item.is-active {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 1px var(--ink);
+}
+.logo-item-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  border-radius: var(--radius);
+}
+.logo-item-thumb {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  padding: 4px;
+  border-radius: 9px;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.logo-item-thumb img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.logo-item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.logo-item-text strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13.5px;
+}
+.logo-item-text span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--muted);
+}
+.logo-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.logo-item-actions .icon-btn:disabled {
+  opacity: 0.35;
+}
+.logo-item .logo-warning {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  margin: 2px 0 0;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--amber-soft);
+  color: var(--amber-ink);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.logo-add {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 46px;
+  padding: 0 14px;
+  border: 1.5px dashed var(--line-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+  font-weight: 650;
+  transition: border-color 0.15s var(--ease), background-color 0.15s var(--ease);
+}
+.logo-add:hover:not(:disabled),
+.logo-library.is-dragging .logo-add {
+  border-color: var(--amber);
+  background: var(--amber-soft);
+}
+.logo-add-count {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.logo-limit {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.placement-card.is-blocked {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.placement-card.is-blocked:hover {
+  border-color: var(--line);
+}
+.placement-glyph-other {
+  fill: none;
+  stroke: var(--graphite);
+  stroke-width: 0.7;
+  stroke-dasharray: 1.2 0.8;
+}
+.summary-logo-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.summary dd.summary-stack .summary-logo-line + .summary-logo-line {
+  margin-top: 4px;
 }

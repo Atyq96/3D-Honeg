@@ -29,7 +29,7 @@ export function CustomizerSidebar() {
     product: true,
     color: design.colors.body !== DEFAULT_BODY_COLOR || design.colors.sleeves !== null || design.colors.collar !== null,
     pattern: Object.values(design.patterns).some(Boolean),
-    logo: !!design.logo,
+    logo: design.logos.length > 0,
     review: false,
   }
 

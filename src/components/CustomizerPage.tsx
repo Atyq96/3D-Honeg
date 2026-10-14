@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
-import { makeRoomForLogo, normalizePlacement, useDesignStore } from '../state/designStore'
+import { fixDesign, useDesignStore } from '../state/designStore'
+import { getActiveLogo } from '../state/useActiveLogo'
 import { useUiStore } from '../state/uiStore'
 import { loadSavedDesign } from '../lib/persistence'
 import { TopBar } from './layout/TopBar'
@@ -31,15 +32,16 @@ function useUndoShortcuts() {
 }
 
 /**
- * Logo shortcuts while it's selected (from the OpenMerch editor): arrows nudge
+ * Shortcuts for the selected logo (from the OpenMerch editor): arrows nudge
  * 2 mm (Shift: 1 cm), Delete/Backspace removes it, Escape deselects.
  */
 function useLogoShortcuts() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const ui = useUiStore.getState()
-      const { design, updateTransform, setLogo } = useDesignStore.getState()
-      if (!ui.logoSelected || !design.logo || e.ctrlKey || e.metaKey || e.altKey) return
+      const { updateTransform, removeLogo } = useDesignStore.getState()
+      const layer = getActiveLogo()
+      if (!ui.logoSelected || !layer || e.ctrlKey || e.metaKey || e.altKey) return
       const el = document.activeElement as HTMLElement | null
       const free = !el || el === document.body || !!el.closest('.stage-canvas') || (el.tagName === 'BUTTON' && !!el.closest('.logo-toolbar'))
       if (!free) return
@@ -49,17 +51,17 @@ function useLogoShortcuts() {
       }
       if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault()
-        setLogo(null)
+        removeLogo(layer.id)
         ui.selectLogo(false)
-        ui.notify('info', 'Logo removed. Undo to bring it back.')
+        ui.notify('info', `Removed “${layer.asset.name}”. Undo to bring it back.`)
         return
       }
       const step = e.shiftKey ? 1 : 0.2
       const delta = ({ ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, step], ArrowDown: [0, -step] } as Record<string, [number, number]>)[e.key]
-      if (!delta || design.placement.locked) return
+      if (!delta || layer.placement.locked) return
       e.preventDefault()
-      const p = design.placement
-      updateTransform({ offsetXCm: p.offsetXCm + delta[0], offsetYCm: p.offsetYCm + delta[1] }, { coalesce: 'nudge' })
+      const p = layer.placement
+      updateTransform(layer.id, { offsetXCm: p.offsetXCm + delta[0], offsetYCm: p.offsetYCm + delta[1] }, { coalesce: 'nudge' })
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -75,9 +77,9 @@ function useRestoreSavedDesign() {
     restoreAttempted = true
     const saved = loadSavedDesign()
     if (!saved) return
-    const fixed = makeRoomForLogo(saved)
-    useDesignStore.setState({ design: { ...fixed, placement: normalizePlacement(fixed, fixed.placement) }, past: [], future: [] })
-    useUiStore.getState().setView(saved.placement.side)
+    const design = fixDesign(saved)
+    useDesignStore.setState({ design, past: [], future: [] })
+    useUiStore.getState().setView(design.logos[design.logos.length - 1]?.placement.side ?? 'front')
     useUiStore.getState().notify('info', 'Welcome back — your saved design was restored.')
   }, [])
 }

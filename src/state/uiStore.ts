@@ -20,7 +20,9 @@ interface UiStore {
   patternZone: RegionId
   viewerStatus: ViewerStatus
   viewerError: string | null
-  /** The logo is selected on the garment: shows the transform gizmo and contextual toolbar. */
+  /** The logo the sidebar, toolbar and gizmo edit (falls back to the newest logo when unset or removed). */
+  activeLogoId: string | null
+  /** The active logo is selected on the garment: shows the transform gizmo and contextual toolbar. */
   logoSelected: boolean
   /** Colour regions actually present in the loaded 3D model (null until a model loads). */
   modelRegions: RegionId[] | null
@@ -31,6 +33,8 @@ interface UiStore {
   setColorZone: (zone: RegionId) => void
   setPatternZone: (zone: RegionId) => void
   selectLogo: (selected: boolean) => void
+  /** Makes a logo the active one; `select` also shows its handles on the garment. */
+  setActiveLogo: (id: string | null, select?: boolean) => void
   setViewerStatus: (status: ViewerStatus, error?: string | null) => void
   notify: (kind: Toast['kind'], message: string) => void
   dismiss: (id: number) => void
@@ -47,6 +51,7 @@ export const useUiStore = create<UiStore>()((set, get) => ({
   viewerStatus: 'loading',
   viewerError: null,
   modelRegions: null,
+  activeLogoId: null,
   logoSelected: false,
   toasts: [],
 
@@ -56,6 +61,7 @@ export const useUiStore = create<UiStore>()((set, get) => ({
   setColorZone: (colorZone) => set({ colorZone }),
   setPatternZone: (patternZone) => set({ patternZone }),
   selectLogo: (logoSelected) => set({ logoSelected }),
+  setActiveLogo: (activeLogoId, select = false) => set((s) => ({ activeLogoId, logoSelected: select || s.logoSelected })),
   setViewerStatus: (viewerStatus, viewerError = null) => set({ viewerStatus, viewerError }),
   notify: (kind, message) => {
     const id = ++toastId

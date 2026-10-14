@@ -35,6 +35,19 @@ export interface LogoPlacement {
   locked: boolean
 }
 
+/** Most logos/photos one garment can carry. */
+export const MAX_LOGOS = 3
+
+/** One uploaded logo or photo and how it prints. Array order is stacking order: later layers print on top. */
+export interface LogoLayer {
+  id: string
+  asset: LogoAsset
+  placement: LogoPlacement
+}
+
+let logoSeq = 0
+export const newLogoId = () => `logo-${Date.now().toString(36)}-${(++logoSeq).toString(36)}`
+
 export interface Design {
   version: 1
   productId: string
@@ -44,8 +57,8 @@ export interface Design {
     sleeves: string | null
     collar: string | null
   }
-  logo: LogoAsset | null
-  placement: LogoPlacement
+  /** Up to MAX_LOGOS uploaded logos or photos. */
+  logos: LogoLayer[]
   /** All-over print per colour zone (null = plain fabric). */
   patterns: Record<RegionId, PatternFill | null>
   /** The HONEG mark — always printed; only its chest, style and colour are chosen. */
@@ -119,8 +132,7 @@ export function createDefaultDesign(): Design {
     version: 1,
     productId: DEFAULT_GARMENT_ID,
     colors: { body: DEFAULT_BODY_COLOR, sleeves: null, collar: null },
-    logo: null,
-    placement: { ...DEFAULT_PLACEMENT },
+    logos: [],
     patterns: { ...NO_PATTERNS },
     brand: { ...DEFAULT_BRAND },
   }
@@ -131,8 +143,8 @@ export function resolvedColor(colors: Design['colors'], region: RegionId): strin
   return colors[region] ?? colors.body
 }
 
-export function logoAspect(design: Design): number {
-  return design.logo ? design.logo.width / design.logo.height : 1
+export function logoAspect(asset: LogoAsset): number {
+  return asset.width / asset.height
 }
 
 const PLACEMENTS: PlacementId[] = ['leftChest', 'centerChest', 'rightChest', 'upperBack', 'centerBack']
@@ -161,12 +173,13 @@ export function parseDesign(raw: unknown): Design {
     return hex ?? fail(`invalid ${name} color.`)
   }
 
-  let logo: LogoAsset | null = null
-  if (d.logo) {
-    const l = d.logo as Record<string, unknown>
+  const num = (v: unknown, fallback: number) => (typeof v === 'number' && Number.isFinite(v) ? v : fallback)
+
+  const asset = (raw: unknown): LogoAsset => {
+    const l = (raw ?? {}) as Record<string, unknown>
     if (typeof l.dataUrl !== 'string' || !/^data:image\/(png|jpeg);base64,/.test(l.dataUrl)) fail('logo must be an embedded PNG or JPEG image.')
     if (typeof l.width !== 'number' || typeof l.height !== 'number' || l.width <= 0 || l.height <= 0) fail('logo size is missing.')
-    logo = {
+    return {
       dataUrl: l.dataUrl as string,
       name: typeof l.name === 'string' ? l.name.slice(0, 120) : 'logo.png',
       width: l.width as number,
@@ -176,22 +189,37 @@ export function parseDesign(raw: unknown): Design {
     }
   }
 
-  const p = (d.placement ?? {}) as Record<string, unknown>
-  const num = (v: unknown, fallback: number) => (typeof v === 'number' && Number.isFinite(v) ? v : fallback)
-  const placement: LogoPlacement = {
-    side: p.side === 'back' ? 'back' : 'front',
-    placement: PLACEMENTS.includes(p.placement as PlacementId) ? (p.placement as PlacementId) : DEFAULT_PLACEMENT.placement,
-    widthCm: num(p.widthCm, DEFAULT_PLACEMENT.widthCm),
-    rotationDeg: num(p.rotationDeg, 0),
-    offsetXCm: num(p.offsetXCm, 0),
-    offsetYCm: num(p.offsetYCm, 0),
-    // Appearance fields were added later; older exports simply get the defaults.
-    flipX: p.flipX === true,
-    flipY: p.flipY === true,
-    opacity: Math.min(1, Math.max(0.1, num(p.opacity, 1))),
-    tint: typeof p.tint === 'string' ? normalizeHex(p.tint) : null,
-    locked: p.locked === true,
+  const placement = (raw: unknown): LogoPlacement => {
+    const p = (raw ?? {}) as Record<string, unknown>
+    return {
+      side: p.side === 'back' ? 'back' : 'front',
+      placement: PLACEMENTS.includes(p.placement as PlacementId) ? (p.placement as PlacementId) : DEFAULT_PLACEMENT.placement,
+      widthCm: num(p.widthCm, DEFAULT_PLACEMENT.widthCm),
+      rotationDeg: num(p.rotationDeg, 0),
+      offsetXCm: num(p.offsetXCm, 0),
+      offsetYCm: num(p.offsetYCm, 0),
+      // Appearance fields were added later; older exports simply get the defaults.
+      flipX: p.flipX === true,
+      flipY: p.flipY === true,
+      opacity: Math.min(1, Math.max(0.1, num(p.opacity, 1))),
+      tint: typeof p.tint === 'string' ? normalizeHex(p.tint) : null,
+      locked: p.locked === true,
+    }
   }
+
+  // Exports from before multiple logos carry a single `logo` + `placement`.
+  const rawLogos: Record<string, unknown>[] = Array.isArray(d.logos)
+    ? d.logos.map((l) => (l ?? {}) as Record<string, unknown>)
+    : d.logo
+      ? [{ asset: d.logo, placement: d.placement }]
+      : []
+  const ids = new Set<string>()
+  const logos: LogoLayer[] = rawLogos.slice(0, MAX_LOGOS).map((l) => {
+    let id = typeof l.id === 'string' && /^[\w-]{1,64}$/.test(l.id) ? l.id : newLogoId()
+    if (ids.has(id)) id = newLogoId()
+    ids.add(id)
+    return { id, asset: asset(l.asset), placement: placement(l.placement) }
+  })
 
   // Patterns were added later too; unknown pattern ids are dropped rather than rejected.
   const rawPatterns = (d.patterns ?? {}) as Record<string, unknown>
@@ -214,8 +242,7 @@ export function parseDesign(raw: unknown): Design {
     version: 1,
     productId,
     colors: { body: body as string, sleeves: optional(c.sleeves, 'sleeve'), collar: optional(c.collar, 'collar') },
-    logo,
-    placement,
+    logos,
     patterns: { body: pattern(rawPatterns.body), sleeves: pattern(rawPatterns.sleeves), collar: pattern(rawPatterns.collar) },
     brand: parseBrand(d.brand),
   }

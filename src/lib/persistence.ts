@@ -4,14 +4,14 @@ const STORAGE_KEY = 'honeg.customizer.design.v1'
 
 export type SaveResult = { ok: true; withoutLogo?: boolean } | { ok: false; reason: string }
 
-/** Saves to localStorage. If the logo makes it exceed the quota, saves without it and says so. */
+/** Saves to localStorage. If the logos make it exceed the quota, saves without them and says so. */
 export function saveDesignLocally(design: Design): SaveResult {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(design))
     return { ok: true }
   } catch {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...design, logo: null }))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...design, logos: [] }))
       return { ok: true, withoutLogo: true }
     } catch {
       return { ok: false, reason: "Your browser blocked local storage, so the design couldn't be saved. Use Export design instead." }

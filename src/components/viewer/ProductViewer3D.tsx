@@ -35,7 +35,7 @@ export function ProductViewer3D() {
   const viewerError = useUiStore((s) => s.viewerError)
   const setViewerStatus = useUiStore((s) => s.setViewerStatus)
   const logoSelected = useUiStore((s) => s.logoSelected)
-  const hasLogo = useDesignStore((s) => !!s.design.logo)
+  const hasLogo = useDesignStore((s) => s.design.logos.length > 0)
 
   useEffect(() => {
     if (!supported) setViewerStatus('unsupported')
@@ -106,11 +106,10 @@ function FallbackPreview({ reason, onRetry }: { reason: string | null; onRetry?:
         colors={design.colors}
         patterns={design.patterns}
         brand={design.brand}
-        logo={design.logo}
-        placement={design.placement}
+        logos={design.logos}
         label={`${side === 'front' ? 'Front' : 'Back'} flat preview of your design`}
-        onLogoClick={() => {
-          useUiStore.getState().selectLogo(true)
+        onLogoClick={(id) => {
+          useUiStore.getState().setActiveLogo(id, true)
           useUiStore.getState().setStep('logo')
         }}
       />

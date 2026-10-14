@@ -5,9 +5,9 @@ import { fabricTextures } from './fabric'
 /**
  * Material for anything printed on the fabric (customer logo, HONEG mark):
  * lit like ink on cloth, with the knit grain showing through, drawn just in
- * front of the garment surface to avoid z-fighting.
+ * front of the garment surface to avoid z-fighting. `layer` orders overlapping prints.
  */
-export function PrintMaterial({ map, width, height, opacity = 1 }: { map: Texture; width: number; height: number; opacity?: number }) {
+export function PrintMaterial({ map, width, height, opacity = 1, layer = 0 }: { map: Texture; width: number; height: number; opacity?: number; layer?: number }) {
   // Fabric grain in the decal's own UV space (one jersey tile ≈ 2.4 cm).
   const grain = useMemo(() => {
     const t = fabricTextures().jersey.clone()
@@ -29,8 +29,9 @@ export function PrintMaterial({ map, width, height, opacity = 1 }: { map: Textur
       alphaTest={0.02}
       depthWrite={false}
       polygonOffset
-      polygonOffsetFactor={-4}
-      polygonOffsetUnits={-4}
+      // Stacked logos: each layer is pulled a little further forward than the one below it.
+      polygonOffsetFactor={-4 - layer}
+      polygonOffsetUnits={-4 - layer * 2}
       roughness={0.68}
       metalness={0}
       envMapIntensity={0.8}

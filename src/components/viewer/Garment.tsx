@@ -9,7 +9,8 @@ import { useUiStore } from '../../state/uiStore'
 import { applyFabricColor, createFabricMaterial, disposeFabricMaterial } from './fabric'
 import { buildProjectedDecal } from './decal'
 import { useGltfModel } from './garmentModel'
-import { LogoLayer } from './LogoLayer'
+import { LogoLayers } from './LogoLayer'
+import { useActiveLogo } from '../../state/useActiveLogo'
 import { BrandMark } from './BrandMark'
 import { placePattern, usePatternTextures } from './usePatternTextures'
 import { CameraRig } from './CameraRig'
@@ -43,7 +44,7 @@ function GarmentStage({ def, data }: { def: GarmentDefinition; data: GarmentMode
       <CameraRig bounds={data.bounds} />
       <GarmentMeshes data={data} uvScale={def.source.uvScale ?? 1} />
       <BrandMark def={def} targets={targets} />
-      <LogoLayer def={def} targets={targets} />
+      <LogoLayers def={def} targets={targets} />
       <PrintAreaOverlay def={def} targets={targets} />
       <ContactShadows
         key={def.id}
@@ -141,7 +142,8 @@ function printAreaTexture(aspect: number) {
 
 function PrintAreaOverlay({ def, targets }: { def: GarmentDefinition; targets: BufferGeometry[] }) {
   const visible = useUiStore((s) => s.step === 'logo' || s.logoSelected)
-  const side = useDesignStore((s) => s.design.placement.side)
+  // The frame follows the logo being edited.
+  const side = useActiveLogo()?.placement.side ?? 'front'
   const area = def.printAreas[side]
   const width = area.xMax - area.xMin
   const height = area.yMax - area.yMin

@@ -1,11 +1,15 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { useDesignStore } from './designStore'
-import { createDefaultDesign, parseDesign, type LogoAsset } from './design'
+import { logoRect, useDesignStore } from './designStore'
+import { createDefaultDesign, MAX_LOGOS, parseDesign, type LogoAsset } from './design'
 import { DEFAULT_GARMENT_ID, getGarment } from '../garments/catalog'
 import { brandPlacement } from '../garments/brand'
 
 const logo: LogoAsset = { dataUrl: 'data:image/png;base64,AAAA', name: 'logo.png', width: 400, height: 200, bytes: 1234, mime: 'image/png' }
 const store = () => useDesignStore.getState()
+/** Adds a logo and returns its id. */
+const add = (asset: LogoAsset = logo) => store().addLogo(asset)!
+const first = () => store().design.logos[0]
+const placement = () => first().placement
 
 beforeEach(() => {
   useDesignStore.setState({ design: createDefaultDesign(), past: [], future: [], lastCommit: null })
@@ -22,12 +26,12 @@ describe('design store', () => {
   })
 
   it('coalesces continuous slider updates into one undo step', () => {
-    store().setLogo(logo)
+    const id = add()
     const before = store().past.length
-    for (const w of [9, 10, 11, 12]) store().updateTransform({ widthCm: w }, { coalesce: 'size' })
+    for (const w of [9, 10, 11, 12]) store().updateTransform(id, { widthCm: w }, { coalesce: 'size' })
     expect(store().past.length).toBe(before + 1)
     store().undo()
-    expect(store().design.placement.widthCm).toBe(8)
+    expect(placement().widthCm).toBe(8)
   })
 
   it('ignores no-op commits', () => {
@@ -36,16 +40,15 @@ describe('design store', () => {
   })
 
   it('switching side picks a preset on that side', () => {
-    store().setSide('back')
-    const p = store().design.placement
+    store().setSide(add(), 'back')
+    const p = placement()
     expect(p.side).toBe('back')
     expect(getGarment(store().design.productId).placements.find((x) => x.id === p.placement)?.side).toBe('back')
   })
 
   it('clamps transforms to the printable area', () => {
-    store().setLogo(logo)
-    store().updateTransform({ offsetXCm: 500, widthCm: 500 })
-    const p = store().design.placement
+    store().updateTransform(add(), { offsetXCm: 500, widthCm: 500 })
+    const p = placement()
     const g = getGarment(store().design.productId)
     const preset = g.placements.find((x) => x.id === p.placement)!
     const area = g.printAreas[preset.side]
@@ -55,46 +58,60 @@ describe('design store', () => {
   })
 
   it('reset all transforms keeps opacity, fill and lock (OpenMerch resetLayer semantics)', () => {
-    store().setLogo(logo)
-    store().updateTransform({ rotationDeg: 30, flipX: true, opacity: 0.6, tint: '#FFFFFF', locked: true, widthCm: 12 })
-    store().resetTransform()
-    const p = store().design.placement
+    const id = add()
+    store().updateTransform(id, { rotationDeg: 30, flipX: true, opacity: 0.6, tint: '#FFFFFF', locked: true, widthCm: 12 })
+    store().resetTransform(id)
+    const p = placement()
     expect([p.rotationDeg, p.flipX, p.widthCm]).toEqual([0, false, 8])
     expect([p.opacity, p.tint, p.locked]).toEqual([0.6, '#FFFFFF', true])
   })
 
   it('changing placement keeps rotation, flips and appearance', () => {
-    store().setLogo(logo)
-    store().updateTransform({ rotationDeg: 15, flipY: true, opacity: 0.5 })
-    store().setPlacement('centerChest')
-    const p = store().design.placement
+    const id = add()
+    store().updateTransform(id, { rotationDeg: 15, flipY: true, opacity: 0.5 })
+    store().setPlacement(id, 'centerChest')
+    const p = placement()
     expect([p.placement, p.rotationDeg, p.flipY, p.opacity]).toEqual(['centerChest', 15, true, 0.5])
   })
 
   it('resetAll is undoable', () => {
     store().setColor('body', '#ED1C24')
-    store().setLogo(logo)
+    add()
     store().resetAll()
-    expect(store().design.logo).toBeNull()
+    expect(store().design.logos).toEqual([])
     store().undo()
-    expect(store().design.logo).toBe(logo)
+    expect(first().asset).toBe(logo)
     expect(store().design.colors.body).toBe('#ED1C24')
   })
 })
 
 describe('parseDesign', () => {
   it('round-trips an exported design', () => {
-    const d = { ...createDefaultDesign(), logo, colors: { body: '#fa0', sleeves: null, collar: '#003a96' } }
-    const parsed = parseDesign(JSON.parse(JSON.stringify(d)))
+    add()
+    store().setColor('body', '#fa0')
+    store().setColor('collar', '#003a96')
+    const parsed = parseDesign(JSON.parse(JSON.stringify(store().design)))
     expect(parsed.colors).toEqual({ body: '#FFAA00', sleeves: null, collar: '#003A96' })
-    expect(parsed.logo?.width).toBe(400)
+    expect(parsed.logos).toHaveLength(1)
+    expect(parsed.logos[0].asset.width).toBe(400)
+    expect(parsed.logos[0].id).toBe(first().id)
   })
 
-  it('accepts older exports without appearance fields, and unknown products', () => {
-    const old = { version: 1, productId: 'classic', colors: { body: '#000' }, placement: { side: 'front', placement: 'leftChest', widthCm: 9 } }
+  it('accepts older single-logo exports without appearance fields, and unknown products', () => {
+    const old = { version: 1, productId: 'classic', colors: { body: '#000' }, logo, placement: { side: 'front', placement: 'leftChest', widthCm: 9 } }
     const parsed = parseDesign(old)
     expect(parsed.productId).toBe(DEFAULT_GARMENT_ID)
-    expect(parsed.placement).toMatchObject({ widthCm: 9, flipX: false, flipY: false, opacity: 1, tint: null, locked: false })
+    expect(parsed.logos).toHaveLength(1)
+    expect(parsed.logos[0].placement).toMatchObject({ widthCm: 9, flipX: false, flipY: false, opacity: 1, tint: null, locked: false })
+    // A placement without a logo (the old default) adds nothing.
+    expect(parseDesign({ ...old, logo: null }).logos).toEqual([])
+  })
+
+  it('keeps at most MAX_LOGOS logos and gives duplicate ids new ones', () => {
+    const layer = { id: 'same', asset: logo, placement: {} }
+    const parsed = parseDesign({ version: 1, productId: 'raglan', colors: { body: '#000' }, logos: [layer, layer, layer, layer] })
+    expect(parsed.logos).toHaveLength(MAX_LOGOS)
+    expect(new Set(parsed.logos.map((l) => l.id)).size).toBe(MAX_LOGOS)
   })
 
   it.each([
@@ -103,6 +120,7 @@ describe('parseDesign', () => {
     [{ version: 1 }, /missing product/],
     [{ version: 1, productId: 'raglan', colors: { body: 'blue' } }, /body color/],
     [{ version: 1, productId: 'raglan', colors: { body: '#000' }, logo: { dataUrl: 'javascript:alert(1)', width: 1, height: 1 } }, /PNG or JPEG/],
+    [{ version: 1, productId: 'raglan', colors: { body: '#000' }, logos: [{ asset: { dataUrl: 'data:text/html;base64,AA', width: 1, height: 1 } }] }, /PNG or JPEG/],
   ])('rejects invalid input %#', (input, message) => {
     expect(() => parseDesign(input)).toThrow(message)
   })
@@ -149,58 +167,134 @@ describe('patterns', () => {
 
 describe('HONEG mark', () => {
   const rect = () => brandPlacement(getGarment(store().design.productId), store().design.brand).rect
-  const logoBox = () => {
-    const d = store().design
-    const g = getGarment(d.productId)
-    const preset = g.placements.find((p) => p.id === d.placement.placement)!
-    const w = d.placement.widthCm / 100
-    const h = w / (d.logo ? d.logo.width / d.logo.height : 1)
-    const cx = preset.anchor[0] + d.placement.offsetXCm / 100
-    const cy = preset.anchor[1] + d.placement.offsetYCm / 100
-    return { xMin: cx - w / 2, xMax: cx + w / 2, yMin: cy - h / 2, yMax: cy + h / 2 }
-  }
+  const logoBox = (i = 0) => logoRect(store().design, store().design.logos[i])
   const overlaps = (a: ReturnType<typeof logoBox>, b: ReturnType<typeof rect>) => a.xMax > b.xMin && a.xMin < b.xMax && a.yMax > b.yMin && a.yMin < b.yMax
 
-  it('defaults to the chest opposite the default left-chest logo', () => {
+  it('defaults to the chest opposite where the first logo goes', () => {
     expect(store().design.brand).toEqual({ side: 'right', style: 'logo', color: 'auto' })
-    expect(store().design.placement.placement).toBe('leftChest')
+    add()
+    expect(placement().placement).toBe('leftChest')
   })
 
-  it('moves to the free chest when the logo takes its side', () => {
-    store().setLogo(logo)
-    store().setPlacement('rightChest')
+  it('moves to the free chest when a logo takes its side', () => {
+    store().setPlacement(add(), 'rightChest')
     expect(store().design.brand.side).toBe('left')
     expect(overlaps(logoBox(), rect())).toBe(false)
   })
 
   it('pushes a chest logo across when the mark takes its side, keeping the logo size', () => {
-    store().setLogo(logo)
-    store().updateTransform({ widthCm: 9.5 })
+    store().updateTransform(add(), { widthCm: 9.5 })
     store().setBrand({ side: 'left' })
-    expect(store().design.placement.placement).toBe('rightChest')
-    expect(store().design.placement.widthCm).toBe(9.5)
+    expect(placement().placement).toBe('rightChest')
+    expect(placement().widthCm).toBe(9.5)
     store().undo()
     expect(store().design.brand.side).toBe('right')
-    expect(store().design.placement.placement).toBe('leftChest')
+    expect(placement().placement).toBe('leftChest')
   })
 
   it('keeps large front prints clear of the mark', () => {
-    store().setLogo(logo)
-    store().setPlacement('centerChest')
-    store().updateTransform({ widthCm: 30, offsetYCm: 20 })
+    const id = add()
+    store().setPlacement(id, 'centerChest')
+    store().updateTransform(id, { widthCm: 30, offsetYCm: 20 })
     expect(overlaps(logoBox(), rect())).toBe(false)
   })
 
   it('back prints are unaffected', () => {
-    store().setLogo(logo)
-    store().setPlacement('upperBack')
+    store().setPlacement(add(), 'upperBack')
     expect(store().design.brand.side).toBe('right')
   })
 
   it('cannot be removed by importing an old design, and conflicts are resolved', () => {
-    const old = parseDesign({ version: 1, productId: 'raglan', colors: { body: '#000' }, placement: { side: 'front', placement: 'rightChest', widthCm: 8 } })
+    const old = parseDesign({ version: 1, productId: 'raglan', colors: { body: '#000' }, logo, placement: { side: 'front', placement: 'rightChest', widthCm: 8 } })
     expect(old.brand).toEqual({ side: 'right', style: 'logo', color: 'auto' })
     store().replaceDesign(old)
     expect(store().design.brand.side).toBe('left')
+  })
+
+  it("won't let a second logo take the mark's chest when the other chest is taken", () => {
+    add() // left chest
+    const second = add()
+    store().setPlacement(second, 'rightChest')
+    expect(store().design.logos.find((l) => l.id === second)!.placement.placement).not.toBe('rightChest')
+    expect(store().design.brand.side).toBe('right')
+  })
+
+  it('moves every chest logo on its new side across', () => {
+    const a = add()
+    const b = add()
+    store().setPlacement(b, 'leftChest')
+    store().setBrand({ side: 'left' })
+    expect(store().design.logos.map((l) => l.placement.placement)).toEqual(['rightChest', 'rightChest'])
+    expect(store().design.logos.map((l) => l.id)).toEqual([a, b])
+  })
+
+  it('hand-edited files with logos on both chests move the conflicting one to the centre', () => {
+    const both = parseDesign({
+      version: 1,
+      productId: 'raglan',
+      colors: { body: '#000' },
+      logos: [
+        { asset: logo, placement: { placement: 'leftChest' } },
+        { asset: logo, placement: { placement: 'rightChest' } },
+      ],
+    })
+    store().replaceDesign(both)
+    expect(store().design.logos.map((l) => l.placement.placement)).toEqual(['leftChest', 'centerChest'])
+    expect(store().design.logos.every((_, i) => !overlaps(logoBox(i), rect()))).toBe(true)
+  })
+})
+
+describe('multiple logos', () => {
+  const square: LogoAsset = { ...logo, name: 'photo.jpg', width: 300, height: 300 }
+  const box = (i: number) => logoRect(store().design, store().design.logos[i])
+  const overlaps = (a: ReturnType<typeof box>, b: ReturnType<typeof box>) => a.xMax > b.xMin && a.xMin < b.xMax && a.yMax > b.yMin && a.yMin < b.yMax
+
+  it('adds up to MAX_LOGOS, each on its own print position', () => {
+    const ids = [add(), add(square), add()]
+    expect(new Set(ids).size).toBe(MAX_LOGOS)
+    expect(store().addLogo(logo)).toBeNull()
+    const used = store().design.logos.map((l) => l.placement.placement)
+    expect(new Set(used).size).toBe(MAX_LOGOS)
+    // Never on the HONEG mark's chest.
+    expect(used).not.toContain('rightChest')
+  })
+
+  it('places a new logo where it does not cover the others', () => {
+    add(square)
+    add(square)
+    const [a, b] = store().design.logos
+    expect(a.placement.side === b.placement.side && overlaps(box(0), box(1))).toBe(false)
+  })
+
+  it('edits, removes and reorders one logo without touching the others', () => {
+    const a = add()
+    const b = add(square)
+    store().updateTransform(b, { widthCm: 12 })
+    expect(store().design.logos.find((l) => l.id === a)!.placement.widthCm).toBe(8)
+    store().moveLogo(b, -1)
+    expect(store().design.logos.map((l) => l.id)).toEqual([b, a])
+    store().moveLogo(b, -1) // already at the bottom
+    expect(store().design.logos.map((l) => l.id)).toEqual([b, a])
+    store().removeLogo(b)
+    expect(store().design.logos.map((l) => l.id)).toEqual([a])
+    store().undo()
+    expect(store().design.logos.map((l) => l.id)).toEqual([b, a])
+  })
+
+  it('replacing an image keeps its position and re-clamps for the new shape', () => {
+    const id = add()
+    store().updateTransform(id, { offsetYCm: 1, rotationDeg: 10 })
+    store().replaceLogo(id, square)
+    expect(first().asset).toBe(square)
+    expect(placement()).toMatchObject({ placement: 'leftChest', rotationDeg: 10 })
+  })
+
+  it('keeps quick slider edits on two logos as separate undo steps', () => {
+    const a = add()
+    const b = add(square)
+    const before = store().past.length
+    store().updateTransform(a, { widthCm: 9 }, { coalesce: 'size' })
+    store().updateTransform(b, { widthCm: 9 }, { coalesce: 'size' })
+    expect(store().past.length).toBe(before + 2)
   })
 })

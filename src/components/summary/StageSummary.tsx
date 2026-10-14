@@ -7,8 +7,11 @@ import { isLight } from '../../lib/color'
 export function StageSummary() {
   const design = useDesignStore((s) => s.design)
   const garment = getGarment(design.productId)
-  const only = design.logos.length === 1 ? design.logos[0] : null
+  const images = design.logos.filter((l) => !l.text)
+  const texts = design.logos.length - images.length
+  const only = images.length === 1 && !texts ? images[0] : null
   const preset = only && garment.placements.find((p) => p.id === only.placement.placement)
+  const prints = [images.length && `${images.length} logo${images.length > 1 ? 's' : ''}`, texts && `${texts} text`].filter(Boolean).join(' · ')
   const body = design.colors.body
   return (
     <div className="stage-summary" aria-label="Current design">
@@ -22,7 +25,7 @@ export function StageSummary() {
       {design.logos.length > 0 && (
         <>
           <span className="stage-summary-sep" aria-hidden />
-          <span>{preset ? `Logo · ${preset.label}` : `${design.logos.length} logos`}</span>
+          <span>{preset ? `Logo · ${preset.label}` : prints}</span>
         </>
       )}
     </div>

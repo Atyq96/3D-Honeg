@@ -10,8 +10,8 @@ import { BrandMarkControls } from '../logo/BrandMarkControls'
 import { Section } from './Section'
 
 export function LogoStep() {
-  const count = useDesignStore((s) => s.design.logos.length)
-  const active = useActiveLogo()
+  const count = useDesignStore((s) => s.design.logos.filter((l) => !l.text).length)
+  const active = useActiveLogo('image')
   const flatOnly = useUiStore((s) => s.viewerStatus === 'unsupported' || s.viewerStatus === 'error')
   // With several logos, say which one the placement and sliders below apply to.
   const editing = count > 1 && active ? `Editing “${active.asset.name}”. ` : ''
@@ -26,7 +26,7 @@ export function LogoStep() {
       {active && (
         <>
           <Section title="Placement" description={`${editing}Pick a side, then a print position. The dashed frame on the shirt shows the printable area.`}>
-            <PlacementPicker />
+            <PlacementPicker layer={active} />
           </Section>
           <Section title="Adjust" description={editing || undefined}>
             {!flatOnly && (
@@ -39,11 +39,11 @@ export function LogoStep() {
                 </span>
               </p>
             )}
-            <LogoTransformControls />
+            <LogoTransformControls layer={active} />
           </Section>
         </>
       )}
-      <Section title="HONEG mark" description="Every HONEG garment carries the brand mark, like a sportswear maker's logo. Choose the chest it sits on — chest logos take the other side.">
+      <Section title="HONEG mark" description="Every HONEG garment carries the brand mark, like a sportswear maker's logo. Choose the chest it sits on — chest prints take the other side.">
         <BrandMarkControls />
       </Section>
     </>

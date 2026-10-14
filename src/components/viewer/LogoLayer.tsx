@@ -5,7 +5,7 @@ import type { GarmentDefinition } from '../../garments/types'
 import type { LogoLayer as Layer } from '../../state/design'
 import { useDesignStore } from '../../state/designStore'
 import { useUiStore } from '../../state/uiStore'
-import { useActiveLogo } from '../../state/useActiveLogo'
+import { editLayer, useActiveLogo } from '../../state/useActiveLogo'
 import { projectDecal } from './decal'
 import { useLogoTexture } from './useLogoTexture'
 import { LogoGizmo } from './LogoGizmo'
@@ -78,8 +78,7 @@ function LogoDecal({ def, targets, layer, order, selected }: { def: GarmentDefin
           // Where logos overlap, a click selects the one printed on top.
           if (topLogoAt(e.intersections) !== layer.id) return
           e.stopPropagation()
-          useUiStore.getState().setActiveLogo(layer.id, true)
-          useUiStore.getState().setStep('logo')
+          editLayer(layer, { turn: false })
         }}
         onPointerOver={() => setCursor(selected && !placement.locked ? 'move' : 'pointer')}
         onPointerOut={() => setCursor('')}

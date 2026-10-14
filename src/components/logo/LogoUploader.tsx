@@ -2,7 +2,7 @@ import { useId, useRef, useState, type DragEvent } from 'react'
 import { ChevronDown, ChevronUp, ImagePlus, ImageUp, LoaderCircle, Replace, Sparkles, Trash2, TriangleAlert } from 'lucide-react'
 import { useDesignStore } from '../../state/designStore'
 import { useUiStore } from '../../state/uiStore'
-import { useActiveLogo } from '../../state/useActiveLogo'
+import { editLayer, useActiveLogo } from '../../state/useActiveLogo'
 import { MAX_LOGOS, type LogoLayer } from '../../state/design'
 import { getGarment } from '../../garments/catalog'
 import { fetchSampleLogo, LOGO_ACCEPT, LogoFileError, MAX_LOGO_BYTES, processLogoFile, type ProcessedLogo } from '../../lib/logoFile'
@@ -16,12 +16,6 @@ const without = (w: Record<string, string>, key: string) => {
 
 const errorText = (err: unknown) => (err instanceof LogoFileError ? err.message : 'Something went wrong while reading this file. Try another one.')
 
-/** Makes a logo the one being edited, shows its handles and turns the camera to its side. */
-function focusLogo(layer: LogoLayer) {
-  useUiStore.getState().setActiveLogo(layer.id, true)
-  useUiStore.getState().setView(layer.placement.side)
-}
-
 /**
  * Up to MAX_LOGOS logos or photos: a list to pick which one to edit (with
  * stacking order, replace and remove), plus a drop zone that takes several
@@ -30,8 +24,9 @@ function focusLogo(layer: LogoLayer) {
 export function LogoUploader() {
   const id = useId()
   const logos = useDesignStore((s) => s.design.logos)
+  const images = logos.filter((l) => !l.text)
   const productId = useDesignStore((s) => s.design.productId)
-  const active = useActiveLogo()
+  const active = useActiveLogo('image')
   const notify = useUiStore((s) => s.notify)
   const addInput = useRef<HTMLInputElement>(null)
   const replaceInput = useRef<HTMLInputElement>(null)
@@ -40,13 +35,13 @@ export function LogoUploader() {
   const [error, setError] = useState<string | null>(null)
   const [warnings, setWarnings] = useState<Record<string, string>>({})
   const [dragging, setDragging] = useState(false)
-  const room = MAX_LOGOS - logos.length
+  const room = MAX_LOGOS - images.length
   const garment = getGarment(productId)
   const presetLabel = (l: LogoLayer) => garment.placements.find((p) => p.id === l.placement.placement)?.label ?? ''
 
   /** Processes files one by one and adds each as a new logo, up to the free slots. */
   const add = async (jobs: (() => Promise<ProcessedLogo>)[]) => {
-    const free = MAX_LOGOS - useDesignStore.getState().design.logos.length
+    const free = MAX_LOGOS - useDesignStore.getState().design.logos.filter((l) => !l.text).length
     if (free <= 0) {
       notify('info', `A garment carries up to ${MAX_LOGOS} logos or photos. Remove one to add another.`)
       return
@@ -74,7 +69,7 @@ export function LogoUploader() {
     const last = layers[layers.length - 1]
     if (last) {
       // Select it straight away so the on-garment handles and toolbar appear (as in OpenMerch).
-      focusLogo(last)
+      editLayer(last)
       notify('success', layers.length === 1 ? `Added on the ${presetLabel(last).toLowerCase()}.` : `${layers.length} images added — each on its own print position.`)
     }
     if (errors.length) {
@@ -111,7 +106,7 @@ export function LogoUploader() {
   const remove = (layer: LogoLayer) => {
     useDesignStore.getState().removeLogo(layer.id)
     setWarnings((w) => without(w, layer.id))
-    if (!useDesignStore.getState().design.logos.length) useUiStore.getState().selectLogo(false)
+    useUiStore.getState().selectLogo(false)
     notify('info', `Removed “${layer.asset.name}”. Undo to bring it back.`)
   }
 
@@ -144,7 +139,7 @@ export function LogoUploader() {
     </p>
   )
 
-  if (!logos.length) {
+  if (!images.length) {
     return (
       <div>
         {inputs}
@@ -176,8 +171,8 @@ export function LogoUploader() {
     )
   }
 
-  // Listed front-most first, like a layers panel.
-  const stack = [...logos].reverse()
+  // Listed front-most first, like a layers panel. Stacking is shared with text, so the arrows move past text too.
+  const stack = [...images].reverse()
   return (
     <div className={`logo-library ${dragging ? 'is-dragging' : ''}`} {...dropTarget}>
       {inputs}
@@ -188,7 +183,7 @@ export function LogoUploader() {
           const name = layer.asset.name
           return (
             <li key={layer.id} className={`logo-item ${isActive ? 'is-active' : ''}`}>
-              <button type="button" className="logo-item-main" aria-pressed={isActive} onClick={() => focusLogo(layer)}>
+              <button type="button" className="logo-item-main" aria-pressed={isActive} onClick={() => editLayer(layer)}>
                 <span className="logo-item-thumb checker">
                   <img src={layer.asset.dataUrl} alt="" />
                 </span>
@@ -252,7 +247,7 @@ export function LogoUploader() {
           {busy ? <LoaderCircle size={16} className="spin" aria-hidden /> : <ImagePlus size={16} aria-hidden />}
           <span>{busy ? 'Processing…' : dragging ? 'Drop to add' : 'Add a logo or photo'}</span>
           <span className="logo-add-count">
-            {logos.length} of {MAX_LOGOS}
+            {images.length} of {MAX_LOGOS}
           </span>
         </button>
       ) : (

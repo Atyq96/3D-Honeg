@@ -135,7 +135,7 @@ function hasTransparency(canvas: HTMLCanvasElement): boolean {
 }
 
 /** Crops fully transparent borders so the logo's visible extent drives its size on the shirt. */
-function trimTransparent(canvas: HTMLCanvasElement): HTMLCanvasElement {
+export function trimTransparent(canvas: HTMLCanvasElement): HTMLCanvasElement {
   const ctx = canvas.getContext('2d')!
   const { width, height } = canvas
   const data = ctx.getImageData(0, 0, width, height).data

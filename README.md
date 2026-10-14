@@ -1,6 +1,6 @@
 # HONEG 3D Customizer — MVP
 
-A browser-based 3D T-shirt configurator for HONEG, built by Lunar Innovate. Users set garment colors, print all-over patterns per zone, upload up to three logos or photos, then move, resize and rotate them directly on a real-time 3D raglan tee, and export a preview image or the design file.
+A browser-based 3D T-shirt configurator for HONEG, built by Lunar Innovate. Users set garment colors, print all-over patterns per zone, upload up to three logos or photos, add text in a choice of fonts, then move, resize and rotate everything directly on a real-time 3D raglan tee, and export a preview image or the design file.
 
 Branding (logo, palette, type direction) follows [honeg.fr](https://www.honeg.fr/): ink `#0E0E0E`, paper `#F6F5F2`, amber `#F2A900`, graphite greys. The UI uses Manrope; Unbounded stands in for the brand's commercial Benzin display face.
 
@@ -70,6 +70,20 @@ A garment carries up to **3** logos or photos (`MAX_LOGOS` in `src/state/design.
 
 Designs from before multiple logos (a single `logo` + `placement`) still import, as one layer.
 
+## Text
+
+The **Text** step adds up to **3** text blocks (`MAX_TEXTS`), counted separately from logos. Typical uses are a team name across the chest, a number on the back, or a slogan. Each block has:
+
+- **Wording:** up to 3 lines of 32 characters, updated on the shirt as you type.
+- **Font:** 9 bundled fonts, each previewed with your own wording. Anton (bold condensed), Bebas Neue (tall caps), Graduate (varsity numbers), Unbounded (HONEG's display stand-in), Manrope, Playfair (serif), Black Ops One (stencil), Permanent Marker and Pacifico (script). All are under the SIL Open Font License and are bundled through Fontsource, so nothing loads from a font CDN.
+- **Letter height:** in cm (the height of capital letters, as apparel printers quote it), with a slider and S / M / L / XL shortcuts (2, 4, 7, 10 cm). Sizes that won't fit the printable width are disabled.
+- **Color:** the same palette swatches and HEX field as a logo's fill.
+- **Alignment:** left, center or right, for multi-line text.
+
+**How it prints.** `lib/textRender.ts` draws the text in black onto a canvas, cropped to the ink. The result goes through the same pipeline as an uploaded logo: projected decal, gizmo, keep-out clamp, flats and export. Its color is the layer's fill, so changing color never re-renders. The renderer also records the cap height in pixels. That turns the print width into a letter height, so new wording or a new font keeps the chosen letter height. Text that would overflow the print area is set smaller, and grows back when it's shortened.
+
+New text goes across the chest first, then the upper back, then the center back. Default letter heights are 2 cm on a chest crest and 5–6.5 cm on the big prints. Clicking text on the shirt opens the Text step with that block selected.
+
 ## Logo controls
 
 The editing model is ported from the editor in [OpenMerch Engine](https://github.com/osmaar/openmerch-engine) (`packages/editor`, MIT). Their 2D Konva canvas behaviors were adapted to a 3D garment. OpenMerch itself ships no 3D preview or 3D model; its roadmap lists 3D as "not planned".
@@ -124,8 +138,8 @@ In 3D, each pattern is rasterized once into a seamless tile texture and mapped t
 src/
   components/
     CustomizerPage.tsx          page shell, undo + logo shortcuts, saved-design restore
-    layout/                     TopBar, CustomizerSidebar (5-step workflow)
-    steps/                      ProductStep, ColorStep, PatternStep, LogoStep, ReviewStep
+    layout/                     TopBar, CustomizerSidebar (6-step workflow)
+    steps/                      ProductStep, ColorStep, PatternStep, LogoStep, TextStep, ReviewStep
     pattern/PatternLibrary.tsx  searchable, filterable pattern swatches
     color/ShirtColorPicker.tsx  presets + visual picker + validated HEX, one value
     logo/                       LogoUploader (logo list + add), PlacementPicker, LogoTransformControls,
@@ -140,17 +154,17 @@ src/
                                 CameraRig.tsx    views, zoom, reset, PNG capture
                                 FlatPreview.tsx  SVG flats (thumbnails, fallback, exports)
     summary/                    DesignSummary, StageSummary
-    ui/                         Segmented, RangeField, Switch, Menu, ConfirmDialog, Toaster
+    ui/                         Segmented, RangeField, Switch, Menu, ConfirmDialog, Toaster, InkPicker
   garments/
     types.ts                    garment contracts (regions, print areas, placements)
     catalog.ts                  product list ← edit this to add/replace models
     brand.ts                    HONEG mark placement and keep-out zone
     flat/                       2D silhouette for flats (not used for 3D)
-  config/                       palette, HONEG mark assets and colors
+  config/                       palette, HONEG mark assets and colors, text fonts
   patterns/                     pattern library (adapted from inkjet) + descriptions
   state/                        design schema + validation, store (undo/redo, clamping), UI store,
                                 useActiveLogo (which logo is being edited), actions
-  lib/                          color, logo file processing, transform/snap math, persistence
+  lib/                          color, logo file processing, text rendering, transform/snap math, persistence
 scripts/prepare-model.mjs       garment GLB preparation (region split, texture strip, pattern-ready UVs, quantize)
 public/models/                  prepared garment models
 ```
@@ -168,6 +182,7 @@ public/models/                  prepared garment models
 | Logo upload | Up to 3 logos or photos, several at once; PNG (transparency kept), JPG, WebP, SVG (sanitized), 10 MB limit, signature check, border trim, low-res warning, HONEG sample logos |
 | Placement | Left / center / right chest, upper / center back, with a printable-area frame on the shirt |
 | HONEG mark | Always printed; left or right chest, logo or symbol, auto/white/black/amber; customer prints keep clear of it |
+| Text | Up to 3 blocks, 9 fonts, letter height in cm (slider + S/M/L/XL), palette or HEX color, multi-line alignment |
 | On-model editing | Select, drag, corner resize, rotate with snaps, snap guides, toolbar, keyboard (see Logo controls) |
 | Undo / redo | Buttons + Ctrl/⌘+Z, Ctrl/⌘+Shift+Z, Ctrl+Y |
 | Save / export / import | Saved in this browser (restored on load); JSON export/import with validation (older exports still load); branded PNG preview |
@@ -179,7 +194,8 @@ public/models/                  prepared garment models
 - **Model license:** confirm the source model's license and attribution (see above).
 - **Color accuracy:** calibrate screen colors against fabric/Pantone swatches; the on-screen color is indicative.
 - **Print rules:** per-technique rules (screen print vs DTF vs sublimation), minimum line weights, DPI checks at print size, vector artwork handoff.
-- **Product scope:** text layers and sleeve prints (OpenMerch's layer model is a good reference), sizes, quantities and pricing, which need a backend.
+- **Product scope:** sleeve prints, curved or outlined text, sizes, quantities and pricing, which need a backend.
+- **Text for production:** text is rasterized for the preview; a print hand-off should send the wording and font (already in the design JSON) so the printer can set it as vectors.
 - **Persistence and sharing:** server-side saved designs, shareable links, asset storage instead of data URLs.
 - **Testing:** browser end-to-end tests in CI (the dev build exposes `window.__honeg` and `window.__honegGizmo` for this), plus visual regression tests.
 - **Performance:** an adaptive pixel ratio on low-end phones, and KTX2 textures if future models ship real texture maps.

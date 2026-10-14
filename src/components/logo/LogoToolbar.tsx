@@ -11,6 +11,7 @@ import {
   Paintbrush,
   RotateCcw,
   Trash2,
+  Type,
   Unlock,
 } from 'lucide-react'
 import { useDesignStore } from '../../state/designStore'
@@ -18,8 +19,8 @@ import { useUiStore } from '../../state/uiStore'
 import { logoAspect } from '../../state/design'
 import { useActiveLogo } from '../../state/useActiveLogo'
 import { getGarment } from '../../garments/catalog'
-import { COLOR_PRESETS } from '../../config/palette'
-import { isLight, normalizeHex, onColor } from '../../lib/color'
+import { isLight } from '../../lib/color'
+import { InkPicker } from '../ui/InkPicker'
 import { alignOffsets, type AlignX, type AlignY } from '../../lib/logoTransform'
 import { LOGO_ACCEPT, LogoFileError, processLogoFile } from '../../lib/logoFile'
 
@@ -83,12 +84,18 @@ export function LogoToolbar() {
     <div className="logo-toolbar" ref={root} role="toolbar" aria-label="Logo tools">
       <input ref={fileInput} type="file" accept={LOGO_ACCEPT} className="sr-only" tabIndex={-1} aria-hidden onChange={(e) => void replace(e.target.files?.[0])} />
 
-      <ToolButton label="Replace image" onClick={() => fileInput.current?.click()} disabled={busy}>
-        {busy ? <LoaderCircle size={17} className="spin" /> : <ImagePlus size={17} />}
-      </ToolButton>
+      {layer.text ? (
+        <ToolButton label="Edit text" onClick={() => document.getElementById('text-content')?.focus()}>
+          <Type size={17} />
+        </ToolButton>
+      ) : (
+        <ToolButton label="Replace image" onClick={() => fileInput.current?.click()} disabled={busy}>
+          {busy ? <LoaderCircle size={17} className="spin" /> : <ImagePlus size={17} />}
+        </ToolButton>
+      )}
 
-      <PopoverAnchor open={open === 'fill'} label="Fill color" popover={<FillPopover />}>
-        <ToolButton label="Fill color" onClick={() => toggle('fill')} expanded={open === 'fill'} active={open === 'fill' || !!placement.tint}>
+      <PopoverAnchor open={open === 'fill'} label={layer.text ? 'Text color' : 'Fill color'} popover={<FillPopover />}>
+        <ToolButton label={layer.text ? 'Text color' : 'Fill color'} onClick={() => toggle('fill')} expanded={open === 'fill'} active={open === 'fill' || !!placement.tint}>
           <Paintbrush size={17} />
           {placement.tint && <span className={`tool-dot ${isLight(placement.tint) ? 'is-light' : ''}`} style={{ background: placement.tint }} aria-hidden />}
         </ToolButton>
@@ -128,7 +135,7 @@ export function LogoToolbar() {
 
       <span className="tool-divider" aria-hidden />
 
-      <ToolButton label="Delete logo" onClick={remove} danger>
+      <ToolButton label={layer.text ? 'Delete text' : 'Delete logo'} onClick={remove} danger>
         <Trash2 size={17} />
       </ToolButton>
       <ToolButton label="Done" onClick={() => useUiStore.getState().selectLogo(false)}>
@@ -189,65 +196,21 @@ function PopoverAnchor({ open, label, popover, children }: { open: boolean; labe
 
 function FillPopover() {
   const layer = useActiveLogo()
-  const tint = layer?.placement.tint ?? null
-  const [hex, setHex] = useState(tint ?? '')
-  const apply = (value: string | null) => layer && useDesignStore.getState().updateTransform(layer.id, { tint: value })
-  const swatches = [...new Set(['#FFFFFF', '#0E0E0E', ...COLOR_PRESETS.map((p) => p.hex)])]
+  if (!layer) return null
+  const tint = layer.placement.tint
+  const apply = (value: string | null) => useDesignStore.getState().updateTransform(layer.id, { tint: value })
   return (
     <>
       <div className="popover-head">
-        <strong>Fill color</strong>
-        <span className="muted">Recolors every visible pixel of the logo.</span>
+        <strong>{layer.text ? 'Text color' : 'Fill color'}</strong>
+        <span className="muted">{layer.text ? 'Color of the lettering.' : 'Recolors every visible pixel of the logo.'}</span>
       </div>
-      <button type="button" className={`fill-original ${tint === null ? 'is-active' : ''}`} onClick={() => apply(null)}>
-        Original colors
-      </button>
-      <div className="fill-swatches" role="radiogroup" aria-label="Fill color">
-        {swatches.map((c) => (
-          <button
-            key={c}
-            type="button"
-            role="radio"
-            aria-checked={tint === c}
-            aria-label={COLOR_PRESETS.find((p) => p.hex === c)?.name ?? c}
-            title={COLOR_PRESETS.find((p) => p.hex === c)?.name ?? c}
-            className={`swatch swatch-sm ${isLight(c) ? 'is-light' : ''}`}
-            style={{ background: c, color: onColor(c) }}
-            onClick={() => {
-              setHex(c)
-              apply(c)
-            }}
-          >
-            {tint === c && <Check size={15} strokeWidth={3} aria-hidden />}
-          </button>
-        ))}
-      </div>
-      <form
-        className="fill-hex"
-        onSubmit={(e) => {
-          e.preventDefault()
-          const n = normalizeHex(hex)
-          if (n) apply(n)
-        }}
-      >
-        <label className="sr-only" htmlFor="fill-hex">
-          Fill HEX
-        </label>
-        <span className="fill-hex-swatch" style={{ background: normalizeHex(hex) ?? tint ?? 'transparent' }} aria-hidden />
-        <input
-          id="fill-hex"
-          value={hex}
-          placeholder="#FFFFFF"
-          maxLength={9}
-          spellCheck={false}
-          aria-invalid={hex !== '' && !normalizeHex(hex)}
-          onChange={(e) => {
-            setHex(e.target.value)
-            const n = normalizeHex(e.target.value)
-            if (n) apply(n)
-          }}
-        />
-      </form>
+      {!layer.text && (
+        <button type="button" className={`fill-original ${tint === null ? 'is-active' : ''}`} onClick={() => apply(null)}>
+          Original colors
+        </button>
+      )}
+      <InkPicker value={tint} onChange={apply} label={layer.text ? 'Text color' : 'Fill color'} id="fill-hex" />
     </>
   )
 }

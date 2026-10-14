@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { RegionId } from '../garments/types'
 
-export type StepId = 'product' | 'color' | 'pattern' | 'logo' | 'review'
+export type StepId = 'product' | 'color' | 'pattern' | 'logo' | 'text' | 'review'
 export type ViewId = 'front' | 'back' | 'left' | 'right'
 export type ViewerStatus = 'loading' | 'ready' | 'error' | 'unsupported'
 
@@ -55,8 +55,8 @@ export const useUiStore = create<UiStore>()((set, get) => ({
   logoSelected: false,
   toasts: [],
 
-  // The logo handles and toolbar belong to the Logo step; leaving it deselects.
-  setStep: (step) => set((s) => ({ step, logoSelected: step === 'logo' && s.logoSelected })),
+  // On-garment handles and the toolbar belong to the step that edits that print; changing step deselects.
+  setStep: (step) => set((s) => ({ step, logoSelected: step === s.step && s.logoSelected })),
   setView: (view) => set((s) => ({ view, viewNonce: s.viewNonce + 1 })),
   setColorZone: (colorZone) => set({ colorZone }),
   setPatternZone: (patternZone) => set({ patternZone }),
@@ -76,5 +76,6 @@ export const STEPS: { id: StepId; label: string; short: string }[] = [
   { id: 'color', label: 'Colors', short: 'Color' },
   { id: 'pattern', label: 'Pattern', short: 'Pattern' },
   { id: 'logo', label: 'Logo', short: 'Logo' },
+  { id: 'text', label: 'Text', short: 'Text' },
   { id: 'review', label: 'Review', short: 'Review' },
 ]

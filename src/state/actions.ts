@@ -6,6 +6,7 @@ import { colorRegions } from './useColorRegions'
 import { describeLook } from '../lib/logoTransform'
 import { describePatterns } from '../patterns/describe'
 import { describeBrand } from '../garments/brand'
+import { describeText } from './describeText'
 import { getGarment } from '../garments/catalog'
 import { presetName } from '../config/palette'
 import { downloadBlob, exportDesignJson, readDesignFile, saveDesignLocally, stamp } from '../lib/persistence'
@@ -93,8 +94,17 @@ export async function exportPreviewImage() {
     const renders = api ? api.capture(['front', 'back'], 900, 1100) : await renderFlats(design)
     const [front, back, brand] = await Promise.all([loadImage(renders[0]), loadImage(renders[1]), loadImage('/brand/honeg-logo-black.png')])
 
+    // One detail line each for text, pattern and the HONEG mark; the sheet grows to fit them.
+    const regions = colorRegions(design.productId, useUiStore.getState().modelRegions)
+    const patternLines = describePatterns(design.patterns, regions)
+    const details = [
+      ...design.logos.filter((l) => l.text).map((t) => `Text — ${describeText(design, t)}`),
+      ...(patternLines.length ? [`Pattern — ${patternLines.map((p) => `${p.label}: ${p.text}`).join(' · ')}`] : []),
+      `HONEG mark — ${describeBrand(design.brand, design.colors.body)}`,
+    ]
+    const LINE = 28
     const W = 1800
-    const H = 1240
+    const H = 1240 + (details.length - 1) * LINE
     const canvas = document.createElement('canvas')
     canvas.width = W
     canvas.height = H
@@ -154,30 +164,22 @@ export async function exportPreviewImage() {
       ctx.fillText(text, x + 38, y + 4)
       x += 38 + ctx.measureText(text).width + 56
     }
-    const regions = colorRegions(design.productId, useUiStore.getState().modelRegions)
     chip('Body', resolvedColor(design.colors, 'body'))
     if (regions.includes('sleeves')) chip('Sleeves', resolvedColor(design.colors, 'sleeves'))
     if (regions.includes('collar')) chip('Collar', resolvedColor(design.colors, 'collar'))
-    if (design.logos.length) {
+    const images = design.logos.filter((l) => !l.text)
+    if (images.length) {
       ctx.fillStyle = '#6B6A67'
       ctx.font = '600 15px "Manrope Variable", Manrope, system-ui, sans-serif'
-      ctx.fillText(design.logos.length > 1 ? `LOGOS (${design.logos.length})` : 'LOGO', x, y - 26)
+      ctx.fillText(images.length > 1 ? `LOGOS (${images.length})` : 'LOGO', x, y - 26)
       ctx.fillStyle = '#0E0E0E'
       ctx.font = '600 20px "Manrope Variable", Manrope, system-ui, sans-serif'
-      const text =
-        design.logos.length === 1
-          ? describeLogo(design, design.logos[0], true)
-          : design.logos.map((l) => describeLogo(design, l, false)).join('   ·   ')
+      const text = images.length === 1 ? describeLogo(design, images[0], true) : images.map((l) => describeLogo(design, l, false)).join('   ·   ')
       ctx.fillText(text, x, y + 4, W - 72 - x)
     }
-    const patternLines = describePatterns(design.patterns, regions)
-    const details = [
-      ...(patternLines.length ? [`Pattern — ${patternLines.map((p) => `${p.label}: ${p.text}`).join(' · ')}`] : []),
-      `HONEG mark — ${describeBrand(design.brand, design.colors.body)}`,
-    ]
     ctx.fillStyle = '#0E0E0E'
     ctx.font = '600 17px "Manrope Variable", Manrope, system-ui, sans-serif'
-    ctx.fillText(details.join('     |     '), 72, y + 50, W - 144)
+    details.forEach((line, i) => ctx.fillText(line, 72, y + 50 + i * LINE, W - 144))
     ctx.fillStyle = '#6B6A67'
     ctx.font = '500 15px "Manrope Variable", Manrope, system-ui, sans-serif'
     ctx.fillText('Prototype preview generated in the browser — on-screen colors are indicative.', 72, H - 36)

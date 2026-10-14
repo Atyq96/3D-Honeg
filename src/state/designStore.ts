@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { PlacementId, PrintArea, RegionId, Side } from '../garments/types'
+import type { PlacementId, PlacementPreset, PrintArea, RegionId, Side } from '../garments/types'
 import { getGarment } from '../garments/catalog'
 import { clampTransform, rotatedExtents, type LogoTransform } from '../lib/logoTransform'
 import {
@@ -7,7 +7,9 @@ import {
   createDefaultDesign,
   DEFAULT_PLACEMENT,
   logoAspect,
+  layerKind,
   MAX_LOGOS,
+  MAX_TEXTS,
   newLogoId,
   type BrandMarkSettings,
   type Design,
@@ -15,6 +17,7 @@ import {
   type LogoLayer,
   type LogoPlacement,
   type PatternFill,
+  type TextSpec,
 } from './design'
 import { brandKeepOut } from '../garments/brand'
 import type { BrandSide } from '../config/brand'
@@ -47,6 +50,10 @@ interface DesignStore {
   setBrand: (patch: Partial<BrandMarkSettings>) => void
   /** Adds a logo or photo on a free print position. Returns its id, or null when the garment is full. */
   addLogo: (asset: LogoAsset) => string | null
+  /** Adds a text block (rendered to `asset`) in the given colour. Returns its id, or null when the garment is full. */
+  addText: (text: TextSpec, asset: LogoAsset, color: string) => string | null
+  /** New wording, font or alignment for a text layer; keeps its position and chosen letter height. */
+  setText: (id: string, text: TextSpec, asset: LogoAsset, opts?: CommitOptions) => void
   /** Swaps a logo's image, keeping its position and look. */
   replaceLogo: (id: string, asset: LogoAsset) => void
   removeLogo: (id: string) => void
@@ -66,7 +73,11 @@ interface DesignStore {
 const shallowEqual = <T extends object>(a: T, b: T) =>
   (Object.keys(a) as (keyof T)[]).every((k) => a[k] === b[k])
 
-const sameLayer = (a: LogoLayer, b: LogoLayer) => a.id === b.id && a.asset === b.asset && shallowEqual(a.placement, b.placement)
+const sameLayer = (a: LogoLayer, b: LogoLayer) =>
+  a.id === b.id &&
+  a.asset === b.asset &&
+  shallowEqual(a.placement, b.placement) &&
+  (a.text === b.text || (!!a.text && !!b.text && shallowEqual(a.text, b.text)))
 
 export function sameDesign(a: Design, b: Design) {
   return (
@@ -90,14 +101,23 @@ export function normalizePlacement(design: Design, placement: LogoPlacement, asp
   return { ...placement, side: preset.side, placement: preset.id, ...clamped }
 }
 
+const round1 = (v: number) => Math.round(v * 10) / 10
+
+/** Text: the print width that gives a letter height, and back. */
+const textWidthCm = (asset: LogoAsset, text: TextSpec, letterCm: number) => (letterCm * asset.width) / text.capPx
+const letterCmOf = (l: LogoLayer) => (l.text ? (l.placement.widthCm * l.text.capPx) / l.asset.width : 0)
+
+/** After a resize or a move, the text's chosen letter height becomes what's printed. */
+const syncTextSize = (l: LogoLayer): LogoLayer => (l.text ? { ...l, text: { ...l.text, sizeCm: round1(letterCmOf(l)) } } : l)
+
 const normalizeLogos = (design: Design): Design => ({
   ...design,
-  logos: design.logos.map((l) => ({ ...l, placement: normalizePlacement(design, l.placement, logoAspect(l.asset)) })),
+  logos: design.logos.map((l) => syncTextSize({ ...l, placement: normalizePlacement(design, l.placement, logoAspect(l.asset)) })),
 })
 
 const withPlacement = (design: Design, id: string, placement: LogoPlacement): Design => ({
   ...design,
-  logos: design.logos.map((l) => (l.id === id ? { ...l, placement } : l)),
+  logos: design.logos.map((l) => (l.id === id ? syncTextSize({ ...l, placement }) : l)),
 })
 
 /** Axis-aligned footprint of a logo on its side, view-space metres. */
@@ -155,6 +175,9 @@ export function fixDesign(design: Design): Design {
   return normalizeLogos(makeRoomForLogos(design))
 }
 
+/** Default letter height on a preset: small on the chest crests, larger on the big prints. */
+const defaultLetterCm = (preset: PlacementPreset) => Math.max(1.5, Math.round(preset.defaultWidth * 50) / 2)
+
 /** Geometry defaults for a preset; appearance (opacity, tint, lock) carries over. */
 function presetDefaults(design: Design, layer: LogoLayer, id: PlacementId): LogoPlacement {
   const garment = getGarment(design.productId)
@@ -167,7 +190,7 @@ function presetDefaults(design: Design, layer: LogoLayer, id: PlacementId): Logo
       flipY: false,
       side: preset.side,
       placement: preset.id,
-      widthCm: Math.round(preset.defaultWidth * 1000) / 10,
+      widthCm: layer.text ? textWidthCm(layer.asset, layer.text, defaultLetterCm(preset)) : Math.round(preset.defaultWidth * 1000) / 10,
       rotationDeg: 0,
       offsetXCm: 0,
       offsetYCm: 0,
@@ -176,8 +199,11 @@ function presetDefaults(design: Design, layer: LogoLayer, id: PlacementId): Logo
   )
 }
 
-/** Where new logos go first: a chest, then the back, then the larger front and back prints. */
-const AUTO_ORDER: PlacementId[] = ['leftChest', 'rightChest', 'upperBack', 'centerChest', 'centerBack']
+/** Where new prints go first. Logos: a chest, then the back. Text: across the chest, then the back. */
+const AUTO_ORDER: Record<'image' | 'text', PlacementId[]> = {
+  image: ['leftChest', 'rightChest', 'upperBack', 'centerChest', 'centerBack'],
+  text: ['centerChest', 'upperBack', 'centerBack', 'leftChest', 'rightChest'],
+}
 
 /**
  * Print position for a logo that's new or changing side: never the HONEG
@@ -187,7 +213,7 @@ const AUTO_ORDER: PlacementId[] = ['leftChest', 'rightChest', 'upperBack', 'cent
 function pickPlacement(design: Design, layer: LogoLayer, side?: Side): LogoPlacement | null {
   const garment = getGarment(design.productId)
   const others = design.logos.filter((l) => l.id !== layer.id)
-  const order = [...AUTO_ORDER, ...garment.placements.map((p) => p.id)]
+  const order = [...AUTO_ORDER[layerKind(layer)], ...garment.placements.map((p) => p.id)]
   const candidates = [...new Set(order)]
     .map((id) => garment.placements.find((p) => p.id === id))
     .filter((p) => !!p && (!side || p.side === side) && CHEST_SIDE[p.id] !== design.brand.side)
@@ -257,12 +283,32 @@ export const useDesignStore = create<DesignStore>()((set, get) => {
 
     addLogo: (asset) => {
       const { design } = get()
-      if (design.logos.length >= MAX_LOGOS) return null
+      if (design.logos.filter((l) => !l.text).length >= MAX_LOGOS) return null
       const draft: LogoLayer = { id: newLogoId(), asset, placement: { ...DEFAULT_PLACEMENT } }
       const placement = pickPlacement(design, draft)
       if (!placement) return null
       commit({ ...design, logos: [...design.logos, { ...draft, placement }] })
       return draft.id
+    },
+
+    addText: (text, asset, color) => {
+      const { design } = get()
+      if (design.logos.filter((l) => l.text).length >= MAX_TEXTS) return null
+      const draft: LogoLayer = { id: newLogoId(), asset, text, placement: { ...DEFAULT_PLACEMENT, tint: color } }
+      const placement = pickPlacement(design, draft)
+      if (!placement) return null
+      commit({ ...design, logos: [...design.logos, syncTextSize({ ...draft, placement })] })
+      return draft.id
+    },
+
+    setText: (id, text, asset, opts) => {
+      const { design } = get()
+      const current = layer(id)
+      if (!current?.text) return
+      // Keep the chosen letter height; the print-area clamp sets overlong text smaller.
+      const placement = normalizePlacement(design, { ...current.placement, widthCm: textWidthCm(asset, text, text.sizeCm) }, logoAspect(asset))
+      const next: Design = { ...design, logos: design.logos.map((l) => (l.id === id ? { ...l, asset, text, placement } : l)) }
+      commit(next, opts?.coalesce ? { coalesce: `${id}:${opts.coalesce}` } : undefined)
     },
 
     replaceLogo: (id, asset) => {

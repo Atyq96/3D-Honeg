@@ -9,12 +9,14 @@ import { ColorStep } from '../steps/ColorStep'
 import { LogoStep } from '../steps/LogoStep'
 import { PatternStep } from '../steps/PatternStep'
 import { ReviewStep } from '../steps/ReviewStep'
+import { TextStep } from '../steps/TextStep'
 
 const TITLES: Record<StepId, string> = {
   product: 'Pick your tee',
   color: 'Set your colors',
   pattern: 'Add a pattern',
   logo: 'Add your logo',
+  text: 'Add text',
   review: 'Review & export',
 }
 
@@ -29,7 +31,8 @@ export function CustomizerSidebar() {
     product: true,
     color: design.colors.body !== DEFAULT_BODY_COLOR || design.colors.sleeves !== null || design.colors.collar !== null,
     pattern: Object.values(design.patterns).some(Boolean),
-    logo: design.logos.length > 0,
+    logo: design.logos.some((l) => !l.text),
+    text: design.logos.some((l) => l.text),
     review: false,
   }
 
@@ -66,6 +69,7 @@ export function CustomizerSidebar() {
         {step === 'color' && <ColorStep />}
         {step === 'pattern' && <PatternStep />}
         {step === 'logo' && <LogoStep />}
+        {step === 'text' && <TextStep />}
         {step === 'review' && <ReviewStep />}
       </div>
 

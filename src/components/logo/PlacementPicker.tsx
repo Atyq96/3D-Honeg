@@ -1,7 +1,7 @@
 import type { PlacementPreset, Side } from '../../garments/types'
 import { canUsePlacement, logoRect, useDesignStore } from '../../state/designStore'
 import { useUiStore } from '../../state/uiStore'
-import { useActiveLogo } from '../../state/useActiveLogo'
+import type { LogoLayer } from '../../state/design'
 import { getGarment } from '../../garments/catalog'
 import { Segmented } from '../ui/controls'
 import type { BrandSide } from '../../config/brand'
@@ -41,17 +41,15 @@ function PlacementGlyph({ preset, brand, others }: { preset: PlacementPreset; br
 /** Tells the user when choosing a chest moved the HONEG mark to the other side. */
 function announceBrandMove(before: BrandSide) {
   const after = useDesignStore.getState().design.brand.side
-  if (after !== before) useUiStore.getState().notify('info', `HONEG mark moved to the ${after} chest to make room for your logo.`)
+  if (after !== before) useUiStore.getState().notify('info', `HONEG mark moved to the ${after} chest to make room.`)
 }
 
-/** Side and print position of the active logo. */
-export function PlacementPicker() {
+/** Side and print position of one logo or text block. */
+export function PlacementPicker({ layer }: { layer: LogoLayer }) {
   const design = useDesignStore((s) => s.design)
   const setSide = useDesignStore((s) => s.setSide)
   const setPlacement = useDesignStore((s) => s.setPlacement)
   const setView = useUiStore((s) => s.setView)
-  const layer = useActiveLogo()
-  if (!layer) return null
   const garment = getGarment(design.productId)
   const side = layer.placement.side
   const presets = garment.placements.filter((p) => p.side === side)
@@ -86,10 +84,10 @@ export function PlacementPicker() {
               aria-checked={layer.placement.placement === p.id}
               aria-disabled={blocked || undefined}
               className={`placement-card ${blocked ? 'is-blocked' : ''}`}
-              title={blocked ? 'The HONEG mark is here, and your other logo is on the opposite chest.' : undefined}
+              title={blocked ? 'The HONEG mark is here, and another print is on the opposite chest.' : undefined}
               onClick={() => {
                 if (blocked) {
-                  useUiStore.getState().notify('info', `The HONEG mark needs a chest — your other logo is on the opposite one. Move that logo first.`)
+                  useUiStore.getState().notify('info', 'The HONEG mark needs a chest, and another print is on the opposite one. Move that print first.')
                   return
                 }
                 const before = useDesignStore.getState().design.brand.side

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { logoRect, useDesignStore } from './designStore'
-import { createDefaultDesign, MAX_LOGOS, parseDesign, type LogoAsset } from './design'
+import { cleanTextContent, createDefaultDesign, letterHeightCm, MAX_LOGOS, MAX_TEXT_LINE_CHARS, MAX_TEXTS, parseDesign, type LogoAsset } from './design'
 import { DEFAULT_GARMENT_ID, getGarment } from '../garments/catalog'
 import { brandPlacement } from '../garments/brand'
 
@@ -296,5 +296,77 @@ describe('multiple logos', () => {
     store().updateTransform(a, { widthCm: 9 }, { coalesce: 'size' })
     store().updateTransform(b, { widthCm: 9 }, { coalesce: 'size' })
     expect(store().past.length).toBe(before + 2)
+  })
+})
+
+describe('text', () => {
+  // A one-line rendering 500 × 200 px whose capitals are 140 px tall.
+  const lettering = (width = 500): LogoAsset => ({ dataUrl: 'data:image/png;base64,AAAA', name: 'TEAM', width, height: 200, bytes: 0, mime: 'image/png' })
+  const spec = { content: 'TEAM', font: 'anton', align: 'center' as const, capPx: 140, sizeCm: 4 }
+  const addText = (asset = lettering()) => store().addText(spec, asset, '#FFFFFF')!
+  const text = (id: string) => store().design.logos.find((l) => l.id === id)!
+
+  it('adds text across the chest in its colour, at the default letter height', () => {
+    const id = addText()
+    const t = text(id)
+    expect(t.placement.placement).toBe('centerChest')
+    expect(t.placement.tint).toBe('#FFFFFF')
+    expect(letterHeightCm(t)).toBe(5.5)
+    expect(t.text?.sizeCm).toBe(5.5)
+  })
+
+  it('counts text separately from logos', () => {
+    add()
+    add()
+    add()
+    const ids = [addText(), addText(), addText()]
+    expect(ids.every(Boolean)).toBe(true)
+    expect(store().addText(spec, lettering(), '#000000')).toBeNull()
+    expect(store().addLogo(logo)).toBeNull()
+  })
+
+  it('keeps the letter height when the wording changes', () => {
+    const id = addText()
+    const before = letterHeightCm(text(id))
+    store().setText(id, { ...spec, content: 'TEAMS', sizeCm: text(id).text!.sizeCm }, lettering(625))
+    expect(letterHeightCm(text(id))).toBe(before)
+    expect(text(id).placement.widthCm).toBeGreaterThan(20)
+  })
+
+  it('sets overlong text smaller, and grows it back when shortened', () => {
+    const id = addText()
+    const size = text(id).text!.sizeCm
+    store().setText(id, { ...spec, content: 'A VERY LONG TEAM NAME', sizeCm: size }, lettering(6000))
+    expect(letterHeightCm(text(id))).toBeLessThan(size)
+    expect(text(id).text!.sizeCm).toBe(size)
+    store().setText(id, { ...spec, sizeCm: size }, lettering())
+    expect(letterHeightCm(text(id))).toBe(size)
+  })
+
+  it('resizing on the garment changes the chosen letter height', () => {
+    const id = addText()
+    store().updateTransform(id, { widthCm: 10 })
+    expect(text(id).text!.sizeCm).toBe(letterHeightCm(text(id)))
+    expect(letterHeightCm(text(id))).toBe(2.8)
+  })
+
+  it('round-trips through export and keeps the per-kind limits on import', () => {
+    const id = addText()
+    const parsed = parseDesign(JSON.parse(JSON.stringify(store().design)))
+    expect(parsed.logos[0]).toMatchObject({ id, text: { content: 'TEAM', font: 'anton', align: 'center', capPx: 140 } })
+    const layer = { asset: lettering(), text: spec, placement: {} }
+    const many = parseDesign({ version: 1, productId: 'raglan', colors: { body: '#000' }, logos: [layer, layer, layer, layer, { asset: logo }] })
+    expect(many.logos.filter((l) => l.text)).toHaveLength(MAX_TEXTS)
+    expect(many.logos.filter((l) => !l.text)).toHaveLength(1)
+  })
+
+  it('drops empty wording on import, leaving a plain image', () => {
+    const parsed = parseDesign({ version: 1, productId: 'raglan', colors: { body: '#000' }, logos: [{ asset: lettering(), text: { ...spec, content: '  ' } }] })
+    expect(parsed.logos[0].text).toBeUndefined()
+  })
+
+  it('limits wording to three lines of 32 characters', () => {
+    expect(cleanTextContent('a\r\nb\nc\nd')).toBe('a\nb\nc')
+    expect(cleanTextContent('x'.repeat(40))).toHaveLength(MAX_TEXT_LINE_CHARS)
   })
 })

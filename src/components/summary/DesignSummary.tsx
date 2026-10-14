@@ -9,6 +9,7 @@ import { isLight } from '../../lib/color'
 import { describeLook } from '../../lib/logoTransform'
 import { describePatterns } from '../../patterns/describe'
 import { describeBrand } from '../../garments/brand'
+import { describeText } from '../../state/describeText'
 
 function Swatch({ hex }: { hex: string }) {
   return <span className={`dot ${isLight(hex) ? 'is-light' : ''}`} style={{ background: hex }} aria-hidden />
@@ -21,6 +22,8 @@ export function DesignSummary() {
   const garment = getGarment(design.productId)
   const regions = useColorRegions()
   const patternLines = describePatterns(design.patterns, regions)
+  const images = design.logos.filter((l) => !l.text)
+  const texts = design.logos.filter((l) => l.text)
 
   const edit = (step: StepId, what: string) => (
     <button type="button" className="icon-btn icon-btn-sm" aria-label={`Edit ${what}`} data-tip="Edit" data-tip-side="left" onClick={() => setStep(step)}>
@@ -81,10 +84,10 @@ export function DesignSummary() {
         {edit('logo', 'HONEG mark')}
       </div>
       <div className="summary-row">
-        <dt>{design.logos.length > 1 ? 'Logos' : 'Logo'}</dt>
-        <dd className={design.logos.length > 1 ? 'summary-stack' : undefined}>
-          {design.logos.length ? (
-            design.logos.map(({ id, asset, placement: p }) => (
+        <dt>{images.length > 1 ? 'Logos' : 'Logo'}</dt>
+        <dd className={images.length > 1 ? 'summary-stack' : undefined}>
+          {images.length ? (
+            images.map(({ id, asset, placement: p }) => (
               <span key={id} className="summary-logo-line">
                 <span className="summary-logo checker">
                   <img src={asset.dataUrl} alt="" />
@@ -108,6 +111,17 @@ export function DesignSummary() {
           )}
         </dd>
         {edit('logo', 'logos')}
+      </div>
+      <div className="summary-row">
+        <dt>Text</dt>
+        <dd className="summary-stack">
+          {texts.length ? (
+            texts.map((t) => <span key={t.id}>{describeText(design, t)}</span>)
+          ) : (
+            <span className="muted">No text</span>
+          )}
+        </dd>
+        {edit('text', 'text')}
       </div>
     </dl>
   )

@@ -37,12 +37,56 @@ export interface LogoPlacement {
 
 /** Most logos/photos one garment can carry. */
 export const MAX_LOGOS = 3
+/** Most text blocks one garment can carry (counted separately from logos). */
+export const MAX_TEXTS = 3
+export const MAX_TEXT_LINES = 3
+export const MAX_TEXT_LINE_CHARS = 32
 
-/** One uploaded logo or photo and how it prints. Array order is stacking order: later layers print on top. */
+export type TextAlign = 'left' | 'center' | 'right'
+
+/** What a text layer's image was rendered from. Its colour is the layer's fill (`placement.tint`). */
+export interface TextSpec {
+  content: string
+  /** Font id from src/config/fonts.ts. */
+  font: string
+  align: TextAlign
+  /** Cap height of the rendered image in px — turns its width into a letter height in cm. */
+  capPx: number
+  /**
+   * Chosen letter height, cm. Text that would overflow the print area is set
+   * smaller, and grows back to this size when it's shortened again.
+   */
+  sizeCm: number
+}
+
+/**
+ * One print on the garment: an uploaded logo or photo, or a text block
+ * rendered to an image. Array order is stacking order: later layers print on top.
+ */
 export interface LogoLayer {
   id: string
   asset: LogoAsset
   placement: LogoPlacement
+  /** Present on text layers. */
+  text?: TextSpec
+}
+
+export type LayerKind = 'image' | 'text'
+export const layerKind = (l: LogoLayer): LayerKind => (l.text ? 'text' : 'image')
+
+/** Printed letter height (cap height) of a text layer, cm. */
+export function letterHeightCm(layer: LogoLayer): number {
+  return layer.text ? Math.round(((layer.placement.widthCm * layer.text.capPx) / layer.asset.width) * 10) / 10 : 0
+}
+
+/** Keeps line breaks (up to MAX_TEXT_LINES) and trims each line to MAX_TEXT_LINE_CHARS. */
+export function cleanTextContent(raw: string): string {
+  return raw
+    .replace(/\r\n?/g, '\n')
+    .split('\n')
+    .slice(0, MAX_TEXT_LINES)
+    .map((l) => l.slice(0, MAX_TEXT_LINE_CHARS))
+    .join('\n')
 }
 
 let logoSeq = 0
@@ -213,13 +257,34 @@ export function parseDesign(raw: unknown): Design {
     : d.logo
       ? [{ asset: d.logo, placement: d.placement }]
       : []
+  const text = (raw: unknown, image: LogoAsset): TextSpec | undefined => {
+    if (!raw || typeof raw !== 'object') return undefined
+    const t = raw as Record<string, unknown>
+    const content = typeof t.content === 'string' ? cleanTextContent(t.content) : ''
+    if (!content.trim()) return undefined
+    const capPx = num(t.capPx, 0)
+    return {
+      content,
+      font: typeof t.font === 'string' && /^[a-z-]{1,32}$/.test(t.font) ? t.font : 'anton',
+      align: t.align === 'left' || t.align === 'right' ? t.align : 'center',
+      // Without a usable cap height, treat the whole image as one line of capitals.
+      capPx: capPx > 0 && capPx <= image.height * 4 ? capPx : image.height,
+      sizeCm: Math.min(40, Math.max(0.5, num(t.sizeCm, 4))),
+    }
+  }
   const ids = new Set<string>()
-  const logos: LogoLayer[] = rawLogos.slice(0, MAX_LOGOS).map((l) => {
+  const counts: Record<LayerKind, number> = { image: 0, text: 0 }
+  const logos: LogoLayer[] = []
+  for (const l of rawLogos) {
+    const image = asset(l.asset)
+    const spec = text(l.text, image)
+    const kind: LayerKind = spec ? 'text' : 'image'
+    if (++counts[kind] > (kind === 'text' ? MAX_TEXTS : MAX_LOGOS)) continue
     let id = typeof l.id === 'string' && /^[\w-]{1,64}$/.test(l.id) ? l.id : newLogoId()
     if (ids.has(id)) id = newLogoId()
     ids.add(id)
-    return { id, asset: asset(l.asset), placement: placement(l.placement) }
-  })
+    logos.push({ id, asset: image, placement: placement(l.placement), ...(spec ? { text: spec } : {}) })
+  }
 
   // Patterns were added later too; unknown pattern ids are dropped rather than rejected.
   const rawPatterns = (d.patterns ?? {}) as Record<string, unknown>

@@ -9,6 +9,7 @@ import { ViewControls } from './ViewControls'
 import { ViewerToolbar } from './ViewerToolbar'
 import { StageSummary } from '../summary/StageSummary'
 import { LogoToolbar } from '../logo/LogoToolbar'
+import { editLayer } from '../../state/useActiveLogo'
 
 const ViewerCanvas = lazy(() => import('./ViewerCanvas'))
 
@@ -109,8 +110,8 @@ function FallbackPreview({ reason, onRetry }: { reason: string | null; onRetry?:
         logos={design.logos}
         label={`${side === 'front' ? 'Front' : 'Back'} flat preview of your design`}
         onLogoClick={(id) => {
-          useUiStore.getState().setActiveLogo(id, true)
-          useUiStore.getState().setStep('logo')
+          const layer = design.logos.find((l) => l.id === id)
+          if (layer) editLayer(layer, { turn: false })
         }}
       />
       <div className="fallback-note" role="status">

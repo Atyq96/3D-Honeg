@@ -1,16 +1,18 @@
 import { ArrowLeftRight, ArrowUpDown, RotateCcw, RotateCw, Scaling } from 'lucide-react'
 import { useDesignStore } from '../../state/designStore'
 import { logoAspect } from '../../state/design'
-import { useActiveLogo } from '../../state/useActiveLogo'
+import type { LogoLayer } from '../../state/design'
 import { getGarment } from '../../garments/catalog'
 import { maxWidthCm, MIN_LOGO_CM, offsetRange } from '../../lib/logoTransform'
 import { RangeField } from '../ui/controls'
 
-/** Size, rotation and position of the active logo, with ranges derived from the printable area so values are always reachable. */
-export function LogoTransformControls() {
+/**
+ * Size, rotation and position of one print, with ranges derived from the
+ * printable area so values are always reachable. Text sets its size as a
+ * letter height in the Text section instead (`showSize={false}`).
+ */
+export function LogoTransformControls({ layer, showSize = true }: { layer: LogoLayer; showSize?: boolean }) {
   const productId = useDesignStore((s) => s.design.productId)
-  const layer = useActiveLogo()
-  if (!layer) return null
   const { updateTransform, resetTransform } = useDesignStore.getState()
   const update: (patch: Parameters<typeof updateTransform>[1], opts?: Parameters<typeof updateTransform>[2]) => void = (patch, opts) =>
     updateTransform(layer.id, patch, opts)
@@ -24,17 +26,18 @@ export function LogoTransformControls() {
 
   return (
     <div className="transform-controls">
-      <RangeField
-        label="Size (width)"
-        icon={<Scaling size={15} aria-hidden />}
-        value={placement.widthCm}
-        min={MIN_LOGO_CM}
-        max={maxW}
-        step={0.5}
-        unit="cm"
-       
-        onChange={(v, dragging) => update({ widthCm: v }, { coalesce: dragging ? 'size' : undefined })}
-      />
+      {showSize && (
+        <RangeField
+          label="Size (width)"
+          icon={<Scaling size={15} aria-hidden />}
+          value={placement.widthCm}
+          min={MIN_LOGO_CM}
+          max={maxW}
+          step={0.5}
+          unit="cm"
+          onChange={(v, dragging) => update({ widthCm: v }, { coalesce: dragging ? 'size' : undefined })}
+        />
+      )}
       <RangeField
         label="Rotation"
         icon={<RotateCw size={15} aria-hidden />}
@@ -43,7 +46,6 @@ export function LogoTransformControls() {
         max={180}
         step={1}
         unit="°"
-       
         onChange={(v, dragging) => update({ rotationDeg: v }, { coalesce: dragging ? 'rotation' : undefined })}
       />
       <RangeField
@@ -54,7 +56,6 @@ export function LogoTransformControls() {
         max={range.x[1]}
         step={0.5}
         unit="cm"
-       
         onChange={(v, dragging) => update({ offsetXCm: v }, { coalesce: dragging ? 'offsetX' : undefined })}
       />
       <RangeField
@@ -65,7 +66,6 @@ export function LogoTransformControls() {
         max={range.y[1]}
         step={0.5}
         unit="cm"
-       
         onChange={(v, dragging) => update({ offsetYCm: v }, { coalesce: dragging ? 'offsetY' : undefined })}
         hint="Offsets are measured from the preset position and limited to the printable area."
       />

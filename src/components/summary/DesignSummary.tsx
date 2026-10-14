@@ -8,6 +8,7 @@ import { presetName } from '../../config/palette'
 import { isLight } from '../../lib/color'
 import { describeLook } from '../../lib/logoTransform'
 import { describePatterns } from '../../patterns/describe'
+import { describeBrand } from '../../garments/brand'
 
 function Swatch({ hex }: { hex: string }) {
   return <span className={`dot ${isLight(hex) ? 'is-light' : ''}`} style={{ background: hex }} aria-hidden />
@@ -73,6 +74,13 @@ export function DesignSummary() {
           )}
         </dd>
         {edit('pattern', 'pattern')}
+      </div>
+      <div className="summary-row">
+        <dt>HONEG</dt>
+        <dd>
+          <span>{describeBrand(design.brand, design.colors.body)}</span>
+        </dd>
+        {edit('logo', 'HONEG mark')}
       </div>
       <div className="summary-row">
         <dt>Logo</dt>

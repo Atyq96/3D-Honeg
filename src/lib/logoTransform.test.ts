@@ -91,3 +91,29 @@ describe('direct manipulation helpers', () => {
     expect(describeLook({ flipX: false, flipY: false, tint: null, opacity: 1, locked: false })).toBe('')
   })
 })
+
+describe('keep-out zone (HONEG mark)', () => {
+  const keepOut = { xMin: 0.05, xMax: 0.12, yMin: 0.45, yMax: 0.5 }
+  const overlaps = (t: { widthCm: number; offsetXCm: number; offsetYCm: number }, anchor: [number, number], aspect = 1) => {
+    const w = t.widthCm / 100, h = w / aspect
+    const cx = anchor[0] + t.offsetXCm / 100, cy = anchor[1] + t.offsetYCm / 100
+    return cx + w / 2 > keepOut.xMin && cx - w / 2 < keepOut.xMax && cy + h / 2 > keepOut.yMin && cy - h / 2 < keepOut.yMax
+  }
+
+  it('leaves logos that already clear it untouched', () => {
+    const t = { widthCm: 8, rotationDeg: 0, offsetXCm: 0, offsetYCm: 0 }
+    expect(clampTransform(t, 1, area, [-0.1, 0.475], keepOut)).toEqual(t)
+  })
+
+  it('moves an overlapping logo to the nearest clear position', () => {
+    const t = clampTransform({ widthCm: 8, rotationDeg: 0, offsetXCm: 0, offsetYCm: 0 }, 1, area, [0.07, 0.475], keepOut)
+    expect(overlaps(t, [0.07, 0.475])).toBe(false)
+    expect(t.widthCm).toBe(8)
+  })
+
+  it('shrinks the logo only when no position inside the print area can clear it', () => {
+    const narrow = { xMin: 0.02, xMax: 0.15, yMin: 0.42, yMax: 0.53 }
+    const t = clampTransform({ widthCm: 10, rotationDeg: 0, offsetXCm: 0, offsetYCm: 0 }, 1, narrow, [0.085, 0.475], keepOut)
+    expect(t.widthCm).toBeLessThan(10)
+  })
+})

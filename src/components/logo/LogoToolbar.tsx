@@ -18,7 +18,7 @@ import { useUiStore } from '../../state/uiStore'
 import { logoAspect } from '../../state/design'
 import { getGarment } from '../../garments/catalog'
 import { COLOR_PRESETS } from '../../config/palette'
-import { isLight, normalizeHex } from '../../lib/color'
+import { isLight, normalizeHex, onColor } from '../../lib/color'
 import { alignOffsets, type AlignX, type AlignY } from '../../lib/logoTransform'
 import { LOGO_ACCEPT, LogoFileError, processLogoFile } from '../../lib/logoFile'
 
@@ -85,8 +85,8 @@ export function LogoToolbar() {
         {busy ? <LoaderCircle size={17} className="spin" /> : <ImagePlus size={17} />}
       </ToolButton>
 
-      <PopoverAnchor open={open === 'fill'} popover={<FillPopover />}>
-        <ToolButton label="Fill color" onClick={() => toggle('fill')} active={open === 'fill' || !!placement.tint}>
+      <PopoverAnchor open={open === 'fill'} label="Fill color" popover={<FillPopover />}>
+        <ToolButton label="Fill color" onClick={() => toggle('fill')} expanded={open === 'fill'} active={open === 'fill' || !!placement.tint}>
           <Paintbrush size={17} />
           {placement.tint && <span className={`tool-dot ${isLight(placement.tint) ? 'is-light' : ''}`} style={{ background: placement.tint }} aria-hidden />}
         </ToolButton>
@@ -112,14 +112,14 @@ export function LogoToolbar() {
 
       <span className="tool-divider" aria-hidden />
 
-      <PopoverAnchor open={open === 'position'} popover={<PositionPopover />}>
-        <ToolButton label="Position" onClick={() => toggle('position')} active={open === 'position'}>
+      <PopoverAnchor open={open === 'position'} label="Position" popover={<PositionPopover />}>
+        <ToolButton label="Position" onClick={() => toggle('position')} expanded={open === 'position'} active={open === 'position'}>
           {placement.locked ? <Lock size={17} /> : <Move size={17} />}
         </ToolButton>
       </PopoverAnchor>
 
-      <PopoverAnchor open={open === 'transform'} popover={<TransformPopover />}>
-        <ToolButton label="Transform" onClick={() => toggle('transform')} active={open === 'transform'}>
+      <PopoverAnchor open={open === 'transform'} label="Transform" popover={<TransformPopover />}>
+        <ToolButton label="Transform" onClick={() => toggle('transform')} expanded={open === 'transform'} active={open === 'transform'}>
           <BoxSelect size={17} />
         </ToolButton>
       </PopoverAnchor>
@@ -136,14 +136,34 @@ export function LogoToolbar() {
   )
 }
 
-function ToolButton({ label, onClick, active, danger, disabled, children }: { label: string; onClick: () => void; active?: boolean; danger?: boolean; disabled?: boolean; children: ReactNode }) {
+function ToolButton({
+  label,
+  onClick,
+  active,
+  expanded,
+  danger,
+  disabled,
+  children,
+}: {
+  label: string
+  onClick: () => void
+  active?: boolean
+  /** Set on buttons that open a popover; the tooltip is hidden while it is open. */
+  expanded?: boolean
+  danger?: boolean
+  disabled?: boolean
+  children: ReactNode
+}) {
+  const opensPopover = expanded !== undefined
   return (
     <button
       type="button"
       className={`tool-btn ${active ? 'is-active' : ''} ${danger ? 'is-danger' : ''}`}
       aria-label={label}
-      aria-pressed={active}
-      data-tip={label}
+      aria-pressed={opensPopover ? undefined : active}
+      aria-haspopup={opensPopover ? 'dialog' : undefined}
+      aria-expanded={expanded}
+      data-tip={expanded ? undefined : label}
       onClick={onClick}
       disabled={disabled}
     >
@@ -152,12 +172,12 @@ function ToolButton({ label, onClick, active, danger, disabled, children }: { la
   )
 }
 
-function PopoverAnchor({ open, popover, children }: { open: boolean; popover: ReactNode; children: ReactNode }) {
+function PopoverAnchor({ open, label, popover, children }: { open: boolean; label: string; popover: ReactNode; children: ReactNode }) {
   return (
     <div className="popover-anchor">
       {children}
       {open && (
-        <div className="popover" role="dialog">
+        <div className="popover" role="dialog" aria-label={label}>
           {popover}
         </div>
       )}
@@ -188,13 +208,16 @@ function FillPopover() {
             role="radio"
             aria-checked={tint === c}
             aria-label={COLOR_PRESETS.find((p) => p.hex === c)?.name ?? c}
+            title={COLOR_PRESETS.find((p) => p.hex === c)?.name ?? c}
             className={`swatch swatch-sm ${isLight(c) ? 'is-light' : ''}`}
-            style={{ background: c }}
+            style={{ background: c, color: onColor(c) }}
             onClick={() => {
               setHex(c)
               apply(c)
             }}
-          />
+          >
+            {tint === c && <Check size={15} strokeWidth={3} aria-hidden />}
+          </button>
         ))}
       </div>
       <form
@@ -208,10 +231,20 @@ function FillPopover() {
         <label className="sr-only" htmlFor="fill-hex">
           Fill HEX
         </label>
-        <input id="fill-hex" value={hex} placeholder="#FFFFFF" maxLength={9} spellCheck={false} onChange={(e) => setHex(e.target.value)} aria-invalid={hex !== '' && !normalizeHex(hex)} />
-        <button type="submit" className="btn btn-secondary btn-sm" disabled={!normalizeHex(hex)}>
-          Apply
-        </button>
+        <span className="fill-hex-swatch" style={{ background: normalizeHex(hex) ?? tint ?? 'transparent' }} aria-hidden />
+        <input
+          id="fill-hex"
+          value={hex}
+          placeholder="#FFFFFF"
+          maxLength={9}
+          spellCheck={false}
+          aria-invalid={hex !== '' && !normalizeHex(hex)}
+          onChange={(e) => {
+            setHex(e.target.value)
+            const n = normalizeHex(e.target.value)
+            if (n) apply(n)
+          }}
+        />
       </form>
     </>
   )

@@ -4,6 +4,7 @@ import { useUiStore } from '../../state/uiStore'
 import { LogoUploader } from '../logo/LogoUploader'
 import { PlacementPicker } from '../logo/PlacementPicker'
 import { LogoTransformControls } from '../logo/LogoTransformControls'
+import { BrandMarkControls } from '../logo/BrandMarkControls'
 import { Section } from './Section'
 
 export function LogoStep() {
@@ -29,6 +30,9 @@ export function LogoStep() {
           </p>
         )}
         <LogoTransformControls />
+      </Section>
+      <Section title="HONEG mark" description="Every HONEG garment carries the brand mark, like a sportswear maker's logo. Choose the chest it sits on — your logo takes the other side.">
+        <BrandMarkControls />
       </Section>
     </>
   )

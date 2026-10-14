@@ -3,6 +3,8 @@ import type { GarmentDefinition, RegionId, Side } from '../../garments/types'
 import type { V2 } from '../../garments/flat/geom2d'
 import { resolvedColor, type Design } from '../../state/design'
 import { getPattern } from '../../patterns/library'
+import { brandPlacement } from '../../garments/brand'
+import { BRAND_ASSETS, brandInk } from '../../config/brand'
 
 interface FlatPreviewProps {
   garment: GarmentDefinition
@@ -18,13 +20,15 @@ interface FlatPreviewProps {
   onLogoClick?: () => void
   /** All-over patterns per zone (same library and parameters as the 3D view). */
   patterns?: Design['patterns']
+  /** HONEG chest mark; omit only for pure silhouettes. */
+  brand?: Design['brand']
 }
 
 const path = (pts: V2[], close = true) =>
   pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(4)} ${(-p[1]).toFixed(4)}`).join(' ') + (close ? ' Z' : '')
 
 /** Flat technical sketch of the garment with live colours and logo placement (SVG, no WebGL needed). */
-export function FlatPreview({ garment, side, colors, logo, placement, showPrintArea, label, className, onLogoClick, patterns }: FlatPreviewProps) {
+export function FlatPreview({ garment, side, colors, logo, placement, showPrintArea, label, className, onLogoClick, patterns, brand }: FlatPreviewProps) {
   const uid = useId().replace(/:/g, '')
   const flat = garment.flat[side]
   const all = [...garment.flat.front.body, ...garment.flat.back.body]
@@ -58,6 +62,25 @@ export function FlatPreview({ garment, side, colors, logo, placement, showPrintA
   const preset = placement ? garment.placements.find((p) => p.id === placement.placement) : undefined
   const showLogo = !!(logo && placement && preset && preset.side === side)
   const area = garment.printAreas[side]
+
+  // HONEG mark (front only), recoloured with the same flood filter as a logo fill.
+  let brandEl = null
+  let brandInkColor: string | null = null
+  if (brand && side === 'front') {
+    const b = brandPlacement(garment, brand)
+    brandInkColor = brandInk(brand.color, colors.body)
+    brandEl = (
+      <image
+        href={BRAND_ASSETS[brand.style].url}
+        x={b.center[0] - b.width / 2}
+        y={-b.center[1] - b.height / 2}
+        width={b.width}
+        height={b.height}
+        preserveAspectRatio="none"
+        filter={`url(#brand-${uid})`}
+      />
+    )
+  }
 
   let logoEl = null
   if (showLogo && logo && placement && preset) {
@@ -103,6 +126,12 @@ export function FlatPreview({ garment, side, colors, logo, placement, showPrintA
           </filter>
         )}
         {patternDefs}
+        {brandInkColor && (
+          <filter id={`brand-${uid}`} colorInterpolationFilters="sRGB">
+            <feFlood floodColor={brandInkColor} />
+            <feComposite in2="SourceAlpha" operator="in" />
+          </filter>
+        )}
         <linearGradient id={`shade-${uid}`} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#fff" stopOpacity="0.16" />
           <stop offset="0.55" stopColor="#fff" stopOpacity="0" />
@@ -127,6 +156,7 @@ export function FlatPreview({ garment, side, colors, logo, placement, showPrintA
             strokeDasharray="0.012 0.008"
           />
         )}
+        {brandEl}
         {logoEl}
       </g>
       {flat.sleeves.map((s, i) => (

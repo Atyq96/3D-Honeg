@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { useDesignStore } from './designStore'
 import { createDefaultDesign, parseDesign, type LogoAsset } from './design'
 import { DEFAULT_GARMENT_ID, getGarment } from '../garments/catalog'
+import { brandPlacement } from '../garments/brand'
 
 const logo: LogoAsset = { dataUrl: 'data:image/png;base64,AAAA', name: 'logo.png', width: 400, height: 200, bytes: 1234, mime: 'image/png' }
 const store = () => useDesignStore.getState()
@@ -143,5 +144,63 @@ describe('patterns', () => {
     // Exports from before patterns existed still load.
     const old = parseDesign({ version: 1, productId: 'raglan', colors: { body: '#000' } })
     expect(old.patterns).toEqual({ body: null, sleeves: null, collar: null })
+  })
+})
+
+describe('HONEG mark', () => {
+  const rect = () => brandPlacement(getGarment(store().design.productId), store().design.brand).rect
+  const logoBox = () => {
+    const d = store().design
+    const g = getGarment(d.productId)
+    const preset = g.placements.find((p) => p.id === d.placement.placement)!
+    const w = d.placement.widthCm / 100
+    const h = w / (d.logo ? d.logo.width / d.logo.height : 1)
+    const cx = preset.anchor[0] + d.placement.offsetXCm / 100
+    const cy = preset.anchor[1] + d.placement.offsetYCm / 100
+    return { xMin: cx - w / 2, xMax: cx + w / 2, yMin: cy - h / 2, yMax: cy + h / 2 }
+  }
+  const overlaps = (a: ReturnType<typeof logoBox>, b: ReturnType<typeof rect>) => a.xMax > b.xMin && a.xMin < b.xMax && a.yMax > b.yMin && a.yMin < b.yMax
+
+  it('defaults to the chest opposite the default left-chest logo', () => {
+    expect(store().design.brand).toEqual({ side: 'right', style: 'logo', color: 'auto' })
+    expect(store().design.placement.placement).toBe('leftChest')
+  })
+
+  it('moves to the free chest when the logo takes its side', () => {
+    store().setLogo(logo)
+    store().setPlacement('rightChest')
+    expect(store().design.brand.side).toBe('left')
+    expect(overlaps(logoBox(), rect())).toBe(false)
+  })
+
+  it('pushes a chest logo across when the mark takes its side, keeping the logo size', () => {
+    store().setLogo(logo)
+    store().updateTransform({ widthCm: 9.5 })
+    store().setBrand({ side: 'left' })
+    expect(store().design.placement.placement).toBe('rightChest')
+    expect(store().design.placement.widthCm).toBe(9.5)
+    store().undo()
+    expect(store().design.brand.side).toBe('right')
+    expect(store().design.placement.placement).toBe('leftChest')
+  })
+
+  it('keeps large front prints clear of the mark', () => {
+    store().setLogo(logo)
+    store().setPlacement('centerChest')
+    store().updateTransform({ widthCm: 30, offsetYCm: 20 })
+    expect(overlaps(logoBox(), rect())).toBe(false)
+  })
+
+  it('back prints are unaffected', () => {
+    store().setLogo(logo)
+    store().setPlacement('upperBack')
+    expect(store().design.brand.side).toBe('right')
+  })
+
+  it('cannot be removed by importing an old design, and conflicts are resolved', () => {
+    const old = parseDesign({ version: 1, productId: 'raglan', colors: { body: '#000' }, placement: { side: 'front', placement: 'rightChest', widthCm: 8 } })
+    expect(old.brand).toEqual({ side: 'right', style: 'logo', color: 'auto' })
+    store().replaceDesign(old)
+    expect(store().design.brand.side).toBe('left')
   })
 })

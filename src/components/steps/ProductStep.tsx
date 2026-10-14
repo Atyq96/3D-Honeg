@@ -11,6 +11,7 @@ export function ProductStep() {
   const productId = useDesignStore((s) => s.design.productId)
   const colors = useDesignStore((s) => s.design.colors)
   const patterns = useDesignStore((s) => s.design.patterns)
+  const brand = useDesignStore((s) => s.design.brand)
   const setProduct = useDesignStore((s) => s.setProduct)
   const view = useUiStore((s) => s.view)
   const setView = useUiStore((s) => s.setView)
@@ -25,7 +26,7 @@ export function ProductStep() {
             return (
               <button key={g.id} type="button" role="radio" aria-checked={selected} className="product-card" onClick={() => setProduct(g.id)}>
                 <span className="product-thumb">
-                  <FlatPreview garment={g} side="front" colors={colors} patterns={patterns} />
+                  <FlatPreview garment={g} side="front" colors={colors} patterns={patterns} brand={brand} />
                 </span>
                 <span className="product-info">
                   <span className="product-name">{g.name}</span>

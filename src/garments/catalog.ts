@@ -52,6 +52,8 @@ const RAGLAN_TEE: GarmentDefinition = {
     { id: 'upperBack', side: 'back', label: 'Upper back', hint: 'Below the collar — club or team name', anchor: [0, 0.61], defaultWidth: 0.2 },
     { id: 'centerBack', side: 'back', label: 'Center back', hint: 'Large back print', anchor: [0, 0.42], defaultWidth: 0.25 },
   ],
+  // Same chest height as the left/right chest presets, slightly smaller than a club crest.
+  brandMark: { x: 0.085, y: 0.53, widthCm: 6 },
   flat: buildTeeFlat(RAGLAN_TEE_FLAT),
 }
 

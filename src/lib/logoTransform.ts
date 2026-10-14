@@ -48,18 +48,50 @@ export function offsetRange(t: LogoTransform, aspect: number, area: PrintArea, a
   }
 }
 
-/** Clamps size first, then position, so the logo never leaves the printable fabric. */
-export function clampTransform(t: LogoTransform, aspect: number, area: PrintArea, anchor: V2): LogoTransform {
+/**
+ * Clamps size first, then position, so the logo never leaves the printable
+ * fabric. With `keepOut` (the HONEG mark plus clear space), a logo that would
+ * overlap it moves to the nearest position that clears it, and is only shrunk
+ * when no position inside the print area can.
+ */
+export function clampTransform(t: LogoTransform, aspect: number, area: PrintArea, anchor: V2, keepOut?: PrintArea): LogoTransform {
   const rotationDeg = ((((Math.round(t.rotationDeg) + 180) % 360) + 360) % 360) - 180
-  const widthCm = round1(Math.min(maxWidthCm(area, aspect, rotationDeg), Math.max(MIN_LOGO_CM, t.widthCm)))
-  const range = offsetRange({ ...t, widthCm, rotationDeg }, aspect, area, anchor)
-  const clamp = (v: number, [lo, hi]: [number, number]) => round1(Math.min(hi, Math.max(lo, v)))
-  return {
-    widthCm,
-    rotationDeg,
-    offsetXCm: clamp(t.offsetXCm, range.x),
-    offsetYCm: clamp(t.offsetYCm, range.y),
+  let widthCm = round1(Math.min(maxWidthCm(area, aspect, rotationDeg), Math.max(MIN_LOGO_CM, t.widthCm)))
+  for (;;) {
+    const placed = placeInArea({ ...t, widthCm, rotationDeg }, aspect, area, anchor)
+    if (!keepOut) return placed
+    const cleared = clearKeepOut(placed, aspect, area, anchor, keepOut)
+    if (cleared) return cleared
+    if (widthCm <= MIN_LOGO_CM) return placed
+    widthCm = round1(Math.max(MIN_LOGO_CM, widthCm * 0.9))
   }
+}
+
+function placeInArea(t: LogoTransform, aspect: number, area: PrintArea, anchor: V2): LogoTransform {
+  const range = offsetRange(t, aspect, area, anchor)
+  const clamp = (v: number, [lo, hi]: [number, number]) => round1(Math.min(hi, Math.max(lo, v)))
+  return { ...t, offsetXCm: clamp(t.offsetXCm, range.x), offsetYCm: clamp(t.offsetYCm, range.y) }
+}
+
+/** Moves the logo out of the keep-out zone along one axis (nearest option), or null if it can't fit. */
+function clearKeepOut(t: LogoTransform, aspect: number, area: PrintArea, anchor: V2, k: PrintArea): LogoTransform | null {
+  const [ew, eh] = rotatedExtents(t.widthCm / 100, aspect, t.rotationDeg)
+  const cx = anchor[0] + t.offsetXCm / 100
+  const cy = anchor[1] + t.offsetYCm / 100
+  // Centre positions whose bounding box would overlap the keep-out (Minkowski sum).
+  const kx0 = k.xMin - ew / 2, kx1 = k.xMax + ew / 2, ky0 = k.yMin - eh / 2, ky1 = k.yMax + eh / 2
+  if (cx <= kx0 || cx >= kx1 || cy <= ky0 || cy >= ky1) return t
+  const eps = 1e-9
+  const fits = ([x, y]: V2) =>
+    x >= area.xMin + ew / 2 - eps && x <= area.xMax - ew / 2 + eps && y >= area.yMin + eh / 2 - eps && y <= area.yMax - eh / 2 + eps
+  // 1.5 mm of slack so rounding to whole millimetres can't slip back inside.
+  const pad = 0.0015
+  const options = ([[kx0 - pad, cy], [kx1 + pad, cy], [cx, ky0 - pad], [cx, ky1 + pad]] as V2[])
+    .filter(fits)
+    .sort((a, b) => Math.hypot(a[0] - cx, a[1] - cy) - Math.hypot(b[0] - cx, b[1] - cy))
+  if (!options.length) return null
+  const [x, y] = options[0]
+  return { ...t, offsetXCm: round1((x - anchor[0]) * 100), offsetYCm: round1((y - anchor[1]) * 100) }
 }
 
 /* ------------------------------------------------------------------ */

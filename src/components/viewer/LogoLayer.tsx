@@ -4,10 +4,10 @@ import type { BufferGeometry } from 'three'
 import type { GarmentDefinition } from '../../garments/types'
 import { useDesignStore } from '../../state/designStore'
 import { useUiStore } from '../../state/uiStore'
-import { fabricTextures } from './fabric'
 import { projectDecal } from './decal'
 import { useLogoTexture } from './useLogoTexture'
 import { LogoGizmo } from './LogoGizmo'
+import { PrintMaterial } from './PrintMaterial'
 import { useGizmoDrag } from './gizmoDrag'
 
 /**
@@ -37,14 +37,6 @@ export function LogoLayer({ def, targets }: { def: GarmentDefinition; targets: B
   )
   useEffect(() => () => geometry?.dispose(), [geometry])
 
-  // Fabric grain on the print, scaled to the decal's own UV space.
-  const grain = useMemo(() => {
-    const t = fabricTextures().jersey.clone()
-    t.repeat.set(width / 0.024, height / 0.024)
-    return t
-  }, [width, height])
-  useEffect(() => () => grain.dispose(), [grain])
-
   const startDrag = useGizmoDrag(def, hit?.z ?? 0)
 
   if (!geometry || !texture || !preset || !hit || !logo) return null
@@ -72,24 +64,7 @@ export function LogoLayer({ def, targets }: { def: GarmentDefinition; targets: B
         onPointerOver={() => setCursor(selected && !placement.locked ? 'move' : 'pointer')}
         onPointerOut={() => setCursor('')}
       >
-        <meshStandardMaterial
-          map={texture}
-          emissiveMap={texture}
-          emissive="#ffffff"
-          emissiveIntensity={0.2}
-          normalMap={grain}
-          normalScale={[0.22, 0.22]}
-          transparent
-          opacity={placement.opacity}
-          alphaTest={0.02}
-          depthWrite={false}
-          polygonOffset
-          polygonOffsetFactor={-4}
-          polygonOffsetUnits={-4}
-          roughness={0.68}
-          metalness={0}
-          envMapIntensity={0.8}
-        />
+        <PrintMaterial map={texture} width={width} height={height} opacity={placement.opacity} />
       </mesh>
       {selected && (
         <LogoGizmo

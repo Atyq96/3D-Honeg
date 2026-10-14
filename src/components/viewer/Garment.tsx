@@ -10,6 +10,7 @@ import { applyFabricColor, createFabricMaterial, disposeFabricMaterial } from '.
 import { buildProjectedDecal } from './decal'
 import { useGltfModel } from './garmentModel'
 import { LogoLayer } from './LogoLayer'
+import { BrandMark } from './BrandMark'
 import { placePattern, usePatternTextures } from './usePatternTextures'
 import { CameraRig } from './CameraRig'
 
@@ -41,6 +42,7 @@ function GarmentStage({ def, data }: { def: GarmentDefinition; data: GarmentMode
     <>
       <CameraRig bounds={data.bounds} />
       <GarmentMeshes data={data} uvScale={def.source.uvScale ?? 1} />
+      <BrandMark def={def} targets={targets} />
       <LogoLayer def={def} targets={targets} />
       <PrintAreaOverlay def={def} targets={targets} />
       <ContactShadows

@@ -3,6 +3,7 @@ import { DEFAULT_GARMENT_ID, GARMENTS } from '../garments/catalog'
 import { DEFAULT_BODY_COLOR } from '../config/palette'
 import { normalizeHex } from '../lib/color'
 import { getPattern } from '../patterns/library'
+import type { BrandSide, BrandStyle } from '../config/brand'
 
 export interface LogoAsset {
   /** PNG data URL (rasterised, trimmed and capped at 1024 px). */
@@ -47,7 +48,20 @@ export interface Design {
   placement: LogoPlacement
   /** All-over print per colour zone (null = plain fabric). */
   patterns: Record<RegionId, PatternFill | null>
+  /** The HONEG mark — always printed; only its chest, style and colour are chosen. */
+  brand: BrandMarkSettings
 }
+
+export interface BrandMarkSettings {
+  /** Wearer's chest side. */
+  side: BrandSide
+  style: BrandStyle
+  /** 'auto' = white on dark fabric, black on light fabric. */
+  color: 'auto' | string
+}
+
+/** Wearer's right chest by default, opposite the default left-chest club logo (as on Nike/Adidas kits). */
+export const DEFAULT_BRAND: BrandMarkSettings = { side: 'right', style: 'logo', color: 'auto' }
 
 /** An all-over pattern printed on one zone, drawn in `color` over the zone's fabric colour. */
 export interface PatternFill {
@@ -108,6 +122,7 @@ export function createDefaultDesign(): Design {
     logo: null,
     placement: { ...DEFAULT_PLACEMENT },
     patterns: { ...NO_PATTERNS },
+    brand: { ...DEFAULT_BRAND },
   }
 }
 
@@ -202,5 +217,17 @@ export function parseDesign(raw: unknown): Design {
     logo,
     placement,
     patterns: { body: pattern(rawPatterns.body), sleeves: pattern(rawPatterns.sleeves), collar: pattern(rawPatterns.collar) },
+    brand: parseBrand(d.brand),
+  }
+}
+
+/** The brand mark can't be switched off; invalid or missing settings fall back to defaults. */
+function parseBrand(raw: unknown): BrandMarkSettings {
+  const b = (raw ?? {}) as Record<string, unknown>
+  const color = b.color === 'auto' ? 'auto' : typeof b.color === 'string' ? normalizeHex(b.color) : null
+  return {
+    side: b.side === 'left' || b.side === 'right' ? b.side : DEFAULT_BRAND.side,
+    style: b.style === 'logo' || b.style === 'symbol' ? b.style : DEFAULT_BRAND.style,
+    color: color ?? DEFAULT_BRAND.color,
   }
 }

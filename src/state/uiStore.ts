@@ -50,7 +50,8 @@ export const useUiStore = create<UiStore>()((set, get) => ({
   logoSelected: false,
   toasts: [],
 
-  setStep: (step) => set({ step }),
+  // The logo handles and toolbar belong to the Logo step; leaving it deselects.
+  setStep: (step) => set((s) => ({ step, logoSelected: step === 'logo' && s.logoSelected })),
   setView: (view) => set((s) => ({ view, viewNonce: s.viewNonce + 1 })),
   setColorZone: (colorZone) => set({ colorZone }),
   setPatternZone: (patternZone) => set({ patternZone }),

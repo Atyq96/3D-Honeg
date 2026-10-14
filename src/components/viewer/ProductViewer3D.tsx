@@ -105,6 +105,7 @@ function FallbackPreview({ reason, onRetry }: { reason: string | null; onRetry?:
         side={side}
         colors={design.colors}
         patterns={design.patterns}
+        brand={design.brand}
         logo={design.logo}
         placement={design.placement}
         label={`${side === 'front' ? 'Front' : 'Back'} flat preview of your design`}

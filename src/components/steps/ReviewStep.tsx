@@ -30,6 +30,7 @@ export function ReviewStep() {
                 side={side}
                 colors={design.colors}
                 patterns={design.patterns}
+                brand={design.brand}
                 logo={design.logo}
                 placement={design.placement}
                 label={`${side} flat sketch`}

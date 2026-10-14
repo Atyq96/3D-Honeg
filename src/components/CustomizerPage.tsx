@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useDesignStore, normalizePlacement } from '../state/designStore'
+import { makeRoomForLogo, normalizePlacement, useDesignStore } from '../state/designStore'
 import { useUiStore } from '../state/uiStore'
 import { loadSavedDesign } from '../lib/persistence'
 import { TopBar } from './layout/TopBar'
@@ -75,7 +75,8 @@ function useRestoreSavedDesign() {
     restoreAttempted = true
     const saved = loadSavedDesign()
     if (!saved) return
-    useDesignStore.setState({ design: { ...saved, placement: normalizePlacement(saved, saved.placement) }, past: [], future: [] })
+    const fixed = makeRoomForLogo(saved)
+    useDesignStore.setState({ design: { ...fixed, placement: normalizePlacement(fixed, fixed.placement) }, past: [], future: [] })
     useUiStore.getState().setView(saved.placement.side)
     useUiStore.getState().notify('info', 'Welcome back — your saved design was restored.')
   }, [])

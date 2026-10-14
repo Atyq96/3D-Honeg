@@ -5,6 +5,7 @@ import { resolvedColor, type Design } from './design'
 import { colorRegions } from './useColorRegions'
 import { describeLook } from '../lib/logoTransform'
 import { describePatterns } from '../patterns/describe'
+import { describeBrand } from '../garments/brand'
 import { getGarment } from '../garments/catalog'
 import { presetName } from '../config/palette'
 import { downloadBlob, exportDesignJson, readDesignFile, saveDesignLocally, stamp } from '../lib/persistence'
@@ -61,7 +62,7 @@ async function renderFlats(design: Design): Promise<string[]> {
   const garment = getGarment(design.productId)
   return (['front', 'back'] as const).map((side) => {
     const markup = renderToStaticMarkup(
-      createElement(FlatPreview, { garment, side, colors: design.colors, patterns: design.patterns, logo: design.logo, placement: design.placement }),
+      createElement(FlatPreview, { garment, side, colors: design.colors, patterns: design.patterns, brand: design.brand, logo: design.logo, placement: design.placement }),
     )
     const svg = markup.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="900" height="1100"')
     return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
@@ -159,11 +160,13 @@ export async function exportPreviewImage() {
       ctx.fillText(`${preset?.label ?? ''} · ${design.placement.widthCm} cm wide · ${design.placement.rotationDeg}°${look ? ` · ${look}` : ''}`, x, y + 4)
     }
     const patternLines = describePatterns(design.patterns, regions)
-    if (patternLines.length) {
-      ctx.fillStyle = '#0E0E0E'
-      ctx.font = '600 17px "Manrope Variable", Manrope, system-ui, sans-serif'
-      ctx.fillText(`Pattern — ${patternLines.map((p) => `${p.label}: ${p.text}`).join('   ·   ')}`, 72, y + 50, W - 144)
-    }
+    const details = [
+      ...(patternLines.length ? [`Pattern — ${patternLines.map((p) => `${p.label}: ${p.text}`).join(' · ')}`] : []),
+      `HONEG mark — ${describeBrand(design.brand, design.colors.body)}`,
+    ]
+    ctx.fillStyle = '#0E0E0E'
+    ctx.font = '600 17px "Manrope Variable", Manrope, system-ui, sans-serif'
+    ctx.fillText(details.join('     |     '), 72, y + 50, W - 144)
     ctx.fillStyle = '#6B6A67'
     ctx.font = '500 15px "Manrope Variable", Manrope, system-ui, sans-serif'
     ctx.fillText('Prototype preview generated in the browser — on-screen colors are indicative.', 72, H - 36)

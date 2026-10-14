@@ -2,7 +2,9 @@ import { create } from 'zustand'
 import type { PlacementId, RegionId, Side } from '../garments/types'
 import { getGarment } from '../garments/catalog'
 import { clampTransform, type LogoTransform } from '../lib/logoTransform'
-import { cleanPatternFill, createDefaultDesign, DEFAULT_PLACEMENT, logoAspect, type Design, type LogoAsset, type LogoPlacement, type PatternFill } from './design'
+import { cleanPatternFill, createDefaultDesign, DEFAULT_PLACEMENT, logoAspect, type BrandMarkSettings, type Design, type LogoAsset, type LogoPlacement, type PatternFill } from './design'
+import { brandKeepOut } from '../garments/brand'
+import type { BrandSide } from '../config/brand'
 
 type LogoEdit = LogoTransform & Pick<LogoPlacement, 'flipX' | 'flipY' | 'opacity' | 'tint' | 'locked'>
 
@@ -28,6 +30,8 @@ interface DesignStore {
   updatePattern: (region: RegionId, patch: Partial<PatternFill>, opts?: CommitOptions) => void
   /** Copies one zone's pattern to the given zones. */
   copyPattern: (from: RegionId, to: RegionId[]) => void
+  /** HONEG mark: chest side, style, colour (it can't be removed). */
+  setBrand: (patch: Partial<BrandMarkSettings>) => void
   setLogo: (asset: LogoAsset | null) => void
   setSide: (side: Side) => void
   setPlacement: (id: PlacementId) => void
@@ -49,6 +53,7 @@ export function sameDesign(a: Design, b: Design) {
     a.logo === b.logo &&
     shallowEqual(a.colors, b.colors) &&
     shallowEqual(a.placement, b.placement) &&
+    shallowEqual(a.brand, b.brand) &&
     (Object.keys(a.patterns) as RegionId[]).every((r) => a.patterns[r] === b.patterns[r] || (!!a.patterns[r] && !!b.patterns[r] && shallowEqual(a.patterns[r]!, b.patterns[r]!)))
   )
 }
@@ -58,8 +63,21 @@ export function normalizePlacement(design: Design, placement: LogoPlacement): Lo
   const garment = getGarment(design.productId)
   const preset = garment.placements.find((p) => p.id === placement.placement) ?? garment.placements[0]
   const area = garment.printAreas[preset.side]
-  const clamped = clampTransform(placement, logoAspect(design), area, preset.anchor)
+  // Front prints always leave the HONEG mark and its clear space untouched.
+  const keepOut = preset.side === 'front' ? brandKeepOut(garment, design.brand) : undefined
+  const clamped = clampTransform(placement, logoAspect(design), area, preset.anchor, keepOut)
   return { ...placement, side: preset.side, placement: preset.id, ...clamped }
+}
+
+/** Chest presets and the wearer's side they sit on. */
+const CHEST_SIDE: Partial<Record<PlacementId, BrandSide>> = { leftChest: 'left', rightChest: 'right' }
+const otherSide = (s: BrandSide): BrandSide => (s === 'left' ? 'right' : 'left')
+const chestPreset = (side: BrandSide) => (side === 'left' ? 'leftChest' : 'rightChest') as PlacementId
+
+/** A chest logo and the HONEG mark never share a side: the mark moves to the free chest. */
+export function makeRoomForLogo(design: Design): Design {
+  const chest = CHEST_SIDE[design.placement.placement]
+  return chest && chest === design.brand.side ? { ...design, brand: { ...design.brand, side: otherSide(chest) } } : design
 }
 
 /** Geometry defaults for a preset; appearance (opacity, tint, lock) carries over. */
@@ -151,14 +169,27 @@ export const useDesignStore = create<DesignStore>()((set, get) => {
       if (design.placement.side === side) return
       const first = getGarment(design.productId).placements.find((p) => p.side === side)
       if (!first) return
-      commit({ ...design, placement: presetDefaults(design, first.id) })
+      const draft = makeRoomForLogo({ ...design, placement: { ...design.placement, placement: first.id } })
+      commit({ ...draft, placement: presetDefaults(draft, first.id) })
     },
 
     setPlacement: (id) => {
       const { design } = get()
       if (design.placement.placement === id) return
       const { rotationDeg, flipX, flipY } = design.placement
-      commit({ ...design, placement: normalizePlacement(design, { ...presetDefaults(design, id), rotationDeg, flipX, flipY }) })
+      const draft = makeRoomForLogo({ ...design, placement: { ...design.placement, placement: id } })
+      commit({ ...draft, placement: normalizePlacement(draft, { ...presetDefaults(draft, id), rotationDeg, flipX, flipY }) })
+    },
+
+    setBrand: (patch) => {
+      const { design } = get()
+      let next: Design = { ...design, brand: { ...design.brand, ...patch } }
+      // The mark takes the chosen chest; a chest logo already there moves across, keeping its size.
+      if (patch.side && CHEST_SIDE[design.placement.placement] === patch.side) {
+        const { rotationDeg, flipX, flipY, widthCm } = design.placement
+        next = { ...next, placement: { ...presetDefaults(next, chestPreset(otherSide(patch.side))), rotationDeg, flipX, flipY, widthCm } }
+      }
+      commit({ ...next, placement: normalizePlacement(next, next.placement) })
     },
 
     updateTransform: (patch, opts) => {
@@ -173,7 +204,8 @@ export const useDesignStore = create<DesignStore>()((set, get) => {
     },
 
     replaceDesign: (incoming) => {
-      const next = { ...incoming, placement: normalizePlacement(incoming, incoming.placement) }
+      const fixed = makeRoomForLogo(incoming)
+      const next = { ...fixed, placement: normalizePlacement(fixed, fixed.placement) }
       commit(next)
     },
 

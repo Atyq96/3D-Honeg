@@ -77,6 +77,22 @@ Not ported, because it isn't relevant to a single printed logo or needs a server
 
 The print is a projected decal (`DecalGeometry`), so it needs no UVs and follows the fabric folds. The selection gizmo and print-area frame are flagged `uiOnly` and are hidden from exported images.
 
+## HONEG mark
+
+Every garment carries the HONEG mark on the chest, the way sportswear makers place their logo. It can't be removed. In the Logo step's **HONEG mark** section the customer picks:
+
+- **Side:** wearer's left or right chest (right by default)
+- **Style:** full logo or symbol only
+- **Color:** Auto (white on dark fabric, black on light), white, black or amber
+
+The mark and the customer's own prints never collide:
+
+- A chest logo and the mark never share a side. Choosing the mark's chest moves a chest logo across, and choosing a chest preset for the logo moves the mark. A toast says what moved.
+- Front prints are kept out of the mark's footprint plus a 1.2 cm margin. `clampTransform` moves an overlapping logo along one axis to the nearest clear spot, and only shrinks it if nothing fits.
+- Saved or imported designs are checked the same way when they load.
+
+The mark's position and size are set per garment (`brandMark` in `catalog.ts`). It's printed as a projected decal like the logo, and it appears in the 2D flats, the summary and the PNG export.
+
 ## Patterns
 
 The **Pattern** step prints an all-over pattern on each zone (body, sleeves, collar), drawn over that zone's fabric color. The library (`src/patterns/library.ts`) has 69 patterns in 9 categories: stripes, checks, dots, geometric, animal, waves, floral, retro and tech. They're curated from [inkjet](https://github.com/Dragoon0x/inkjet) (MIT, © 2025 0xDragoon), a set of 500 parametric SVG tile patterns, and adapted for garments:
@@ -100,11 +116,12 @@ src/
     pattern/PatternLibrary.tsx  searchable, filterable pattern swatches
     color/ShirtColorPicker.tsx  presets + visual picker + validated HEX, one value
     logo/                       LogoUploader, PlacementPicker, LogoTransformControls,
-                                LogoToolbar (contextual toolbar + popovers)
+                                LogoToolbar (contextual toolbar + popovers), BrandMarkControls
     viewer/                     ProductViewer3D (DOM shell, fallback, overlays)
                                 ViewerCanvas → Scene → Garment (lazy three.js part)
                                 garmentModel.ts  GLB adapter (regions, normalisation)
                                 LogoLayer / LogoGizmo / gizmoDrag  print + on-model handles
+                                BrandMark.tsx    the always-on HONEG chest mark
                                 decal.ts         projection onto the garment
                                 usePatternTextures.ts  zone pattern tiles → repeating textures
                                 CameraRig.tsx    views, zoom, reset, PNG capture
@@ -114,7 +131,9 @@ src/
   garments/
     types.ts                    garment contracts (regions, print areas, placements)
     catalog.ts                  product list ← edit this to add/replace models
+    brand.ts                    HONEG mark placement and keep-out zone
     flat/                       2D silhouette for flats (not used for 3D)
+  config/                       palette, HONEG mark assets and colors
   patterns/                     pattern library (adapted from inkjet) + descriptions
   state/                        design schema + validation, store (undo/redo, clamping), UI store, actions
   lib/                          color, logo file processing, transform/snap math, persistence
@@ -122,7 +141,7 @@ scripts/prepare-model.mjs       garment GLB preparation (region split, texture s
 public/models/                  prepared garment models
 ```
 
-**One source of truth.** `designStore` holds product, colors, per-zone patterns, the logo asset and its placement and appearance (size, rotation, offset, flip, fill, opacity, lock). The 3D scene, gizmo, toolbar, sidebar sliders, 2D flats, summary and exports all read from it. Every change is clamped to the printable area. A drag, slider move or nudge sequence is a single undo step.
+**One source of truth.** `designStore` holds product, colors, per-zone patterns, the HONEG mark settings, the logo asset and its placement and appearance (size, rotation, offset, flip, fill, opacity, lock). The 3D scene, gizmo, toolbar, sidebar sliders, 2D flats, summary and exports all read from it. Every change is clamped to the printable area. A drag, slider move or nudge sequence is a single undo step.
 
 ## Feature checklist
 
@@ -134,6 +153,7 @@ public/models/                  prepared garment models
 | All-over patterns | 69 patterns (from inkjet) per zone: search and categories, ink color, size, angle, density, opacity, shuffle, apply to all zones |
 | Logo upload | PNG (transparency kept), JPG, SVG (sanitized), 5 MB limit, signature check, border trim, low-res warning, HONEG sample logos |
 | Placement | Left / center / right chest, upper / center back, with a printable-area frame on the shirt |
+| HONEG mark | Always printed; left or right chest, logo or symbol, auto/white/black/amber; customer prints keep clear of it |
 | On-model editing | Select, drag, corner resize, rotate with snaps, snap guides, toolbar, keyboard (see Logo controls) |
 | Undo / redo | Buttons + Ctrl/⌘+Z, Ctrl/⌘+Shift+Z, Ctrl+Y |
 | Save / export / import | Saved in this browser (restored on load); JSON export/import with validation (older exports still load); branded PNG preview |

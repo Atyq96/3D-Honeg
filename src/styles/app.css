@@ -401,6 +401,12 @@ code {
   opacity: 1;
   transform: translate(-50%, 0);
 }
+/* Lift the element showing its tooltip above its neighbours: a hover transform
+   (e.g. the swatch scale) would otherwise trap the tooltip under the next row. */
+[data-tip]:hover,
+[data-tip]:focus-visible {
+  z-index: 31;
+}
 [data-tip-side='left']:hover::after,
 [data-tip-side='left']:focus-visible::after {
   transform: translate(0, -50%);

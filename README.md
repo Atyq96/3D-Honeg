@@ -120,6 +120,23 @@ The mark and the customer's own prints never collide:
 
 The mark's position and size are set per garment (`brandMark` in `catalog.ts`). It's printed as a projected decal like the logo, and it appears in the 2D flats, the summary and the PNG export.
 
+## Color zones
+
+The Colors and Pattern steps work on **zones**. You pick each one by picture: the card shows the real 3D garment with that zone highlighted in HONEG amber.
+
+| Group | Zones |
+| --- | --- |
+| Parts | Body, Sleeves, Collar (from the model's own meshes), Left sleeve, Right sleeve |
+| Panels | Front, Back, Side panels, Shoulders (yoke) |
+| Halves | Left half, Right half (sleeve included), Top half, Bottom half |
+| Stripes | Chest stripe, Center stripe, Hem band, Sash |
+
+Body, sleeves and collar always have a color. Every other zone is unpainted until you give it a color or a pattern, and **Clear zone** removes it again. Zones print over the parts in a fixed order, from big areas to details (`paintZones` in `catalog.ts`), so a stripe shows over a half. Left and right are the wearer's.
+
+**How it works.** A zone is up to four planes in garment space, optionally mirrored across the centre line (side panels, centre stripe). Front and back are split by a plane that follows the side seam: the torso leans back towards the shoulders, so z = 0 would cut the shoulders wrongly. In 3D, each painted zone is drawn over its parts using the same geometry and fabric material, and a small shader addition (`zoneMask.ts`) discards fragments outside the planes. That gives crisp edges without splitting the mesh, and patterns line up with the part beneath. The 2D flats clip the same planes into polygons for each view. The picker thumbnails are rendered once per model in a separate small scene (`ZoneThumbnails.tsx`), with flat sketches as the fallback without WebGL.
+
+The HONEG mark's **Auto** ink reads the fabric under the mark, including any zone painted over it. A red sash through the chest gets a white mark.
+
 ## Patterns
 
 The **Pattern** step prints an all-over pattern on each zone (body, sleeves, collar), drawn over that zone's fabric color. The library (`src/patterns/library.ts`) has 69 patterns in 9 categories: stripes, checks, dots, geometric, animal, waves, floral, retro and tech. They're curated from [inkjet](https://github.com/Dragoon0x/inkjet) (MIT, © 2025 0xDragoon), a set of 500 parametric SVG tile patterns, and adapted for garments:
@@ -142,6 +159,7 @@ src/
     steps/                      ProductStep, ColorStep, PatternStep, LogoStep, TextStep, ReviewStep
     pattern/PatternLibrary.tsx  searchable, filterable pattern swatches
     color/ShirtColorPicker.tsx  presets + visual picker + validated HEX, one value
+    color/ZonePicker.tsx        parts, panels, halves and stripes as 3D thumbnails
     logo/                       LogoUploader (logo list + add), PlacementPicker, LogoTransformControls,
                                 LogoToolbar (contextual toolbar + popovers), BrandMarkControls
     viewer/                     ProductViewer3D (DOM shell, fallback, overlays)
@@ -151,6 +169,8 @@ src/
                                 BrandMark.tsx    the always-on HONEG chest mark
                                 decal.ts         projection onto the garment
                                 usePatternTextures.ts  zone pattern tiles → repeating textures
+                                zoneMask.ts      paint zones drawn over their parts (shader mask)
+                                ZoneThumbnails.tsx  3D picker thumbnails, rendered once per model
                                 CameraRig.tsx    views, zoom, reset, PNG capture
                                 FlatPreview.tsx  SVG flats (thumbnails, fallback, exports)
     summary/                    DesignSummary, StageSummary
@@ -159,6 +179,7 @@ src/
     types.ts                    garment contracts (regions, print areas, placements)
     catalog.ts                  product list ← edit this to add/replace models
     brand.ts                    HONEG mark placement and keep-out zone
+    zones.ts                    paint zones: ids, labels, plane tests, flat-sketch polygons
     flat/                       2D silhouette for flats (not used for 3D)
   config/                       palette, HONEG mark assets and colors, text fonts
   patterns/                     pattern library (adapted from inkjet) + descriptions
@@ -169,7 +190,7 @@ scripts/prepare-model.mjs       garment GLB preparation (region split, texture s
 public/models/                  prepared garment models
 ```
 
-**One source of truth.** `designStore` holds product, colors, per-zone patterns, the HONEG mark settings, and up to three logo layers, each with its image, placement and appearance (size, rotation, offset, flip, fill, opacity, lock). Which logo is being edited is UI state, not design state. The 3D scene, gizmo, toolbar, sidebar sliders, 2D flats, summary and exports all read from it. Every change is clamped to the printable area. A drag, slider move or nudge sequence is a single undo step.
+**One source of truth.** `designStore` holds product, colors, per-part patterns, painted color zones, the HONEG mark settings, and up to three logo layers, each with its image, placement and appearance (size, rotation, offset, flip, fill, opacity, lock). Which logo is being edited is UI state, not design state. The 3D scene, gizmo, toolbar, sidebar sliders, 2D flats, summary and exports all read from it. Every change is clamped to the printable area. A drag, slider move or nudge sequence is a single undo step.
 
 ## Feature checklist
 
@@ -178,6 +199,7 @@ public/models/                  prepared garment models
 | 3D preview | Real raglan tee model; orbit, zoom, front/back/left/right views, reset, full screen |
 | Shirt color | 12 presets (HONEG palette), visual picker, HEX input with inline errors, reset |
 | Separate sleeve / collar colors | From the model's UV-island split |
+| Color zones | 14 more zones (single sleeves, front/back, halves, side panels, shoulders, stripes, sash), each with a color and optional pattern, picked by 3D thumbnail |
 | All-over patterns | 69 patterns (from inkjet) per zone: search and categories, ink color, size, angle, density, opacity, shuffle, apply to all zones |
 | Logo upload | Up to 3 logos or photos, several at once; PNG (transparency kept), JPG, WebP, SVG (sanitized), 10 MB limit, signature check, border trim, low-res warning, HONEG sample logos |
 | Placement | Left / center / right chest, upper / center back, with a printable-area frame on the shirt |

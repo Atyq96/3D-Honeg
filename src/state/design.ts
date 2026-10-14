@@ -4,6 +4,7 @@ import { DEFAULT_BODY_COLOR } from '../config/palette'
 import { normalizeHex } from '../lib/color'
 import { getPattern } from '../patterns/library'
 import type { BrandSide, BrandStyle } from '../config/brand'
+import { PAINT_ZONE_IDS, type PaintZoneId } from '../garments/zones'
 
 export interface LogoAsset {
   /** PNG data URL (rasterised, trimmed and capped at 1024 px). */
@@ -105,8 +106,16 @@ export interface Design {
   logos: LogoLayer[]
   /** All-over print per colour zone (null = plain fabric). */
   patterns: Record<RegionId, PatternFill | null>
+  /** Halves, panels and stripes painted over the parts; a zone is printed only when present. */
+  zones: Partial<Record<PaintZoneId, ZonePaint>>
   /** The HONEG mark — always printed; only its chest, style and colour are chosen. */
   brand: BrandMarkSettings
+}
+
+/** A paint zone's fabric colour, with an optional pattern drawn over it. */
+export interface ZonePaint {
+  color: string
+  pattern: PatternFill | null
 }
 
 export interface BrandMarkSettings {
@@ -178,6 +187,7 @@ export function createDefaultDesign(): Design {
     colors: { body: DEFAULT_BODY_COLOR, sleeves: null, collar: null },
     logos: [],
     patterns: { ...NO_PATTERNS },
+    zones: {},
     brand: { ...DEFAULT_BRAND },
   }
 }
@@ -309,6 +319,7 @@ export function parseDesign(raw: unknown): Design {
     colors: { body: body as string, sleeves: optional(c.sleeves, 'sleeve'), collar: optional(c.collar, 'collar') },
     logos,
     patterns: { body: pattern(rawPatterns.body), sleeves: pattern(rawPatterns.sleeves), collar: pattern(rawPatterns.collar) },
+    zones: parseZones(d.zones, pattern),
     brand: parseBrand(d.brand),
   }
 }
@@ -322,4 +333,17 @@ function parseBrand(raw: unknown): BrandMarkSettings {
     style: b.style === 'logo' || b.style === 'symbol' ? b.style : DEFAULT_BRAND.style,
     color: color ?? DEFAULT_BRAND.color,
   }
+}
+
+/** Paint zones were added later; unknown zones and invalid colours are dropped rather than rejected. */
+function parseZones(raw: unknown, pattern: (v: unknown) => PatternFill | null): Design['zones'] {
+  const out: Design['zones'] = {}
+  if (!raw || typeof raw !== 'object') return out
+  const src = raw as Record<string, unknown>
+  for (const id of PAINT_ZONE_IDS) {
+    const z = src[id] as Record<string, unknown> | undefined
+    const color = z && typeof z.color === 'string' ? normalizeHex(z.color) : null
+    if (color) out[id] = { color, pattern: pattern(z!.pattern) }
+  }
+  return out
 }

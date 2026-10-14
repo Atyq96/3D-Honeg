@@ -20,6 +20,7 @@ import {
   type TextSpec,
 } from './design'
 import { brandKeepOut } from '../garments/brand'
+import { isPaintZone, type PaintZoneId, type ZoneId } from '../garments/zones'
 import type { BrandSide } from '../config/brand'
 
 type LogoEdit = LogoTransform & Pick<LogoPlacement, 'flipX' | 'flipY' | 'opacity' | 'tint' | 'locked'>
@@ -39,11 +40,16 @@ interface DesignStore {
   lastCommit: { key: string; at: number } | null
 
   setProduct: (id: string) => void
-  setColor: (region: RegionId, hex: string | null, opts?: CommitOptions) => void
+  /**
+   * Part colour (null on sleeves/collar = match body), or a paint zone's colour
+   * (null removes the zone, pattern included).
+   */
+  setColor: (zone: ZoneId, hex: string | null, opts?: CommitOptions) => void
+  /** Back to the default body colour, with sleeves and collar matching and no paint zones. */
   resetColors: () => void
-  /** Sets or clears the all-over pattern on one zone. */
-  setPattern: (region: RegionId, fill: PatternFill | null, opts?: CommitOptions) => void
-  updatePattern: (region: RegionId, patch: Partial<PatternFill>, opts?: CommitOptions) => void
+  /** Sets or clears the all-over pattern on a part or paint zone (painting an unpainted zone in the body colour). */
+  setPattern: (zone: ZoneId, fill: PatternFill | null, opts?: CommitOptions) => void
+  updatePattern: (zone: ZoneId, patch: Partial<PatternFill>, opts?: CommitOptions) => void
   /** Copies one zone's pattern to the given zones. */
   copyPattern: (from: RegionId, to: RegionId[]) => void
   /** HONEG mark: chest side, style, colour (it can't be removed). */
@@ -79,8 +85,20 @@ const sameLayer = (a: LogoLayer, b: LogoLayer) =>
   shallowEqual(a.placement, b.placement) &&
   (a.text === b.text || (!!a.text && !!b.text && shallowEqual(a.text, b.text)))
 
+const samePattern = (a: PatternFill | null, b: PatternFill | null) => a === b || (!!a && !!b && shallowEqual(a, b))
+
+const sameZones = (a: Design['zones'], b: Design['zones']) => {
+  const ids = new Set([...Object.keys(a), ...Object.keys(b)]) as Set<PaintZoneId>
+  return [...ids].every((id) => {
+    const x = a[id]
+    const y = b[id]
+    return x === y || (!!x && !!y && x.color === y.color && samePattern(x.pattern, y.pattern))
+  })
+}
+
 export function sameDesign(a: Design, b: Design) {
   return (
+    sameZones(a.zones, b.zones) &&
     a.productId === b.productId &&
     a.logos.length === b.logos.length &&
     a.logos.every((l, i) => sameLayer(l, b.logos[i])) &&
@@ -250,22 +268,39 @@ export const useDesignStore = create<DesignStore>()((set, get) => {
       commit(normalizeLogos({ ...design, productId: id }))
     },
 
-    setColor: (region, hex, opts) => {
+    setColor: (zone, hex, opts) => {
       const { design } = get()
-      if (region === 'body' && !hex) return
-      commit({ ...design, colors: { ...design.colors, [region]: hex } }, opts)
+      if (isPaintZone(zone)) {
+        const zones = { ...design.zones }
+        if (hex) zones[zone] = { color: hex, pattern: zones[zone]?.pattern ?? null }
+        else delete zones[zone]
+        return commit({ ...design, zones }, opts)
+      }
+      if (zone === 'body' && !hex) return
+      commit({ ...design, colors: { ...design.colors, [zone]: hex } }, opts)
     },
 
-    setPattern: (region, fill, opts) => {
+    setPattern: (zone, fill, opts) => {
       const { design } = get()
-      commit({ ...design, patterns: { ...design.patterns, [region]: fill ? cleanPatternFill(fill) : null } }, opts)
+      const pattern = fill ? cleanPatternFill(fill) : null
+      if (isPaintZone(zone)) {
+        const current = design.zones[zone]
+        if (!current && !pattern) return
+        return commit({ ...design, zones: { ...design.zones, [zone]: { color: current?.color ?? design.colors.body, pattern } } }, opts)
+      }
+      commit({ ...design, patterns: { ...design.patterns, [zone]: pattern } }, opts)
     },
 
-    updatePattern: (region, patch, opts) => {
+    updatePattern: (zone, patch, opts) => {
       const { design } = get()
-      const current = design.patterns[region]
+      if (isPaintZone(zone)) {
+        const current = design.zones[zone]
+        if (!current?.pattern) return
+        return commit({ ...design, zones: { ...design.zones, [zone]: { ...current, pattern: cleanPatternFill({ ...current.pattern, ...patch }) } } }, opts)
+      }
+      const current = design.patterns[zone]
       if (!current) return
-      commit({ ...design, patterns: { ...design.patterns, [region]: cleanPatternFill({ ...current, ...patch }) } }, opts)
+      commit({ ...design, patterns: { ...design.patterns, [zone]: cleanPatternFill({ ...current, ...patch }) } }, opts)
     },
 
     copyPattern: (from, to) => {
@@ -278,7 +313,7 @@ export const useDesignStore = create<DesignStore>()((set, get) => {
 
     resetColors: () => {
       const { design } = get()
-      commit({ ...design, colors: createDefaultDesign().colors })
+      commit({ ...design, colors: createDefaultDesign().colors, zones: {} })
     },
 
     addLogo: (asset) => {

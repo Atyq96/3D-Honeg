@@ -1,6 +1,7 @@
 import { Check } from 'lucide-react'
 import { BRAND_ASSETS, BRAND_COLORS, brandInk, type BrandSide, type BrandStyle } from '../../config/brand'
 import { useDesignStore } from '../../state/designStore'
+import { brandFabric } from '../../state/paint'
 import { useUiStore } from '../../state/uiStore'
 import { isLight, onColor } from '../../lib/color'
 import { Segmented } from '../ui/controls'
@@ -15,7 +16,8 @@ const otherChest = (side: BrandSide) => SIDE_LABEL[side === 'left' ? 'right' : '
  */
 export function BrandMarkControls() {
   const brand = useDesignStore((s) => s.design.brand)
-  const fabric = useDesignStore((s) => s.design.colors.body)
+  // The fabric under the mark (a painted half or stripe can change it).
+  const fabric = useDesignStore((s) => brandFabric(s.design))
   const setBrand = useDesignStore((s) => s.setBrand)
 
   const changeSide = (side: BrandSide) => {

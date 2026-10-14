@@ -1,3 +1,4 @@
+import type { PaintZoneDef } from './zones'
 import type { BufferGeometry } from 'three'
 import type { V2 } from './flat/geom2d'
 
@@ -98,5 +99,7 @@ export interface GarmentDefinition {
    * (mirrored for the chosen chest), centre height y, and printed width.
    */
   brandMark: { x: number; y: number; widthCm: number }
+  /** Halves, panels and stripes that can be painted over the parts, in print order (later on top). */
+  paintZones: PaintZoneDef[]
   flat: FlatOutline
 }

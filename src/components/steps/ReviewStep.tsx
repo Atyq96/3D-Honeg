@@ -31,6 +31,7 @@ export function ReviewStep() {
                 colors={design.colors}
                 patterns={design.patterns}
                 brand={design.brand}
+                zones={design.zones}
                 logos={design.logos}
                 label={`${side} flat sketch`}
               />

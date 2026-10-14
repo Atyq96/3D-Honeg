@@ -4,6 +4,7 @@ import type { GarmentDefinition } from '../../garments/types'
 import { brandPlacement } from '../../garments/brand'
 import { BRAND_ASSETS, brandInk } from '../../config/brand'
 import { useDesignStore } from '../../state/designStore'
+import { brandFabric } from '../../state/paint'
 import { projectDecal } from './decal'
 import { useLogoTexture } from './useLogoTexture'
 import { PrintMaterial } from './PrintMaterial'
@@ -13,7 +14,7 @@ const NO_FLIP = { flipX: false, flipY: false }
 /** The always-present HONEG chest mark, printed like the customer's logo but not editable on the model. */
 export function BrandMark({ def, targets }: { def: GarmentDefinition; targets: BufferGeometry[] }) {
   const brand = useDesignStore((s) => s.design.brand)
-  const fabric = useDesignStore((s) => s.design.colors.body)
+  const fabric = useDesignStore((s) => brandFabric(s.design))
   const ink = brandInk(brand.color, fabric)
   const look = useMemo(() => ({ ...NO_FLIP, tint: ink }), [ink])
   const texture = useLogoTexture(BRAND_ASSETS[brand.style].url, look)

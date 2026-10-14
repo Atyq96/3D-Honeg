@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { RegionId } from '../garments/types'
+import type { ZoneId } from '../garments/zones'
 
 export type StepId = 'product' | 'color' | 'pattern' | 'logo' | 'text' | 'review'
 export type ViewId = 'front' | 'back' | 'left' | 'right'
@@ -16,8 +17,8 @@ interface UiStore {
   /** Last requested camera view; `viewNonce` re-triggers the same view after free orbiting. */
   view: ViewId
   viewNonce: number
-  colorZone: RegionId
-  patternZone: RegionId
+  colorZone: ZoneId
+  patternZone: ZoneId
   viewerStatus: ViewerStatus
   viewerError: string | null
   /** The logo the sidebar, toolbar and gizmo edit (falls back to the newest logo when unset or removed). */
@@ -26,12 +27,14 @@ interface UiStore {
   logoSelected: boolean
   /** Colour regions actually present in the loaded 3D model (null until a model loads). */
   modelRegions: RegionId[] | null
+  /** 3D renders of the garment with each zone highlighted, for the zone pickers (PNG data URLs). */
+  zoneThumbs: Partial<Record<ZoneId, string>>
   toasts: Toast[]
 
   setStep: (step: StepId) => void
   setView: (view: ViewId) => void
-  setColorZone: (zone: RegionId) => void
-  setPatternZone: (zone: RegionId) => void
+  setColorZone: (zone: ZoneId) => void
+  setPatternZone: (zone: ZoneId) => void
   selectLogo: (selected: boolean) => void
   /** Makes a logo the active one; `select` also shows its handles on the garment. */
   setActiveLogo: (id: string | null, select?: boolean) => void
@@ -51,6 +54,7 @@ export const useUiStore = create<UiStore>()((set, get) => ({
   viewerStatus: 'loading',
   viewerError: null,
   modelRegions: null,
+  zoneThumbs: {},
   activeLogoId: null,
   logoSelected: false,
   toasts: [],

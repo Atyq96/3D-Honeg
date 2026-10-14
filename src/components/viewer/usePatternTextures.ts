@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { CanvasTexture, RepeatWrapping, SRGBColorSpace } from 'three'
-import type { RegionId } from '../../garments/types'
-import { resolvedColor, type Design, type PatternFill } from '../../state/design'
+import type { PatternFill } from '../../state/design'
+import { PAINT_ZONE_IDS, REGION_IDS, type ZoneId } from '../../garments/zones'
 import { getPattern, svgDataUrl, tileSvg } from '../../patterns/library'
 
 const TILE_PX = 512
-const REGIONS: RegionId[] = ['body', 'sleeves', 'collar']
+const ZONES: ZoneId[] = [...REGION_IDS, ...PAINT_ZONE_IDS]
+
+/** A patterned part or paint zone: the pattern and the fabric colour under it. */
+export type PatternSources = Partial<Record<ZoneId, { fill: PatternFill; bg: string }>>
 
 type Entry = { key: string; texture: CanvasTexture }
 
@@ -27,31 +30,29 @@ export async function rasterizeTile(fill: PatternFill, bg: string, px = TILE_PX)
 const rasterKey = (fill: PatternFill, bg: string) => [fill.id, fill.color, bg, fill.density, fill.opacity, fill.seed].join('|')
 
 /**
- * One repeating texture per patterned zone. A zone is re-rasterised only when
- * its own pixels change; stale and removed textures are disposed.
+ * One repeating texture per patterned part or paint zone. A zone is
+ * re-rasterised only when its own pixels change; stale and removed textures
+ * are disposed.
  */
-export function usePatternTextures(patterns: Design['patterns'], colors: Design['colors']) {
+export function usePatternTextures(sources: PatternSources) {
   const wanted = useMemo(() => {
-    const out: Partial<Record<RegionId, { key: string; fill: PatternFill; bg: string }>> = {}
-    for (const r of REGIONS) {
-      const fill = patterns[r]
-      if (fill) {
-        const bg = resolvedColor(colors, r)
-        out[r] = { key: rasterKey(fill, bg), fill, bg }
-      }
+    const out: Partial<Record<ZoneId, { key: string; fill: PatternFill; bg: string }>> = {}
+    for (const z of ZONES) {
+      const src = sources[z]
+      if (src) out[z] = { key: rasterKey(src.fill, src.bg), ...src }
     }
     return out
-  }, [patterns, colors])
+  }, [sources])
 
-  const [textures, setTextures] = useState<Partial<Record<RegionId, Entry>>>({})
+  const [textures, setTextures] = useState<Partial<Record<ZoneId, Entry>>>({})
   const live = useRef({ wanted, textures })
   useEffect(() => {
     live.current = { wanted, textures }
   })
 
-  const signature = REGIONS.map((r) => wanted[r]?.key ?? '-').join('§')
+  const signature = ZONES.map((r) => wanted[r]?.key ?? '-').join('§')
   useEffect(() => {
-    for (const r of REGIONS) {
+    for (const r of ZONES) {
       const want = wanted[r]
       if (!want || live.current.textures[r]?.key === want.key) continue
       void rasterizeTile(want.fill, want.bg).then((canvas) => {
@@ -68,15 +69,15 @@ export function usePatternTextures(patterns: Design['patterns'], colors: Design[
     }
     // Pattern removed: free GPU memory now. The entry is ignored below (key mismatch),
     // and three.js re-uploads it transparently if the same pattern comes back.
-    for (const r of REGIONS) if (!wanted[r]) live.current.textures[r]?.texture.dispose()
+    for (const r of ZONES) if (!wanted[r]) live.current.textures[r]?.texture.dispose()
     // `signature` captures every pixel-affecting input of `wanted`.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signature])
 
   useEffect(() => () => Object.values(live.current.textures).forEach((t) => t?.texture.dispose()), [])
 
-  const out: Partial<Record<RegionId, CanvasTexture>> = {}
-  for (const r of REGIONS) {
+  const out: Partial<Record<ZoneId, CanvasTexture>> = {}
+  for (const r of ZONES) {
     const t = textures[r]
     if (t && t.key === wanted[r]?.key) out[r] = t.texture
   }

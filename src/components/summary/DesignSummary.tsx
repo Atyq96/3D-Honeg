@@ -9,6 +9,7 @@ import { isLight } from '../../lib/color'
 import { describeLook } from '../../lib/logoTransform'
 import { describePatterns } from '../../patterns/describe'
 import { describeBrand } from '../../garments/brand'
+import { brandFabric, describeZones } from '../../state/paint'
 import { describeText } from '../../state/describeText'
 
 function Swatch({ hex }: { hex: string }) {
@@ -22,6 +23,7 @@ export function DesignSummary() {
   const garment = getGarment(design.productId)
   const regions = useColorRegions()
   const patternLines = describePatterns(design.patterns, regions)
+  const zoneLines = describeZones(design)
   const images = design.logos.filter((l) => !l.text)
   const texts = design.logos.filter((l) => l.text)
 
@@ -76,10 +78,23 @@ export function DesignSummary() {
         </dd>
         {edit('pattern', 'pattern')}
       </div>
+      {zoneLines.length > 0 && (
+        <div className="summary-row">
+          <dt>Zones</dt>
+          <dd className="summary-stack">
+            {zoneLines.map((z) => (
+              <span key={z.zone}>
+                <span className="muted">{z.label}:</span> {z.text}
+              </span>
+            ))}
+          </dd>
+          {edit('color', 'color zones')}
+        </div>
+      )}
       <div className="summary-row">
         <dt>HONEG</dt>
         <dd>
-          <span>{describeBrand(design.brand, design.colors.body)}</span>
+          <span>{describeBrand(design.brand, brandFabric(design))}</span>
         </dd>
         {edit('logo', 'HONEG mark')}
       </div>

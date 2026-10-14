@@ -1,7 +1,9 @@
 import { useId } from 'react'
 import type { GarmentDefinition, RegionId, Side } from '../../garments/types'
 import type { V2 } from '../../garments/flat/geom2d'
-import { resolvedColor, type Design } from '../../state/design'
+import { resolvedColor, type Design, type PatternFill } from '../../state/design'
+import { brandFabric } from '../../state/paint'
+import { zonePolygons, type ZoneId } from '../../garments/zones'
 import { getPattern } from '../../patterns/library'
 import { brandPlacement } from '../../garments/brand'
 import { BRAND_ASSETS, brandInk } from '../../config/brand'
@@ -22,13 +24,15 @@ interface FlatPreviewProps {
   patterns?: Design['patterns']
   /** HONEG chest mark; omit only for pure silhouettes. */
   brand?: Design['brand']
+  /** Painted halves, panels and stripes, drawn over the parts in the garment's print order. */
+  zones?: Design['zones']
 }
 
 const path = (pts: V2[], close = true) =>
   pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(4)} ${(-p[1]).toFixed(4)}`).join(' ') + (close ? ' Z' : '')
 
 /** Flat technical sketch of the garment with live colours and logo placements (SVG, no WebGL needed). */
-export function FlatPreview({ garment, side, colors, logos = [], showPrintArea, label, className, onLogoClick, patterns, brand }: FlatPreviewProps) {
+export function FlatPreview({ garment, side, colors, logos = [], showPrintArea, label, className, onLogoClick, patterns, brand, zones = {} }: FlatPreviewProps) {
   const uid = useId().replace(/:/g, '')
   const flat = garment.flat[side]
   const all = [...garment.flat.front.body, ...garment.flat.back.body]
@@ -43,15 +47,18 @@ export function FlatPreview({ garment, side, colors, logos = [], showPrintArea, 
   const body = paint('body')
   const sleeves = paint('sleeves')
   const collar = paint('collar')
-  const patternDefs = (['body', 'sleeves', 'collar'] as RegionId[]).map((region) => {
-    const fill = patterns?.[region]
-    const def = fill ? getPattern(fill.id) : undefined
-    if (!fill || !def) return null
+  // Patterned parts and paint zones, each over its own fabric colour.
+  const patterned: { key: ZoneId; fill: PatternFill; bg: string }[] = [
+    ...(['body', 'sleeves', 'collar'] as RegionId[]).flatMap((r) => (patterns?.[r] ? [{ key: r, fill: patterns[r]!, bg: resolvedColor(colors, r) }] : [])),
+    ...garment.paintZones.flatMap((z) => (zones[z.id]?.pattern ? [{ key: z.id, fill: zones[z.id]!.pattern!, bg: zones[z.id]!.color }] : [])),
+  ]
+  const patternDefs = patterned.map(({ key, fill, bg }) => {
+    const def = getPattern(fill.id)
+    if (!def) return null
     const [w, h] = def.tile
-    const bg = resolvedColor(colors, region)
     // Tile units → metres: one repeat is sizeCm wide, rotated clockwise like the 3D print.
     return (
-      <pattern key={region} id={`pat-${uid}-${region}`} patternUnits="userSpaceOnUse" width={w} height={h} patternTransform={`rotate(${fill.angle}) scale(${fill.sizeCm / 100 / w})`}>
+      <pattern key={key} id={`pat-${uid}-${key}`} patternUnits="userSpaceOnUse" width={w} height={h} patternTransform={`rotate(${fill.angle}) scale(${fill.sizeCm / 100 / w})`}>
         <rect width={w} height={h} fill={bg} />
         {/* Library output is generated from validated values only (hex colours, numbers). */}
         <g opacity={fill.opacity} dangerouslySetInnerHTML={{ __html: def.render({ color: fill.color, bg, density: fill.density, seed: fill.seed }) }} />
@@ -66,7 +73,7 @@ export function FlatPreview({ garment, side, colors, logos = [], showPrintArea, 
   let brandInkColor: string | null = null
   if (brand && side === 'front') {
     const b = brandPlacement(garment, brand)
-    brandInkColor = brandInk(brand.color, colors.body)
+    brandInkColor = brandInk(brand.color, brandFabric({ productId: garment.id, colors, zones, brand }))
     brandEl = (
       <image
         href={BRAND_ASSETS[brand.style].url}
@@ -79,6 +86,15 @@ export function FlatPreview({ garment, side, colors, logos = [], showPrintArea, 
       />
     )
   }
+
+  // Painted zones, clipped to their outline in this view; each covers only its own parts.
+  const zoneLayers = garment.paintZones.flatMap((z) => {
+    const paint = zones[z.id]
+    const polygons = paint ? zonePolygons(z, side) : []
+    if (!paint || !polygons.length) return []
+    const fill = paint.pattern && getPattern(paint.pattern.id) ? `url(#pat-${uid}-${z.id})` : paint.color
+    return [{ id: z.id, polygons, fill, body: z.parts.includes('body'), sleeves: z.parts.includes('sleeves') }]
+  })
 
   const logoEls = logos.map((layer, i) => {
     const { asset, placement } = layer
@@ -116,6 +132,13 @@ export function FlatPreview({ garment, side, colors, logos = [], showPrintArea, 
       preserveAspectRatio="xMidYMid meet"
     >
       <defs>
+        {zoneLayers.map((z) => (
+          <clipPath key={z.id} id={`zone-${uid}-${z.id}`}>
+            {z.polygons.map((p, i) => (
+              <polygon key={i} points={p.map(([x, y]) => `${x.toFixed(4)},${(-y).toFixed(4)}`).join(' ')} />
+            ))}
+          </clipPath>
+        ))}
         <clipPath id={`clip-${uid}`}>
           <path d={path(flat.body)} />
         </clipPath>
@@ -145,6 +168,12 @@ export function FlatPreview({ garment, side, colors, logos = [], showPrintArea, 
       <path d={path(flat.body)} fill={body} />
       {flat.sleeves.map((s, i) => (
         <path key={i} d={path(s)} fill={sleeves} />
+      ))}
+      {zoneLayers.map((z) => (
+        <g key={z.id} clipPath={`url(#zone-${uid}-${z.id})`}>
+          {z.body && <path d={path(flat.body)} fill={z.fill} />}
+          {z.sleeves && flat.sleeves.map((s, i) => <path key={i} d={path(s)} fill={z.fill} />)}
+        </g>
       ))}
       <g clipPath={`url(#clip-${uid})`}>
         <rect x={minX - pad} y={-maxY - pad} width={maxX - minX + pad * 2} height={maxY + pad * 2} fill={`url(#shade-${uid})`} />

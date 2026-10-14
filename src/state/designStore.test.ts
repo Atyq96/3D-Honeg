@@ -3,6 +3,7 @@ import { logoRect, useDesignStore } from './designStore'
 import { cleanTextContent, createDefaultDesign, letterHeightCm, MAX_LOGOS, MAX_TEXT_LINE_CHARS, MAX_TEXTS, parseDesign, type LogoAsset } from './design'
 import { DEFAULT_GARMENT_ID, getGarment } from '../garments/catalog'
 import { brandPlacement } from '../garments/brand'
+import { brandFabric, describeZones } from './paint'
 
 const logo: LogoAsset = { dataUrl: 'data:image/png;base64,AAAA', name: 'logo.png', width: 400, height: 200, bytes: 1234, mime: 'image/png' }
 const store = () => useDesignStore.getState()
@@ -368,5 +369,55 @@ describe('text', () => {
   it('limits wording to three lines of 32 characters', () => {
     expect(cleanTextContent('a\r\nb\nc\nd')).toBe('a\nb\nc')
     expect(cleanTextContent('x'.repeat(40))).toHaveLength(MAX_TEXT_LINE_CHARS)
+  })
+})
+
+describe('paint zones', () => {
+  it('paints a zone with a colour, and clearing removes it', () => {
+    store().setColor('halfLeft', '#ED1C24')
+    expect(store().design.zones.halfLeft).toEqual({ color: '#ED1C24', pattern: null })
+    store().setColor('halfLeft', null)
+    expect(store().design.zones.halfLeft).toBeUndefined()
+    store().undo()
+    expect(store().design.zones.halfLeft?.color).toBe('#ED1C24')
+  })
+
+  it('a pattern on an unpainted zone takes the body colour underneath', () => {
+    store().setColor('body', '#003A96')
+    store().setPattern('halfBottom', { id: 'pinstripe', color: '#ffffff', sizeCm: 2, angle: 0, density: 0.5, opacity: 1, seed: 42 })
+    expect(store().design.zones.halfBottom).toMatchObject({ color: '#003A96', pattern: { id: 'pinstripe', color: '#FFFFFF' } })
+    store().updatePattern('halfBottom', { sizeCm: 3 })
+    expect(store().design.zones.halfBottom?.pattern?.sizeCm).toBe(3)
+    // Removing the pattern keeps the zone's colour.
+    store().setPattern('halfBottom', null)
+    expect(store().design.zones.halfBottom).toEqual({ color: '#003A96', pattern: null })
+  })
+
+  it('reset all colours clears the zones too', () => {
+    store().setColor('sash', '#ED1C24')
+    store().resetColors()
+    expect(store().design.zones).toEqual({})
+  })
+
+  it('round-trips through export and drops unknown zones and bad colours on import', () => {
+    store().setColor('sash', '#ED1C24')
+    const parsed = parseDesign(JSON.parse(JSON.stringify(store().design)))
+    expect(parsed.zones).toEqual({ sash: { color: '#ED1C24', pattern: null } })
+    const odd = parseDesign({ version: 1, productId: 'raglan', colors: { body: '#000' }, zones: { sash: { color: 'red' }, cape: { color: '#fff' }, hemBand: { color: '#fff' } } })
+    expect(odd.zones).toEqual({ hemBand: { color: '#FFFFFF', pattern: null } })
+    // Older designs have no zones.
+    expect(parseDesign({ version: 1, productId: 'raglan', colors: { body: '#000' } }).zones).toEqual({})
+  })
+
+  it('the HONEG mark reads the fabric under it, so Auto ink follows a painted zone', () => {
+    store().setColor('body', '#F6F5F2')
+    expect(brandFabric(store().design)).toBe('#F6F5F2')
+    // Mark on the wearer's right chest; the sash runs from the right shoulder through it.
+    store().setColor('sash', '#ED1C24')
+    expect(brandFabric(store().design)).toBe('#ED1C24')
+    // The left half doesn't reach the right chest.
+    store().setColor('halfLeft', '#001D4B')
+    expect(brandFabric(store().design)).toBe('#ED1C24')
+    expect(describeZones(store().design).map((z) => z.label)).toEqual(['Left half', 'Sash'])
   })
 })

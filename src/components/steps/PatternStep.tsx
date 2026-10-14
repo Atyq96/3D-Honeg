@@ -1,28 +1,30 @@
 import { Copy, Dices, Droplets, Maximize2, RotateCw, Trash2, Waves } from 'lucide-react'
-import type { RegionId } from '../../garments/types'
 import { useDesignStore } from '../../state/designStore'
 import { useUiStore } from '../../state/uiStore'
-import { resolvedColor, PATTERN_SIZE_CM, type PatternFill } from '../../state/design'
-import { useColorRegions } from '../../state/useColorRegions'
+import { PATTERN_SIZE_CM, type PatternFill } from '../../state/design'
+import { useColorRegions, useZones } from '../../state/useColorRegions'
+import { zonePaint } from '../../state/paint'
+import { isPaintZone, ZONE_INFO, type ZoneId } from '../../garments/zones'
 import { defaultInk } from '../../lib/color'
 import { getPattern, svgDataUrl, tileSvg } from '../../patterns/library'
-import { RangeField, Segmented } from '../ui/controls'
+import { RangeField } from '../ui/controls'
+import { ZonePicker } from '../color/ZonePicker'
 import { ShirtColorPicker } from '../color/ShirtColorPicker'
 import { PatternLibrary } from '../pattern/PatternLibrary'
 import { Section } from './Section'
 
-const ZONE_LABEL: Record<RegionId, string> = { body: 'Body', sleeves: 'Sleeves', collar: 'Collar' }
-
 export function PatternStep() {
-  const zones = useColorRegions()
+  const zones = useZones()
+  const parts = useColorRegions()
   const zoneState = useUiStore((s) => s.patternZone)
   const setZone = useUiStore((s) => s.setPatternZone)
-  const colors = useDesignStore((s) => s.design.colors)
-  const patterns = useDesignStore((s) => s.design.patterns)
+  const design = useDesignStore((s) => s.design)
   const { setPattern, updatePattern, copyPattern } = useDesignStore.getState()
-  const zone = zones.includes(zoneState) ? zoneState : 'body'
-  const fill = patterns[zone]
-  const base = resolvedColor(colors, zone)
+  const zone: ZoneId = zones.includes(zoneState) ? zoneState : 'body'
+  const paint = zonePaint(design, zone)
+  const fill = paint?.pattern ?? null
+  // An unpainted half or stripe takes the body colour when it gets a pattern.
+  const base = paint?.color ?? design.colors.body
   const def = fill ? getPattern(fill.id) : undefined
   const ink = fill?.color ?? defaultInk(base)
 
@@ -35,26 +37,32 @@ export function PatternStep() {
     setPattern(zone, next)
   }
 
-  const zoneIcon = (z: RegionId) => {
-    const f = patterns[z]
-    const bg = resolvedColor(colors, z)
-    const d = f ? getPattern(f.id) : undefined
-    const style = d && f
-      ? { backgroundImage: `url("${svgDataUrl(tileSvg(d, { color: f.color, bg, density: f.density, seed: f.seed, opacity: f.opacity }, 16))}")`, backgroundSize: '9px auto', backgroundColor: bg }
-      : { background: bg }
+  // Patterned zones show their pattern; parts always show their fabric, unpainted zones nothing.
+  const swatch = (z: ZoneId) => {
+    const p = zonePaint(design, z)
+    if (!p) return null
+    const d = p.pattern ? getPattern(p.pattern.id) : undefined
+    if (!d && isPaintZone(z)) return null
+    const style =
+      d && p.pattern
+        ? {
+            backgroundImage: `url("${svgDataUrl(tileSvg(d, { color: p.pattern.color, bg: p.color, density: p.pattern.density, seed: p.pattern.seed, opacity: p.pattern.opacity }, 16))}")`,
+            backgroundSize: '9px auto',
+            backgroundColor: p.color,
+          }
+        : { background: p.color }
     return <span className="zone-dot zone-dot-pattern" style={style} aria-hidden />
   }
 
   return (
     <>
-      <Section title="All-over pattern" description="Print a pattern on each zone, drawn over its fabric color. Library adapted from inkjet.">
+      <Section title="All-over pattern" description="Print a pattern on a part or area, drawn over its fabric color. Library adapted from inkjet.">
+        {zones.length > 1 && <ZonePicker label="Pattern zone" value={zone} onChange={setZone} swatch={swatch} />}
         {zones.length > 1 && (
-          <Segmented<RegionId>
-            label="Pattern zone"
-            value={zone}
-            onChange={setZone}
-            options={zones.map((z) => ({ value: z, label: ZONE_LABEL[z], icon: zoneIcon(z) }))}
-          />
+          <p className="zone-caption">
+            Patterning <strong>{ZONE_INFO[zone].label.toLowerCase()}</strong>
+            {isPaintZone(zone) && !paint ? ' — it takes the body color underneath.' : '.'}
+          </p>
         )}
         <PatternLibrary selected={fill?.id ?? null} ink={ink} bg={base} onPick={(d) => pick(d.id)} onClear={() => setPattern(zone, null)} />
       </Section>
@@ -123,19 +131,19 @@ export function PatternStep() {
                 <Dices size={15} aria-hidden /> Shuffle layout
               </button>
             )}
-            {zones.length > 1 && (
+            {!isPaintZone(zone) && parts.length > 1 && (
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"
                 onClick={() => {
                   copyPattern(
                     zone,
-                    zones.filter((z) => z !== zone),
+                    parts.filter((z) => z !== zone),
                   )
-                  useUiStore.getState().notify('success', `${def.name} applied to every zone.`)
+                  useUiStore.getState().notify('success', `${def.name} applied to every part.`)
                 }}
               >
-                <Copy size={15} aria-hidden /> Apply to all zones
+                <Copy size={15} aria-hidden /> Apply to all parts
               </button>
             )}
           </div>

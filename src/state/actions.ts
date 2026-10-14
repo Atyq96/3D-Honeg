@@ -6,6 +6,7 @@ import { colorRegions } from './useColorRegions'
 import { describeLook } from '../lib/logoTransform'
 import { describePatterns } from '../patterns/describe'
 import { describeBrand } from '../garments/brand'
+import { brandFabric, describeZones } from './paint'
 import { describeText } from './describeText'
 import { getGarment } from '../garments/catalog'
 import { presetName } from '../config/palette'
@@ -63,7 +64,7 @@ async function renderFlats(design: Design): Promise<string[]> {
   const garment = getGarment(design.productId)
   return (['front', 'back'] as const).map((side) => {
     const markup = renderToStaticMarkup(
-      createElement(FlatPreview, { garment, side, colors: design.colors, patterns: design.patterns, brand: design.brand, logos: design.logos }),
+      createElement(FlatPreview, { garment, side, colors: design.colors, patterns: design.patterns, brand: design.brand, zones: design.zones, logos: design.logos }),
     )
     const svg = markup.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="900" height="1100"')
     return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
@@ -97,10 +98,12 @@ export async function exportPreviewImage() {
     // One detail line each for text, pattern and the HONEG mark; the sheet grows to fit them.
     const regions = colorRegions(design.productId, useUiStore.getState().modelRegions)
     const patternLines = describePatterns(design.patterns, regions)
+    const zoneLines = describeZones(design)
     const details = [
       ...design.logos.filter((l) => l.text).map((t) => `Text — ${describeText(design, t)}`),
       ...(patternLines.length ? [`Pattern — ${patternLines.map((p) => `${p.label}: ${p.text}`).join(' · ')}`] : []),
-      `HONEG mark — ${describeBrand(design.brand, design.colors.body)}`,
+      ...(zoneLines.length ? [`Zones — ${zoneLines.map((z) => `${z.label}: ${z.text}`).join('  ·  ')}`] : []),
+      `HONEG mark — ${describeBrand(design.brand, brandFabric(design))}`,
     ]
     const LINE = 28
     const W = 1800

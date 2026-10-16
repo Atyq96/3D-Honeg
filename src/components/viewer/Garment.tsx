@@ -44,6 +44,7 @@ function GarmentStage({ def, data }: { def: GarmentDefinition; data: GarmentMode
   const targets = useMemo(() => data.parts.filter((p) => p.logoTarget).map((p) => p.geometry), [data])
   return (
     <>
+      <RedrawOnChange />
       <CameraRig bounds={data.bounds} />
       <GarmentMeshes def={def} data={data} uvScale={def.source.uvScale ?? 1} />
       <ZoneThumbnails def={def} data={data} />
@@ -63,6 +64,24 @@ function GarmentStage({ def, data }: { def: GarmentDefinition; data: GarmentMode
       />
     </>
   )
+}
+
+/**
+ * Requests a frame after every commit that changes the design or the selection.
+ * The canvas renders on demand, and React Three Fiber 9 doesn't request one when
+ * an object is only removed (it unlinks the parent before invalidating), so a
+ * hidden print-area frame, a deselected gizmo or a deleted logo would otherwise
+ * stay on screen until something else redraws.
+ */
+function RedrawOnChange() {
+  const invalidate = useThree((s) => s.invalidate)
+  const design = useDesignStore((s) => s.design)
+  const step = useUiStore((s) => s.step)
+  const selected = useUiStore((s) => s.logoSelected)
+  const active = useUiStore((s) => s.activeLogoId)
+  // Effects run after the whole commit, so the removals are already applied when this frame draws.
+  useEffect(() => invalidate(), [invalidate, design, step, selected, active])
+  return null
 }
 
 type MaterialKey = `${ZoneId}:${'jersey' | 'rib'}`

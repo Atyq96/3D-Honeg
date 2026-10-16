@@ -1,3 +1,5 @@
+import { useEffect } from 'react'
+import { useThree } from '@react-three/fiber'
 import { Environment, Lightformer } from '@react-three/drei'
 import { useDesignStore } from '../../state/designStore'
 import { getGarment } from '../../garments/catalog'
@@ -22,10 +24,20 @@ function StudioLighting() {
   )
 }
 
+/** Dev-only: the live scene and renderer, for end-to-end tests (like window.__honeg). */
+function ExposeForTests() {
+  const three = useThree()
+  useEffect(() => {
+    ;(window as unknown as { __honegThree: unknown }).__honegThree = { scene: three.scene, gl: three.gl, invalidate: three.invalidate }
+  }, [three.scene, three.gl, three.invalidate])
+  return null
+}
+
 export function Scene() {
   const productId = useDesignStore((s) => s.design.productId)
   return (
     <>
+      {import.meta.env.DEV && <ExposeForTests />}
       <StudioLighting />
       <Garment def={getGarment(productId)} />
     </>

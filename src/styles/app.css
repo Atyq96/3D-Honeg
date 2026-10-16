@@ -59,6 +59,13 @@ body,
   height: 100%;
 }
 
+/* The app is a single-screen shell whose panels scroll inside it, so the page itself never scrolls. */
+html,
+body {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 body {
   margin: 0;
   font-family: var(--font-sans);
@@ -161,11 +168,14 @@ code {
    -------------------------------------------------------------------------- */
 
 .app {
+  /* Contains absolutely positioned helpers; clip (unlike hidden) can't be scrolled by focus or scrollIntoView. */
+  position: relative;
   height: 100vh;
   height: 100dvh;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   overflow: hidden;
+  overflow: clip;
 }
 
 .topbar {
@@ -510,6 +520,8 @@ code {
 }
 
 .panel {
+  /* Visually hidden labels and inputs (.sr-only) stay inside the scroll area they belong to. */
+  position: relative;
   flex: 1;
   min-height: 0;
   overflow-y: auto;

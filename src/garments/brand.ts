@@ -10,8 +10,8 @@ export interface BrandPlacement {
   rect: PrintArea
 }
 
-/** Front-view x of a wearer's side: wearer's left is the viewer's right on the front. */
-export const chestX = (side: BrandSide, x: number) => (side === 'left' ? x : -x)
+/** Front-view x of a wearer's side: wearer's left is the viewer's right on the front; centre is 0. */
+export const chestX = (side: BrandSide, x: number) => (side === 'center' ? 0 : side === 'left' ? x : -x)
 
 /** Where and how big the HONEG mark prints on this garment. */
 export function brandPlacement(garment: GarmentDefinition, brand: { side: BrandSide; style: BrandStyle }): BrandPlacement {
@@ -32,10 +32,12 @@ export function brandKeepOut(garment: GarmentDefinition, brand: { side: BrandSid
   return { xMin: rect.xMin - margin, xMax: rect.xMax + margin, yMin: rect.yMin - margin, yMax: rect.yMax + margin }
 }
 
-/** e.g. "Right chest · Logo · Auto (white)". */
+/** e.g. "Poitrine droite · Logo · Auto (blanc)". */
+const BRAND_SIDE_LABEL: Record<BrandSide, string> = { left: 'Poitrine gauche', center: 'Centre poitrine', right: 'Poitrine droite' }
+
 export function describeBrand(brand: { side: BrandSide; style: BrandStyle; color: string }, fabric: string): string {
   const ink = brandInk(brand.color, fabric)
   const color =
-    brand.color === 'auto' ? `Auto (${ink === '#FFFFFF' ? 'white' : 'black'})` : (BRAND_COLORS.find((c) => c.value === brand.color)?.label ?? brand.color)
-  return `${brand.side === 'left' ? 'Left' : 'Right'} chest · ${BRAND_ASSETS[brand.style].label} · ${color}`
+    brand.color === 'auto' ? `Auto (${ink === '#FFFFFF' ? 'blanc' : 'noir'})` : (BRAND_COLORS.find((c) => c.value === brand.color)?.label ?? brand.color)
+  return `${BRAND_SIDE_LABEL[brand.side]} · ${BRAND_ASSETS[brand.style].label} · ${color}`
 }

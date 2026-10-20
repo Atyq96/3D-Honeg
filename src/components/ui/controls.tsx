@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type ReactNode, type KeyboardEvent } from 'react'
+import { fr } from '../../lib/format'
 
 /* ------------------------------------------------------------------ */
 /* Icon button with tooltip                                            */
@@ -119,7 +120,7 @@ export function RangeField({ label, value, min, max, step, unit, icon, disabled,
             aria-label={`${label} (${unit})`}
             inputMode="decimal"
             disabled={disabled}
-            value={draft ?? String(value)}
+            value={draft ?? fr(value)}
             onChange={(e) => setDraft(e.target.value)}
             onBlur={commitDraft}
             onKeyDown={(e) => {
@@ -139,7 +140,7 @@ export function RangeField({ label, value, min, max, step, unit, icon, disabled,
         step={step}
         value={value}
         disabled={disabled || min === max}
-        aria-valuetext={`${value} ${unit}`}
+        aria-valuetext={`${fr(value)} ${unit}`}
         style={{ ['--pct' as string]: `${pct}%` }}
         onChange={(e) => onChange(parseFloat(e.target.value), true)}
       />
@@ -272,7 +273,7 @@ export function ConfirmDialog({ open, title, body, confirmLabel, onConfirm, onCl
       <p>{body}</p>
       <div className="dialog-actions">
         <button type="button" className="btn btn-ghost" onClick={onClose} autoFocus>
-          Cancel
+          Annuler
         </button>
         <button
           type="button"

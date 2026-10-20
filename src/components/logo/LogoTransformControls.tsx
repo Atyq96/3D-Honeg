@@ -28,7 +28,7 @@ export function LogoTransformControls({ layer, showSize = true }: { layer: LogoL
     <div className="transform-controls">
       {showSize && (
         <RangeField
-          label="Size (width)"
+          label="Taille (largeur)"
           icon={<Scaling size={15} aria-hidden />}
           value={placement.widthCm}
           min={MIN_LOGO_CM}
@@ -67,10 +67,10 @@ export function LogoTransformControls({ layer, showSize = true }: { layer: LogoL
         step={0.5}
         unit="cm"
         onChange={(v, dragging) => update({ offsetYCm: v }, { coalesce: dragging ? 'offsetY' : undefined })}
-        hint="Offsets are measured from the preset position and limited to the printable area."
+        hint="Les décalages partent de l’emplacement choisi et restent dans la zone imprimable."
       />
       <button type="button" className="btn btn-secondary btn-sm" onClick={() => resetTransform(layer.id)}>
-        <RotateCcw size={15} aria-hidden /> Reset size, rotation &amp; position
+        <RotateCcw size={15} aria-hidden /> Réinitialiser taille, rotation et position
       </button>
     </div>
   )

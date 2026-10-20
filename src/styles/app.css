@@ -992,18 +992,6 @@ code {
 .dropzone + .field-error {
   margin-top: 8px;
 }
-.sample-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  margin-top: 12px;
-  font-size: 13px;
-  color: var(--muted);
-}
-.sample-row svg {
-  color: var(--amber);
-}
 
 .logo-warning svg {
   flex: none;

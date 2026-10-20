@@ -12,10 +12,10 @@ export function normalizeHex(input: string): string | null {
 /** Human-readable reason a HEX value is invalid, or null if it is valid. */
 export function hexError(input: string): string | null {
   const raw = input.trim()
-  if (!raw) return 'Enter a HEX color, e.g. #2563EB.'
+  if (!raw) return 'Saisissez une couleur HEX, par ex. #2563EB.'
   const body = raw.startsWith('#') ? raw.slice(1) : raw
-  if (/[^0-9a-f]/i.test(body)) return 'Use only 0–9 and A–F after the #.'
-  if (body.length !== 3 && body.length !== 6) return 'Use 3 or 6 digits, e.g. #FA0 or #FFAA00.'
+  if (/[^0-9a-f]/i.test(body)) return 'Utilisez uniquement 0–9 et A–F après le #.'
+  if (body.length !== 3 && body.length !== 6) return 'Utilisez 3 ou 6 caractères, par ex. #FA0 ou #FFAA00.'
   return null
 }
 

@@ -45,10 +45,10 @@ export function ProductViewer3D() {
   const fallback = !supported || status === 'error'
 
   return (
-    <section className="stage" ref={stageRef} aria-label="Design preview" data-status={status}>
+    <section className="stage" ref={stageRef} aria-label="Aperçu du design" data-status={status}>
       {fallback ? (
         <FallbackPreview
-          reason={supported ? viewerError ?? 'The 3D preview stopped unexpectedly.' : null}
+          reason={supported ? viewerError ?? 'L’aperçu 3D s’est arrêté de façon inattendue.' : null}
           onRetry={
             supported
               ? () => {
@@ -71,7 +71,7 @@ export function ProductViewer3D() {
       {status === 'loading' && !fallback && (
         <div className="stage-loading" role="status">
           <LoaderCircle className="spin" size={22} aria-hidden />
-          <span>Preparing 3D preview…</span>
+          <span>Préparation de l’aperçu 3D…</span>
         </div>
       )}
 
@@ -80,7 +80,7 @@ export function ProductViewer3D() {
       <ViewControls />
       {!fallback && status === 'ready' && !interacted && (
         <p className="stage-hint" aria-hidden>
-          <Hand size={14} /> {coarsePointer ? 'Drag to rotate · pinch to zoom' : 'Drag to rotate · scroll to zoom'}
+          <Hand size={14} /> {coarsePointer ? 'Glissez pour tourner · pincez pour zoomer' : 'Glissez pour tourner · molette pour zoomer'}
         </p>
       )}
     </section>
@@ -89,9 +89,9 @@ export function ProductViewer3D() {
 
 function friendlyError(e: Error) {
   const msg = e.message || ''
-  if (/webgl|context/i.test(msg)) return 'Your browser could not start a WebGL context.'
-  if (/fetch|load|404|gltf|glb/i.test(msg)) return "The 3D model couldn't be loaded."
-  return 'The 3D preview hit an unexpected error.'
+  if (/webgl|context/i.test(msg)) return 'Votre navigateur n’a pas pu démarrer WebGL.'
+  if (/fetch|load|404|gltf|glb/i.test(msg)) return 'Le modèle 3D n’a pas pu être chargé.'
+  return 'L’aperçu 3D a rencontré une erreur inattendue.'
 }
 
 function FallbackPreview({ reason, onRetry }: { reason: string | null; onRetry?: () => void }) {
@@ -109,7 +109,7 @@ function FallbackPreview({ reason, onRetry }: { reason: string | null; onRetry?:
         brand={design.brand}
         zones={design.zones}
         logos={design.logos}
-        label={`${side === 'front' ? 'Front' : 'Back'} flat preview of your design`}
+        label={`Aperçu à plat (${side === 'front' ? 'face' : 'dos'}) de votre design`}
         onLogoClick={(id) => {
           const layer = design.logos.find((l) => l.id === id)
           if (layer) editLayer(layer, { turn: false })
@@ -118,15 +118,15 @@ function FallbackPreview({ reason, onRetry }: { reason: string | null; onRetry?:
       <div className="fallback-note" role="status">
         <MonitorX size={18} aria-hidden />
         <div>
-          <strong>{reason ? '3D preview unavailable' : '3D isn’t supported here'}</strong>
+          <strong>{reason ? 'Aperçu 3D indisponible' : 'La 3D n’est pas prise en charge ici'}</strong>
           <p>
-            {reason ?? 'WebGL is disabled or unsupported on this device.'} You can keep customizing — this flat preview updates
-            live and exports still work.
+            {reason ?? 'WebGL est désactivé ou non pris en charge sur cet appareil.'} Vous pouvez continuer à personnaliser&nbsp;: cet aperçu à plat
+            se met à jour en direct et les exports fonctionnent.
           </p>
         </div>
         {onRetry && (
           <button type="button" className="btn btn-secondary btn-sm" onClick={onRetry}>
-            <RefreshCw size={15} aria-hidden /> Retry 3D
+            <RefreshCw size={15} aria-hidden /> Réessayer la 3D
           </button>
         )}
       </div>

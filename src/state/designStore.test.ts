@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { logoRect, useDesignStore } from './designStore'
 import { cleanTextContent, createDefaultDesign, letterHeightCm, MAX_LOGOS, MAX_TEXT_LINE_CHARS, MAX_TEXTS, parseDesign, type LogoAsset } from './design'
 import { DEFAULT_GARMENT_ID, getGarment } from '../garments/catalog'
-import { brandPlacement } from '../garments/brand'
+import { brandPlacement, describeBrand } from '../garments/brand'
 import { brandFabric, describeZones } from './paint'
 
 const logo: LogoAsset = { dataUrl: 'data:image/png;base64,AAAA', name: 'logo.png', width: 400, height: 200, bytes: 1234, mime: 'image/png' }
@@ -116,12 +116,12 @@ describe('parseDesign', () => {
   })
 
   it.each([
-    [null, /JSON object/],
+    [null, /objet JSON/],
     [{ version: 2 }, /version/],
-    [{ version: 1 }, /missing product/],
-    [{ version: 1, productId: 'raglan', colors: { body: 'blue' } }, /body color/],
-    [{ version: 1, productId: 'raglan', colors: { body: '#000' }, logo: { dataUrl: 'javascript:alert(1)', width: 1, height: 1 } }, /PNG or JPEG/],
-    [{ version: 1, productId: 'raglan', colors: { body: '#000' }, logos: [{ asset: { dataUrl: 'data:text/html;base64,AA', width: 1, height: 1 } }] }, /PNG or JPEG/],
+    [{ version: 1 }, /produit manquant/],
+    [{ version: 1, productId: 'raglan', colors: { body: 'blue' } }, /couleur du corps/],
+    [{ version: 1, productId: 'raglan', colors: { body: '#000' }, logo: { dataUrl: 'javascript:alert(1)', width: 1, height: 1 } }, /PNG ou JPEG/],
+    [{ version: 1, productId: 'raglan', colors: { body: '#000' }, logos: [{ asset: { dataUrl: 'data:text/html;base64,AA', width: 1, height: 1 } }] }, /PNG ou JPEG/],
   ])('rejects invalid input %#', (input, message) => {
     expect(() => parseDesign(input)).toThrow(message)
   })
@@ -418,6 +418,42 @@ describe('paint zones', () => {
     // The left half doesn't reach the right chest.
     store().setColor('halfLeft', '#001D4B')
     expect(brandFabric(store().design)).toBe('#ED1C24')
-    expect(describeZones(store().design).map((z) => z.label)).toEqual(['Left half', 'Sash'])
+    expect(describeZones(store().design).map((z) => z.label)).toEqual(['Moitié gauche', 'Écharpe'])
+  })
+})
+
+describe('HONEG mark centred', () => {
+  const rect = () => brandPlacement(getGarment(store().design.productId), store().design.brand).rect
+  const overlaps = (a: ReturnType<typeof rect>, b: ReturnType<typeof rect>) => a.xMax > b.xMin && a.xMin < b.xMax && a.yMax > b.yMin && a.yMin < b.yMax
+
+  it('sits on the centre line and leaves chest logos where they are', () => {
+    const id = add() // left chest
+    store().setBrand({ side: 'center' })
+    expect(store().design.brand.side).toBe('center')
+    const r = rect()
+    expect((r.xMin + r.xMax) / 2).toBeCloseTo(0)
+    expect(store().design.logos.find((l) => l.id === id)!.placement.placement).toBe('leftChest')
+  })
+
+  it('frees both chests: a second logo can take the right chest without moving the mark', () => {
+    store().setBrand({ side: 'center' })
+    add() // left chest
+    const second = add()
+    store().setPlacement(second, 'rightChest')
+    expect(store().design.logos.find((l) => l.id === second)!.placement.placement).toBe('rightChest')
+    expect(store().design.brand.side).toBe('center')
+  })
+
+  it('keeps a centre-chest print clear of it', () => {
+    store().setBrand({ side: 'center' })
+    const id = add()
+    store().setPlacement(id, 'centerChest')
+    expect(overlaps(logoRect(store().design, store().design.logos[0]), rect())).toBe(false)
+  })
+
+  it('round-trips through export and reads well', () => {
+    store().setBrand({ side: 'center' })
+    expect(parseDesign(JSON.parse(JSON.stringify(store().design))).brand.side).toBe('center')
+    expect(describeBrand(store().design.brand, '#0E0E0E')).toBe('Centre poitrine · Logo · Auto (blanc)')
   })
 })

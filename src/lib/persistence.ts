@@ -14,7 +14,7 @@ export function saveDesignLocally(design: Design): SaveResult {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...design, logos: [] }))
       return { ok: true, withoutLogo: true }
     } catch {
-      return { ok: false, reason: "Your browser blocked local storage, so the design couldn't be saved. Use Export design instead." }
+      return { ok: false, reason: 'Votre navigateur bloque le stockage local\u00a0: le design n’a pas pu être enregistré. Exportez-le plutôt.' }
     }
   }
 }
@@ -48,17 +48,17 @@ export function downloadBlob(blob: Blob, filename: string) {
 }
 
 export function exportDesignJson(design: Design) {
-  const payload = { ...design, exportedAt: new Date().toISOString(), app: 'HONEG 3D Customizer (prototype)' }
+  const payload = { ...design, exportedAt: new Date().toISOString(), app: 'HONEG Personnalisation 3D (prototype)' }
   downloadBlob(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }), `honeg-design-${stamp()}.json`)
 }
 
 export async function readDesignFile(file: File): Promise<Design> {
-  if (file.size > 12 * 1024 * 1024) throw new Error('This file is too large to be a design export.')
+  if (file.size > 12 * 1024 * 1024) throw new Error('Ce fichier est trop lourd pour être un export de design.')
   let json: unknown
   try {
     json = JSON.parse(await file.text())
   } catch {
-    throw new Error("This file isn't valid JSON. Choose a design exported from this customizer.")
+    throw new Error('Ce fichier n’est pas un JSON valide. Choisissez un design exporté depuis cet outil.')
   }
   return parseDesign(json)
 }

@@ -47,7 +47,7 @@ describe('pattern library (adapted from inkjet)', () => {
   it('describes applied patterns per zone', () => {
     const fill = { id: 'houndstooth', color: '#0E0E0E', sizeCm: 2.5, angle: 15, density: 0.5, opacity: 0.8, seed: 42 }
     expect(describePatterns({ body: fill, sleeves: null, collar: null }, ['body', 'sleeves'])).toEqual([
-      { zone: 'body', label: 'Body', text: 'Houndstooth #0E0E0E · 2.5 cm · 15° · 80% opacity' },
+      { zone: 'body', label: 'Corps', text: 'Pied-de-poule #0E0E0E · 2,5 cm · 15° · opacité 80 %' },
     ])
   })
 })

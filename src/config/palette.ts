@@ -5,18 +5,18 @@ export interface ColorPreset {
 }
 
 export const COLOR_PRESETS: ColorPreset[] = [
-  { name: 'HONEG Black', hex: '#0E0E0E' },
-  { name: 'Chalk', hex: '#F6F5F2' },
-  { name: 'White', hex: '#FFFFFF' },
-  { name: 'HONEG Amber', hex: '#F2A900' },
+  { name: 'Noir HONEG', hex: '#0E0E0E' },
+  { name: 'Craie', hex: '#F6F5F2' },
+  { name: 'Blanc', hex: '#FFFFFF' },
+  { name: 'Ambre HONEG', hex: '#F2A900' },
   { name: 'Graphite', hex: '#484847' },
-  { name: 'Stone', hex: '#BCBBB9' },
-  { name: 'Midnight', hex: '#001D4B' },
-  { name: 'Royal', hex: '#003A96' },
-  { name: 'Sky', hex: '#0088CB' },
-  { name: 'Race Red', hex: '#ED1C24' },
-  { name: 'Forest', hex: '#2B5336' },
-  { name: 'Volt', hex: '#FFCB05' },
+  { name: 'Pierre', hex: '#BCBBB9' },
+  { name: 'Minuit', hex: '#001D4B' },
+  { name: 'Bleu roi', hex: '#003A96' },
+  { name: 'Ciel', hex: '#0088CB' },
+  { name: 'Rouge course', hex: '#ED1C24' },
+  { name: 'Forêt', hex: '#2B5336' },
+  { name: 'Jaune volt', hex: '#FFCB05' },
 ]
 
 export const DEFAULT_BODY_COLOR = '#0E0E0E'

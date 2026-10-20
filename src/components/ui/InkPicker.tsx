@@ -12,7 +12,7 @@ export function InkPicker({ value, onChange, label, id }: { value: string | null
     <>
       <div className="fill-swatches" role="radiogroup" aria-label={label}>
         {SWATCHES.map((c) => {
-          const name = COLOR_PRESETS.find((p) => p.hex === c)?.name ?? (c === '#FFFFFF' ? 'White' : c === '#0E0E0E' ? 'Black' : c)
+          const name = COLOR_PRESETS.find((p) => p.hex === c)?.name ?? (c === '#FFFFFF' ? 'Blanc' : c === '#0E0E0E' ? 'Noir' : c)
           return (
             <button
               key={c}
@@ -42,7 +42,7 @@ export function InkPicker({ value, onChange, label, id }: { value: string | null
         }}
       >
         <label className="sr-only" htmlFor={id}>
-          {label} HEX
+          {label} (HEX)
         </label>
         <span className="fill-hex-swatch" style={{ background: normalizeHex(hex) ?? value ?? 'transparent' }} aria-hidden />
         <input

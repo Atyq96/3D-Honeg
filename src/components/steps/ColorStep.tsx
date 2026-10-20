@@ -12,7 +12,7 @@ import { ShirtColorPicker } from '../color/ShirtColorPicker'
 import { ZonePicker } from '../color/ZonePicker'
 import { Section } from './Section'
 
-const PART_NAMES = { body: 'body', sleeves: 'sleeves', collar: 'collar' }
+const PART_NAMES = { body: 'le corps', sleeves: 'les manches', collar: 'le col' }
 
 export function ColorStep() {
   const design = useDesignStore((s) => s.design)
@@ -32,15 +32,15 @@ export function ColorStep() {
 
   return (
     <Section
-      title="Shirt color"
-      description={zones.length > 1 ? 'Pick a part or area, then its color. Halves, panels and stripes print over the parts.' : undefined}
+      title="Couleur du t-shirt"
+      description={zones.length > 1 ? 'Choisissez une pièce ou une zone, puis sa couleur. Les moitiés, panneaux et bandes s’impriment par-dessus les pièces.' : undefined}
       actions={
         <button type="button" className="btn btn-ghost btn-sm" onClick={resetColors} disabled={!customised}>
-          <RotateCcw size={14} aria-hidden /> Reset all
+          <RotateCcw size={14} aria-hidden /> Tout réinitialiser
         </button>
       }
     >
-      {zones.length > 1 && <ZonePicker label="Color zone" value={zone} onChange={setZone} swatch={swatch} />}
+      {zones.length > 1 && <ZonePicker label="Zone de couleur" value={zone} onChange={setZone} swatch={swatch} />}
       {isPaintZone(zone) ? <PaintZoneColor key={zone} zone={zone} /> : <PartColor key={zone} zone={zone} label={info.label} />}
     </Section>
   )
@@ -55,8 +55,8 @@ function PartColor({ zone, label }: { zone: 'body' | 'sleeves' | 'collar'; label
     <>
       {zone !== 'body' && (
         <Switch
-          label="Match body color"
-          description={linked ? `${label} follow the body color.` : `${label} use their own color.`}
+          label="Même couleur que le corps"
+          description={linked ? `${label}\u00a0: suit la couleur du corps.` : `${label}\u00a0: couleur propre.`}
           checked={linked}
           onChange={(on) => setColor(zone, on ? null : colors.body)}
         />
@@ -80,17 +80,17 @@ function PaintZoneColor({ zone }: { zone: Exclude<ZoneId, 'body' | 'sleeves' | '
   const info = ZONE_INFO[zone]
   const paint = design.zones[zone]
   const def = getGarment(design.productId).paintZones.find((z) => z.id === zone)
-  const covers = def?.parts.map((p) => PART_NAMES[p]).join(' and ') ?? ''
+  const covers = def?.parts.map((p) => PART_NAMES[p]).join(' et ') ?? ''
   return (
     <>
       <div className="zone-status">
         <p>
-          <strong>{info.label}</strong> — {info.hint.toLowerCase()}. Prints over the {covers}.
-          {!paint && <span className="muted"> Not painted yet: pick a color.</span>}
+          <strong>{info.label}</strong> — {info.hint.toLowerCase()}. S’imprime sur {covers}.
+          {!paint && <span className="muted"> Pas encore colorée&nbsp;: choisissez une couleur.</span>}
         </p>
         {paint && (
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => setColor(zone, null)}>
-            <Eraser size={14} aria-hidden /> Clear zone
+            <Eraser size={14} aria-hidden /> Effacer la zone
           </button>
         )}
       </div>

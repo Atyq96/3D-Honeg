@@ -31,12 +31,12 @@ export function brandFabric(design: Pick<Design, 'productId' | 'colors' | 'zones
   return fabricColorAt(design, 'body', [center[0], center[1], CHEST_Z])
 }
 
-/** One line per painted zone, in print order, e.g. "Sash — Race Red #ED1C24" or "Bottom half — Chalk #F6F5F2 · Pinstripe …". */
+/** One line per painted zone, in print order, e.g. "Écharpe — Rouge course #ED1C24" or "Moitié basse — Craie #F6F5F2 · Fines rayures …". */
 export function describeZones(design: Pick<Design, 'productId' | 'zones'>): { zone: PaintZoneId; label: string; text: string }[] {
   return getGarment(design.productId).paintZones.flatMap((z) => {
     const paint = design.zones[z.id]
     if (!paint) return []
-    const color = `${presetName(paint.color) ?? 'Custom'} ${paint.color}`
+    const color = `${presetName(paint.color) ?? 'Personnalisée'} ${paint.color}`
     return [{ zone: z.id, label: ZONE_INFO[z.id].label, text: paint.pattern ? `${color} · ${describeFill(paint.pattern)}` : color }]
   })
 }

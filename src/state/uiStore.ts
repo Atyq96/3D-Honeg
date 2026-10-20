@@ -76,10 +76,10 @@ export const useUiStore = create<UiStore>()((set, get) => ({
 }))
 
 export const STEPS: { id: StepId; label: string; short: string }[] = [
-  { id: 'product', label: 'Product', short: 'Product' },
-  { id: 'color', label: 'Colors', short: 'Color' },
-  { id: 'pattern', label: 'Pattern', short: 'Pattern' },
+  { id: 'product', label: 'Produit', short: 'Produit' },
+  { id: 'color', label: 'Couleurs', short: 'Couleurs' },
+  { id: 'pattern', label: 'Motif', short: 'Motif' },
   { id: 'logo', label: 'Logo', short: 'Logo' },
-  { id: 'text', label: 'Text', short: 'Text' },
-  { id: 'review', label: 'Review', short: 'Review' },
+  { id: 'text', label: 'Texte', short: 'Texte' },
+  { id: 'review', label: 'Récap', short: 'Récap' },
 ]

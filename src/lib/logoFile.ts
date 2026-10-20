@@ -10,7 +10,7 @@ export class LogoFileError extends Error {}
 
 type Kind = 'png' | 'jpeg' | 'webp' | 'svg'
 
-const formatMb = (bytes: number) => (bytes / (1024 * 1024)).toFixed(1)
+const formatMb = (bytes: number) => (bytes / (1024 * 1024)).toFixed(1).replace('.', ',')
 
 function detectKind(file: File): Kind | null {
   const type = file.type.toLowerCase()
@@ -37,7 +37,7 @@ async function checkSignature(file: File, kind: Kind) {
       : kind === 'webp'
         ? ascii(0, 4) === 'RIFF' && ascii(8, 12) === 'WEBP'
         : head[0] === 0xff && head[1] === 0xd8 && head[2] === 0xff
-  if (!ok) throw new LogoFileError(`"${file.name}" doesn't look like a real ${kind.toUpperCase()} file. It may be renamed or corrupted.`)
+  if (!ok) throw new LogoFileError(`«\u00a0${file.name}\u00a0» ne ressemble pas à un vrai fichier ${kind.toUpperCase()}. Il a peut-être été renommé ou est endommagé.`)
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -45,7 +45,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
     const img = new Image()
     img.decoding = 'async'
     img.onload = () => resolve(img)
-    img.onerror = () => reject(new LogoFileError("This image couldn't be decoded. It may be corrupted."))
+    img.onerror = () => reject(new LogoFileError('Cette image n’a pas pu être décodée. Elle est peut-être endommagée.'))
     img.src = src
   })
 }
@@ -67,7 +67,7 @@ async function rasterizeSvg(file: File): Promise<{ source: HTMLImageElement; wid
   const doc = new DOMParser().parseFromString(text, 'image/svg+xml')
   const svg = doc.documentElement
   if (doc.getElementsByTagName('parsererror').length || svg.nodeName.toLowerCase() !== 'svg')
-    throw new LogoFileError("This SVG couldn't be read. Check that it's a valid SVG file.")
+    throw new LogoFileError('Ce SVG n’a pas pu être lu. Vérifiez qu’il s’agit d’un fichier SVG valide.')
 
   doc.querySelectorAll('script, foreignObject, iframe, object, embed').forEach((n) => n.remove())
   for (const el of Array.from(doc.querySelectorAll('*'))) {
@@ -103,7 +103,7 @@ async function rasterizeSvg(file: File): Promise<{ source: HTMLImageElement; wid
     const img = await loadImage(url)
     return { source: img, width: Math.round(w * s), height: Math.round(h * s) }
   } catch {
-    throw new LogoFileError("This SVG couldn't be rendered. Try exporting it as PNG.")
+    throw new LogoFileError('Ce SVG n’a pas pu être affiché. Essayez de l’exporter en PNG.')
   } finally {
     URL.revokeObjectURL(url)
   }
@@ -148,7 +148,7 @@ export function trimTransparent(canvas: HTMLCanvasElement): HTMLCanvasElement {
         if (y < y0) y0 = y
         if (y > y1) y1 = y
       }
-  if (x1 < 0) throw new LogoFileError('This image is fully transparent, so there is nothing to print.')
+  if (x1 < 0) throw new LogoFileError('Cette image est entièrement transparente\u00a0: il n’y a rien à imprimer.')
   const pad = 2
   x0 = Math.max(0, x0 - pad)
   y0 = Math.max(0, y0 - pad)
@@ -169,16 +169,16 @@ export interface ProcessedLogo {
 
 export async function processLogoFile(file: File): Promise<ProcessedLogo> {
   const kind = detectKind(file)
-  if (!kind) throw new LogoFileError(`"${file.name}" isn't supported. Upload a PNG, JPG, WebP or SVG.`)
-  if (file.size === 0) throw new LogoFileError(`"${file.name}" is empty.`)
+  if (!kind) throw new LogoFileError(`«\u00a0${file.name}\u00a0» n’est pas pris en charge. Envoyez un PNG, JPG, WebP ou SVG.`)
+  if (file.size === 0) throw new LogoFileError(`«\u00a0${file.name}\u00a0» est vide.`)
   if (file.size > MAX_LOGO_BYTES)
-    throw new LogoFileError(`"${file.name}" is ${formatMb(file.size)} MB. The maximum is ${formatMb(MAX_LOGO_BYTES)} MB.`)
+    throw new LogoFileError(`«\u00a0${file.name}\u00a0» pèse ${formatMb(file.size)} Mo. Le maximum est de ${formatMb(MAX_LOGO_BYTES)} Mo.`)
   await checkSignature(file, kind)
 
   const decoded = kind === 'svg' ? await rasterizeSvg(file) : await decodeRaster(file)
   try {
     const { width: sw, height: sh } = decoded
-    if (!sw || !sh) throw new LogoFileError("This image has no size, so it can't be placed.")
+    if (!sw || !sh) throw new LogoFileError('Cette image n’a pas de dimensions\u00a0: elle ne peut pas être placée.')
     const s = Math.min(1, MAX_DIM / Math.max(sw, sh))
     const canvas = document.createElement('canvas')
     canvas.width = Math.max(1, Math.round(sw * s))
@@ -191,14 +191,14 @@ export async function processLogoFile(file: File): Promise<ProcessedLogo> {
       out = kind === 'jpeg' ? canvas : trimTransparent(canvas)
     } catch (err) {
       if (err instanceof LogoFileError) throw err
-      throw new LogoFileError('This file uses features that can\'t be rendered safely. Try exporting it as PNG.')
+      throw new LogoFileError('Ce fichier utilise des fonctions qui ne peuvent pas être affichées en toute sécurité. Essayez de l’exporter en PNG.')
     }
     // Opaque images (photos, logos on a solid background) are much smaller as JPEG,
     // which keeps three photos within browser storage.
     const dataUrl = kind === 'jpeg' || (kind !== 'svg' && !hasTransparency(out)) ? out.toDataURL('image/jpeg', 0.9) : out.toDataURL('image/png')
     const warning =
       kind !== 'svg' && Math.min(sw, sh) < LOW_RES
-        ? `Low resolution (${sw}×${sh}px). It may look soft when printed large — a 1000px+ file or an SVG works best.`
+        ? `Basse résolution (${sw}×${sh} px). L’impression peut manquer de netteté en grand\u00a0: un fichier de 1000 px ou plus, ou un SVG, est préférable.`
         : null
     return {
       asset: { dataUrl, name: file.name, width: out.width, height: out.height, bytes: file.size, mime: file.type || `image/${kind}` },
@@ -207,18 +207,4 @@ export async function processLogoFile(file: File): Promise<ProcessedLogo> {
   } finally {
     if ('close' in decoded) decoded.close?.()
   }
-}
-
-/** Loads a bundled sample logo through the same pipeline as user uploads. */
-export async function fetchSampleLogo(url: string, name: string): Promise<ProcessedLogo> {
-  const res = await fetch(url)
-  if (!res.ok) throw new LogoFileError("The sample logo couldn't be loaded.")
-  const blob = await res.blob()
-  return processLogoFile(new File([blob], name, { type: blob.type || 'image/png' }))
-}
-
-export function formatBytes(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
-  return `${formatMb(bytes)} MB`
 }

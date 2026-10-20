@@ -26,7 +26,7 @@ function PlacementGlyph({ preset, brand, others }: { preset: PlacementPreset; br
       />
       {preset.side === 'front' && (
         <rect x={gx(brand[0]) - 1.8} y={gy(brand[1]) - 0.9} width={3.6} height={1.8} rx={0.6} className="placement-glyph-brand">
-          <title>HONEG mark</title>
+          <title>Marque HONEG</title>
         </rect>
       )}
       {/* Your other logos on this side, so you can see what's already there. */}
@@ -41,7 +41,8 @@ function PlacementGlyph({ preset, brand, others }: { preset: PlacementPreset; br
 /** Tells the user when choosing a chest moved the HONEG mark to the other side. */
 function announceBrandMove(before: BrandSide) {
   const after = useDesignStore.getState().design.brand.side
-  if (after !== before) useUiStore.getState().notify('info', `HONEG mark moved to the ${after} chest to make room.`)
+  if (after !== before && after !== 'center')
+    useUiStore.getState().notify('info', `La marque HONEG passe sur la poitrine ${after === 'left' ? 'gauche' : 'droite'} pour laisser la place.`)
 }
 
 /** Side and print position of one logo or text block. */
@@ -59,11 +60,11 @@ export function PlacementPicker({ layer }: { layer: LogoLayer }) {
   return (
     <div className="placement">
       <Segmented<Side>
-        label="Garment side"
+        label="Face du vêtement"
         value={side}
         options={[
-          { value: 'front', label: 'Front' },
-          { value: 'back', label: 'Back' },
+          { value: 'front', label: 'Devant' },
+          { value: 'back', label: 'Dos' },
         ]}
         onChange={(s) => {
           const before = useDesignStore.getState().design.brand.side
@@ -72,7 +73,7 @@ export function PlacementPicker({ layer }: { layer: LogoLayer }) {
           announceBrandMove(before)
         }}
       />
-      <div className="placement-grid" role="radiogroup" aria-label={`${side === 'front' ? 'Front' : 'Back'} placement`}>
+      <div className="placement-grid" role="radiogroup" aria-label={`Emplacement (${side === 'front' ? 'devant' : 'dos'})`}>
         {presets.map((p) => {
           // Taking the mark's chest moves the mark across — unless another logo is already there.
           const blocked = !canUsePlacement(design, layer.id, p.id)
@@ -84,10 +85,10 @@ export function PlacementPicker({ layer }: { layer: LogoLayer }) {
               aria-checked={layer.placement.placement === p.id}
               aria-disabled={blocked || undefined}
               className={`placement-card ${blocked ? 'is-blocked' : ''}`}
-              title={blocked ? 'The HONEG mark is here, and another print is on the opposite chest.' : undefined}
+              title={blocked ? 'La marque HONEG est ici, et une autre impression occupe l’autre poitrine.' : undefined}
               onClick={() => {
                 if (blocked) {
-                  useUiStore.getState().notify('info', 'The HONEG mark needs a chest, and another print is on the opposite one. Move that print first.')
+                  useUiStore.getState().notify('info', 'La marque HONEG a besoin d’une poitrine libre, et l’autre est déjà occupée. Déplacez d’abord cette impression, ou centrez la marque.')
                   return
                 }
                 const before = useDesignStore.getState().design.brand.side
@@ -98,7 +99,7 @@ export function PlacementPicker({ layer }: { layer: LogoLayer }) {
             >
               <PlacementGlyph preset={p} brand={brand} others={others.filter((o) => o.placement.side === p.side).map((o) => logoRect(design, o))} />
               <span className="placement-label">{p.label}</span>
-              <span className="placement-hint">{blocked ? 'HONEG mark' : p.hint}</span>
+              <span className="placement-hint">{blocked ? 'Marque HONEG' : p.hint}</span>
             </button>
           )
         })}

@@ -14,28 +14,28 @@ export function LogoStep() {
   const active = useActiveLogo('image')
   const flatOnly = useUiStore((s) => s.viewerStatus === 'unsupported' || s.viewerStatus === 'error')
   // With several logos, say which one the placement and sliders below apply to.
-  const editing = count > 1 && active ? `Editing “${active.asset.name}”. ` : ''
+  const editing = count > 1 && active ? `Modification de «\u00a0${active.asset.name}\u00a0». ` : ''
   return (
     <>
       <Section
-        title="Logos & photos"
-        description={`Up to ${MAX_LOGOS} per garment. Transparent PNGs and SVGs look best; photos print as a rectangle.${count > 1 ? ' Select one to edit it.' : ''}`}
+        title="Logos et photos"
+        description={`Jusqu’à ${MAX_LOGOS} par vêtement. Les PNG transparents et les SVG rendent le mieux ; les photos s’impriment en rectangle.${count > 1 ? ' Sélectionnez-en un pour le modifier.' : ''}`}
       >
         <LogoUploader />
       </Section>
       {active && (
         <>
-          <Section title="Placement" description={`${editing}Pick a side, then a print position. The dashed frame on the shirt shows the printable area.`}>
+          <Section title="Emplacement" description={`${editing}Choisissez une face, puis une position. Le cadre en pointillés sur le t-shirt montre la zone imprimable.`}>
             <PlacementPicker layer={active} />
           </Section>
-          <Section title="Adjust" description={editing || undefined}>
+          <Section title="Ajuster" description={editing || undefined}>
             {!flatOnly && (
               <p className="logo-tip">
                 <MousePointerClick size={15} aria-hidden />
                 <span>
-                  Click a logo on the shirt to drag it, resize it from a corner or rotate it from the top handle (snaps every 45°,{' '}
-                  <kbd>Shift</kbd> for free rotation). <kbd>←</kbd>
-                  <kbd>→</kbd> nudge, <kbd>Del</kbd> removes.
+                  Cliquez sur un logo du t-shirt pour le déplacer, l’agrandir par un coin ou le faire pivoter avec la poignée du haut (crans de 45°,{' '}
+                  <kbd>Maj</kbd> pour une rotation libre). <kbd>←</kbd>
+                  <kbd>→</kbd> pour décaler, <kbd>Suppr</kbd> pour supprimer.
                 </span>
               </p>
             )}
@@ -43,7 +43,7 @@ export function LogoStep() {
           </Section>
         </>
       )}
-      <Section title="HONEG mark" description="Every HONEG garment carries the brand mark, like a sportswear maker's logo. Choose the chest it sits on — chest prints take the other side.">
+      <Section title="Marque HONEG" description="Chaque vêtement HONEG porte sa marque, comme le logo d’un équipementier sportif. Placez-la à gauche, au centre ou à droite&nbsp;: vos impressions s’organisent autour.">
         <BrandMarkControls />
       </Section>
     </>

@@ -56,12 +56,12 @@ export function PatternStep() {
 
   return (
     <>
-      <Section title="All-over pattern" description="Print a pattern on a part or area, drawn over its fabric color. Library adapted from inkjet.">
-        {zones.length > 1 && <ZonePicker label="Pattern zone" value={zone} onChange={setZone} swatch={swatch} />}
+      <Section title="Motif intégral" description="Imprimez un motif sur une pièce ou une zone, par-dessus la couleur du tissu. Bibliothèque adaptée d’inkjet.">
+        {zones.length > 1 && <ZonePicker label="Zone du motif" value={zone} onChange={setZone} swatch={swatch} />}
         {zones.length > 1 && (
           <p className="zone-caption">
-            Patterning <strong>{ZONE_INFO[zone].label.toLowerCase()}</strong>
-            {isPaintZone(zone) && !paint ? ' — it takes the body color underneath.' : '.'}
+            Motif sur&nbsp;: <strong>{ZONE_INFO[zone].label.toLowerCase()}</strong>
+            {isPaintZone(zone) && !paint ? ' (sur la couleur du corps).' : '.'}
           </p>
         )}
         <PatternLibrary selected={fill?.id ?? null} ink={ink} bg={base} onPick={(d) => pick(d.id)} onClear={() => setPattern(zone, null)} />
@@ -69,22 +69,22 @@ export function PatternStep() {
 
       {fill && def && (
         <Section
-          title={`Adjust ${def.name.toLowerCase()}`}
+          title={`Réglages\u00a0: ${def.name}`}
           actions={
             <button type="button" className="btn btn-ghost btn-sm is-danger" onClick={() => setPattern(zone, null)}>
-              <Trash2 size={14} aria-hidden /> Remove
+              <Trash2 size={14} aria-hidden /> Retirer
             </button>
           }
         >
           <ShirtColorPicker
             compact
-            label="Pattern"
+            label="Motif"
             value={fill.color}
             defaultValue={defaultInk(base)}
             onChange={(hex, dragging) => updatePattern(zone, { color: hex }, { coalesce: dragging ? 'pattern.color' : undefined })}
           />
           <RangeField
-            label="Size (one repeat)"
+            label="Taille (un motif)"
             icon={<Maximize2 size={15} aria-hidden />}
             value={fill.sizeCm}
             min={PATTERN_SIZE_CM[0]}
@@ -105,7 +105,7 @@ export function PatternStep() {
           />
           {def.usesDensity && (
             <RangeField
-              label="Density"
+              label="Densité"
               icon={<Waves size={15} aria-hidden />}
               value={Math.round(fill.density * 100)}
               min={0}
@@ -116,7 +116,7 @@ export function PatternStep() {
             />
           )}
           <RangeField
-            label="Opacity"
+            label="Opacité"
             icon={<Droplets size={15} aria-hidden />}
             value={Math.round(fill.opacity * 100)}
             min={10}
@@ -128,7 +128,7 @@ export function PatternStep() {
           <div className="pattern-actions">
             {def.usesSeed && (
               <button type="button" className="btn btn-secondary btn-sm" onClick={() => updatePattern(zone, { seed: 1 + Math.floor(Math.random() * 2147483000) })}>
-                <Dices size={15} aria-hidden /> Shuffle layout
+                <Dices size={15} aria-hidden /> Mélanger
               </button>
             )}
             {!isPaintZone(zone) && parts.length > 1 && (
@@ -140,10 +140,10 @@ export function PatternStep() {
                     zone,
                     parts.filter((z) => z !== zone),
                   )
-                  useUiStore.getState().notify('success', `${def.name} applied to every part.`)
+                  useUiStore.getState().notify('success', `${def.name} appliqué à toutes les pièces.`)
                 }}
               >
-                <Copy size={15} aria-hidden /> Apply to all parts
+                <Copy size={15} aria-hidden /> Appliquer à toutes les pièces
               </button>
             )}
           </div>

@@ -26,7 +26,7 @@ export default function ViewerCanvas() {
         gl.toneMappingExposure = 1.02
         gl.domElement.addEventListener('webglcontextlost', (e) => {
           e.preventDefault()
-          setViewerStatus('error', 'The graphics context was lost (the GPU may be busy or the tab was in the background).')
+          setViewerStatus('error', 'Le contexte graphique a été perdu (carte graphique occupée ou onglet en arrière-plan).')
         })
       }}
     >

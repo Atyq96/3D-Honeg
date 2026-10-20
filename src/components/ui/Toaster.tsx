@@ -21,7 +21,7 @@ export function Toaster() {
           <div key={t.id} className={`toast toast-${t.kind}`}>
             <Icon size={18} aria-hidden />
             <span>{t.message}</span>
-            <button type="button" className="toast-close" aria-label="Dismiss notification" onClick={() => dismiss(t.id)}>
+            <button type="button" className="toast-close" aria-label="Fermer la notification" onClick={() => dismiss(t.id)}>
               <X size={14} />
             </button>
           </div>

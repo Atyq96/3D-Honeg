@@ -1,11 +1,11 @@
 import { useId, useRef, useState, type DragEvent } from 'react'
-import { ChevronDown, ChevronUp, ImagePlus, ImageUp, LoaderCircle, Replace, Sparkles, Trash2, TriangleAlert } from 'lucide-react'
+import { ChevronDown, ChevronUp, ImagePlus, ImageUp, LoaderCircle, Replace, Trash2, TriangleAlert } from 'lucide-react'
 import { useDesignStore } from '../../state/designStore'
 import { useUiStore } from '../../state/uiStore'
 import { editLayer, useActiveLogo } from '../../state/useActiveLogo'
 import { MAX_LOGOS, type LogoLayer } from '../../state/design'
 import { getGarment } from '../../garments/catalog'
-import { fetchSampleLogo, LOGO_ACCEPT, LogoFileError, MAX_LOGO_BYTES, processLogoFile, type ProcessedLogo } from '../../lib/logoFile'
+import { LOGO_ACCEPT, LogoFileError, MAX_LOGO_BYTES, processLogoFile, type ProcessedLogo } from '../../lib/logoFile'
 import { IconButton } from '../ui/controls'
 
 const without = (w: Record<string, string>, key: string) => {
@@ -14,7 +14,7 @@ const without = (w: Record<string, string>, key: string) => {
   return next
 }
 
-const errorText = (err: unknown) => (err instanceof LogoFileError ? err.message : 'Something went wrong while reading this file. Try another one.')
+const errorText = (err: unknown) => (err instanceof LogoFileError ? err.message : 'Un problème est survenu pendant la lecture de ce fichier. Essayez-en un autre.')
 
 /**
  * Up to MAX_LOGOS logos or photos: a list to pick which one to edit (with
@@ -43,7 +43,7 @@ export function LogoUploader() {
   const add = async (jobs: (() => Promise<ProcessedLogo>)[]) => {
     const free = MAX_LOGOS - useDesignStore.getState().design.logos.filter((l) => !l.text).length
     if (free <= 0) {
-      notify('info', `A garment carries up to ${MAX_LOGOS} logos or photos. Remove one to add another.`)
+      notify('info', `Un vêtement accueille jusqu’à ${MAX_LOGOS} logos ou photos. Retirez-en un pour en ajouter un autre.`)
       return
     }
     const skipped = jobs.length - free
@@ -70,13 +70,13 @@ export function LogoUploader() {
     if (last) {
       // Select it straight away so the on-garment handles and toolbar appear (as in OpenMerch).
       editLayer(last)
-      notify('success', layers.length === 1 ? `Added on the ${presetLabel(last).toLowerCase()}.` : `${layers.length} images added — each on its own print position.`)
+      notify('success', layers.length === 1 ? `Ajouté\u00a0: ${presetLabel(last).toLowerCase()}.` : `${layers.length} images ajoutées, chacune à son propre emplacement.`)
     }
     if (errors.length) {
       setError(errors.join(' '))
       notify('error', errors[0])
     }
-    if (skipped > 0) notify('info', `Only ${MAX_LOGOS} logos or photos per garment — ${skipped} file${skipped > 1 ? 's were' : ' was'} not added.`)
+    if (skipped > 0) notify('info', `${MAX_LOGOS} logos ou photos maximum par vêtement\u00a0: ${skipped} fichier${skipped > 1 ? 's n’ont' : ' n’a'} pas été ajouté${skipped > 1 ? 's' : ''}.`)
   }
 
   const onFiles = (files: FileList | null) => {
@@ -94,7 +94,7 @@ export function LogoUploader() {
       const { asset, warning } = await processLogoFile(file)
       useDesignStore.getState().replaceLogo(target, asset)
       setWarnings((w) => (warning ? { ...w, [target]: warning } : without(w, target)))
-      notify('success', 'Image replaced — position and size kept.')
+      notify('success', 'Image remplacée\u00a0: position et taille conservées.')
     } catch (err) {
       setError(errorText(err))
       notify('error', errorText(err))
@@ -107,7 +107,7 @@ export function LogoUploader() {
     useDesignStore.getState().removeLogo(layer.id)
     setWarnings((w) => without(w, layer.id))
     useUiStore.getState().selectLogo(false)
-    notify('info', `Removed “${layer.asset.name}”. Undo to bring it back.`)
+    notify('info', `«\u00a0${layer.asset.name}\u00a0» retiré. Annulez pour le récupérer.`)
   }
 
   const onDrop = (e: DragEvent) => {
@@ -147,26 +147,15 @@ export function LogoUploader() {
           <span className="dropzone-icon" aria-hidden>
             {busy ? <LoaderCircle size={22} className="spin" /> : <ImageUp size={22} />}
           </span>
-          <p className="dropzone-title">{busy ? 'Processing…' : 'Drop logos or photos here'}</p>
+          <p className="dropzone-title">{busy ? 'Traitement…' : 'Déposez vos logos ou photos ici'}</p>
           <p className="dropzone-sub">
-            PNG (transparency kept), JPG, WebP or SVG · up to {Math.round(MAX_LOGO_BYTES / 1024 / 1024)} MB each · {MAX_LOGOS} max
+            PNG (transparence conservée), JPG, WebP ou SVG · {Math.round(MAX_LOGO_BYTES / 1024 / 1024)}&nbsp;Mo max. par fichier · {MAX_LOGOS}&nbsp;fichiers max.
           </p>
           <button type="button" className="btn btn-primary btn-sm" onClick={() => addInput.current?.click()} disabled={busy} aria-describedby={error ? `${id}-err` : undefined}>
-            Choose files
+            Choisir des fichiers
           </button>
         </div>
         {errorEl}
-        <div className="sample-row">
-          <Sparkles size={14} aria-hidden />
-          <span>No logo handy? Try</span>
-          <button type="button" className="link-btn" disabled={busy} onClick={() => void add([() => fetchSampleLogo('/brand/honeg-logo-black.png', 'honeg-logo-black.png')])}>
-            HONEG black
-          </button>
-          <span aria-hidden>·</span>
-          <button type="button" className="link-btn" disabled={busy} onClick={() => void add([() => fetchSampleLogo('/brand/honeg-logo-white.png', 'honeg-logo-white.png')])}>
-            HONEG white
-          </button>
-        </div>
       </div>
     )
   }
@@ -176,7 +165,7 @@ export function LogoUploader() {
   return (
     <div className={`logo-library ${dragging ? 'is-dragging' : ''}`} {...dropTarget}>
       {inputs}
-      <ul className="logo-list" aria-label="Your logos and photos">
+      <ul className="logo-list" aria-label="Vos logos et photos">
         {stack.map((layer) => {
           const index = logos.indexOf(layer)
           const isActive = layer.id === active?.id
@@ -198,8 +187,8 @@ export function LogoUploader() {
                 {logos.length > 1 && (
                   <>
                     <IconButton
-                      label={`Bring ${name} forward`}
-                      tip="Bring forward"
+                      label={`Avancer «\u00a0${name}\u00a0»`}
+                      tip="Avancer"
                       className="icon-btn-sm"
                       disabled={index === logos.length - 1}
                       onClick={() => useDesignStore.getState().moveLogo(layer.id, 1)}
@@ -207,8 +196,8 @@ export function LogoUploader() {
                       <ChevronUp size={16} />
                     </IconButton>
                     <IconButton
-                      label={`Send ${name} backward`}
-                      tip="Send backward"
+                      label={`Reculer «\u00a0${name}\u00a0»`}
+                      tip="Reculer"
                       className="icon-btn-sm"
                       disabled={index === 0}
                       onClick={() => useDesignStore.getState().moveLogo(layer.id, -1)}
@@ -218,8 +207,8 @@ export function LogoUploader() {
                   </>
                 )}
                 <IconButton
-                  label={`Replace ${name}`}
-                  tip="Replace"
+                  label={`Remplacer «\u00a0${name}\u00a0»`}
+                  tip="Remplacer"
                   className="icon-btn-sm"
                   disabled={busy}
                   onClick={() => {
@@ -229,7 +218,7 @@ export function LogoUploader() {
                 >
                   <Replace size={15} />
                 </IconButton>
-                <IconButton label={`Remove ${name}`} tip="Remove" tipSide="left" className="icon-btn-sm is-danger" onClick={() => remove(layer)}>
+                <IconButton label={`Retirer «\u00a0${name}\u00a0»`} tip="Retirer" tipSide="left" className="icon-btn-sm is-danger" onClick={() => remove(layer)}>
                   <Trash2 size={15} />
                 </IconButton>
               </div>
@@ -245,14 +234,14 @@ export function LogoUploader() {
       {room > 0 ? (
         <button type="button" className="logo-add" onClick={() => addInput.current?.click()} disabled={busy}>
           {busy ? <LoaderCircle size={16} className="spin" aria-hidden /> : <ImagePlus size={16} aria-hidden />}
-          <span>{busy ? 'Processing…' : dragging ? 'Drop to add' : 'Add a logo or photo'}</span>
+          <span>{busy ? 'Traitement…' : dragging ? 'Déposez pour ajouter' : 'Ajouter un logo ou une photo'}</span>
           <span className="logo-add-count">
-            {images.length} of {MAX_LOGOS}
+            {images.length} sur {MAX_LOGOS}
           </span>
         </button>
       ) : (
         <p className="logo-limit">
-          {MAX_LOGOS} of {MAX_LOGOS} used — remove one to add another.
+          {MAX_LOGOS} sur {MAX_LOGOS} utilisés&nbsp;: retirez-en un pour en ajouter un autre.
         </p>
       )}
       {errorEl}

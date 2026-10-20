@@ -12,6 +12,7 @@ interface Props {
 }
 
 const CATEGORIES = Object.keys(CATEGORY_LABELS) as PatternCategory[]
+const fold = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
 
 /** Searchable, filterable grid of live pattern swatches (ink on the zone's fabric colour). */
 export function PatternLibrary({ selected, ink, bg, onPick, onClear }: Props) {
@@ -24,19 +25,20 @@ export function PatternLibrary({ selected, ink, bg, onPick, onClear }: Props) {
     return out
   }, [ink, bg])
 
-  const q = query.trim().toLowerCase()
+  // Accent-insensitive, so "ecailles" finds "Écailles"; category names match too.
+  const q = fold(query.trim())
   const visible = PATTERNS.filter(
-    (d) => (category === 'all' || d.category === category) && (!q || d.name.toLowerCase().includes(q) || d.category.includes(q)),
+    (d) => (category === 'all' || d.category === category) && (!q || fold(d.name).includes(q) || fold(CATEGORY_LABELS[d.category]).includes(q)),
   )
 
   return (
     <div className="pattern-library">
       <label className="pattern-search">
         <Search size={15} aria-hidden />
-        <span className="sr-only">Search patterns</span>
+        <span className="sr-only">Rechercher un motif</span>
         <input
           type="search"
-          placeholder={`Search ${PATTERNS.length} patterns`}
+          placeholder={`Rechercher parmi ${PATTERNS.length} motifs`}
           value={query}
           onChange={(e) => {
             setQuery(e.target.value)
@@ -46,20 +48,20 @@ export function PatternLibrary({ selected, ink, bg, onPick, onClear }: Props) {
         />
       </label>
 
-      <div className="chips" role="group" aria-label="Pattern category">
+      <div className="chips" role="group" aria-label="Catégorie de motif">
         {(['all', ...CATEGORIES] as const).map((c) => (
           <button key={c} type="button" className="chip" aria-pressed={category === c} onClick={() => setCategory(c)}>
-            {c === 'all' ? 'All' : CATEGORY_LABELS[c]}
+            {c === 'all' ? 'Tous' : CATEGORY_LABELS[c]}
           </button>
         ))}
       </div>
 
-      <div className="pattern-grid" role="radiogroup" aria-label="Pattern">
+      <div className="pattern-grid" role="radiogroup" aria-label="Motif">
         <button type="button" role="radio" aria-checked={selected === null} className="pattern-tile" onClick={onClear}>
           <span className="pattern-thumb pattern-none" style={{ background: bg }} aria-hidden>
             <Ban size={18} />
           </span>
-          <span className="pattern-name">None</span>
+          <span className="pattern-name">Aucun</span>
         </button>
         {visible.map((d) => {
           const [w, h] = d.tile
@@ -74,7 +76,7 @@ export function PatternLibrary({ selected, ink, bg, onPick, onClear }: Props) {
             </button>
           )
         })}
-        {!visible.length && <p className="muted pattern-empty">No patterns match “{query}”.</p>}
+        {!visible.length && <p className="muted pattern-empty">Aucun motif ne correspond à «&nbsp;{query}&nbsp;».</p>}
       </div>
     </div>
   )

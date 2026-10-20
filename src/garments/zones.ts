@@ -62,30 +62,30 @@ export interface PaintZoneDef {
 export type ZoneGroup = 'parts' | 'panels' | 'halves' | 'stripes'
 
 export const ZONE_GROUPS: { id: ZoneGroup; label: string }[] = [
-  { id: 'parts', label: 'Parts' },
-  { id: 'panels', label: 'Panels' },
-  { id: 'halves', label: 'Halves' },
-  { id: 'stripes', label: 'Stripes' },
+  { id: 'parts', label: 'Pièces' },
+  { id: 'panels', label: 'Panneaux' },
+  { id: 'halves', label: 'Moitiés' },
+  { id: 'stripes', label: 'Bandes' },
 ]
 
 export const ZONE_INFO: Record<ZoneId, { label: string; group: ZoneGroup; hint: string; view: Side }> = {
-  body: { label: 'Body', group: 'parts', hint: 'Front and back panels', view: 'front' },
-  sleeves: { label: 'Sleeves', group: 'parts', hint: 'Both sleeves', view: 'front' },
-  collar: { label: 'Collar', group: 'parts', hint: 'Neck rib', view: 'front' },
-  sleeveLeft: { label: 'Left sleeve', group: 'parts', hint: "Wearer's left sleeve", view: 'front' },
-  sleeveRight: { label: 'Right sleeve', group: 'parts', hint: "Wearer's right sleeve", view: 'front' },
-  front: { label: 'Front', group: 'panels', hint: 'Front panel', view: 'front' },
-  back: { label: 'Back', group: 'panels', hint: 'Back panel', view: 'back' },
-  sidePanels: { label: 'Side panels', group: 'panels', hint: 'Down both sides', view: 'front' },
-  yoke: { label: 'Shoulders', group: 'panels', hint: 'Yoke across the shoulders and sleeve tops', view: 'front' },
-  halfLeft: { label: 'Left half', group: 'halves', hint: "Wearer's left side, sleeve included", view: 'front' },
-  halfRight: { label: 'Right half', group: 'halves', hint: "Wearer's right side, sleeve included", view: 'front' },
-  halfTop: { label: 'Top half', group: 'halves', hint: 'Chest up, sleeves included', view: 'front' },
-  halfBottom: { label: 'Bottom half', group: 'halves', hint: 'Waist down', view: 'front' },
-  chestBand: { label: 'Chest stripe', group: 'stripes', hint: 'Band across the chest and sleeves', view: 'front' },
-  centerStripe: { label: 'Center stripe', group: 'stripes', hint: 'Down the middle, front and back', view: 'front' },
-  hemBand: { label: 'Hem band', group: 'stripes', hint: 'Along the bottom edge', view: 'front' },
-  sash: { label: 'Sash', group: 'stripes', hint: 'Diagonal band across the front', view: 'front' },
+  body: { label: 'Corps', group: 'parts', hint: 'Devant et dos', view: 'front' },
+  sleeves: { label: 'Manches', group: 'parts', hint: 'Les deux manches', view: 'front' },
+  collar: { label: 'Col', group: 'parts', hint: 'Bord-côte du col', view: 'front' },
+  sleeveLeft: { label: 'Manche gauche', group: 'parts', hint: 'Manche gauche du porteur', view: 'front' },
+  sleeveRight: { label: 'Manche droite', group: 'parts', hint: 'Manche droite du porteur', view: 'front' },
+  front: { label: 'Devant', group: 'panels', hint: 'Panneau avant', view: 'front' },
+  back: { label: 'Dos', group: 'panels', hint: 'Panneau arrière', view: 'back' },
+  sidePanels: { label: 'Côtés', group: 'panels', hint: 'Bandes latérales des deux côtés', view: 'front' },
+  yoke: { label: 'Épaules', group: 'panels', hint: 'Empiècement sur les épaules et le haut des manches', view: 'front' },
+  halfLeft: { label: 'Moitié gauche', group: 'halves', hint: 'Côté gauche du porteur, manche comprise', view: 'front' },
+  halfRight: { label: 'Moitié droite', group: 'halves', hint: 'Côté droit du porteur, manche comprise', view: 'front' },
+  halfTop: { label: 'Moitié haute', group: 'halves', hint: 'De la poitrine aux épaules, manches comprises', view: 'front' },
+  halfBottom: { label: 'Moitié basse', group: 'halves', hint: 'De la taille au bas du t-shirt', view: 'front' },
+  chestBand: { label: 'Bande poitrine', group: 'stripes', hint: 'Bande sur la poitrine et les manches', view: 'front' },
+  centerStripe: { label: 'Bande centrale', group: 'stripes', hint: 'Au milieu, devant et dos', view: 'front' },
+  hemBand: { label: 'Bas du t-shirt', group: 'stripes', hint: 'Bande le long de l’ourlet', view: 'front' },
+  sash: { label: 'Écharpe', group: 'stripes', hint: 'Bande diagonale sur le devant', view: 'front' },
 }
 
 const applies = (planes: ZonePlane[], x: number, y: number, z: number) => planes.every(([a, b, c, d]) => a * x + b * y + c * z >= d)

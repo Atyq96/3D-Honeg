@@ -21,7 +21,7 @@ import {
 } from './design'
 import { brandKeepOut } from '../garments/brand'
 import { isPaintZone, type PaintZoneId, type ZoneId } from '../garments/zones'
-import type { BrandSide } from '../config/brand'
+import type { ChestSide } from '../config/brand'
 
 type LogoEdit = LogoTransform & Pick<LogoPlacement, 'flipX' | 'flipY' | 'opacity' | 'tint' | 'locked'>
 
@@ -152,9 +152,9 @@ export function logoRect(design: Design, layer: LogoLayer): PrintArea {
 const overlaps = (a: PrintArea, b: PrintArea) => a.xMax > b.xMin && a.xMin < b.xMax && a.yMax > b.yMin && a.yMin < b.yMax
 
 /** Chest presets and the wearer's side they sit on. */
-const CHEST_SIDE: Partial<Record<PlacementId, BrandSide>> = { leftChest: 'left', rightChest: 'right' }
-const otherSide = (s: BrandSide): BrandSide => (s === 'left' ? 'right' : 'left')
-const chestPreset = (side: BrandSide) => (side === 'left' ? 'leftChest' : 'rightChest') as PlacementId
+const CHEST_SIDE: Partial<Record<PlacementId, ChestSide>> = { leftChest: 'left', rightChest: 'right' }
+const otherSide = (s: ChestSide): ChestSide => (s === 'left' ? 'right' : 'left')
+const chestPreset = (side: ChestSide) => (side === 'left' ? 'leftChest' : 'rightChest') as PlacementId
 const chestOf = (l: LogoLayer) => CHEST_SIDE[l.placement.placement]
 const chestsUsed = (design: Design, except?: string) => new Set(design.logos.filter((l) => l.id !== except).map(chestOf))
 
@@ -171,12 +171,14 @@ export function canUsePlacement(design: Design, id: string | null, placement: Pl
 /**
  * A chest logo and the HONEG mark never share a side: the mark moves to the
  * free chest. If logos sit on both chests (only possible in hand-edited files),
- * the ones on the mark's chest move to the centre chest instead.
+ * the ones on the mark's chest move to the centre chest instead. A centred
+ * mark leaves both chests free.
  */
 export function makeRoomForLogos(design: Design): Design {
+  const side = design.brand.side
   const used = chestsUsed(design)
-  if (!used.has(design.brand.side)) return design
-  const other = otherSide(design.brand.side)
+  if (side === 'center' || !used.has(side)) return design
+  const other = otherSide(side)
   if (!used.has(other)) return { ...design, brand: { ...design.brand, side: other } }
   const center = getGarment(design.productId).placements.find((p) => p.side === 'front' && !CHEST_SIDE[p.id])
   if (!center) return design
@@ -392,7 +394,8 @@ export const useDesignStore = create<DesignStore>()((set, get) => {
       const { design } = get()
       let next: Design = { ...design, brand: { ...design.brand, ...patch } }
       // The mark takes the chosen chest; chest logos already there move across, keeping their size.
-      if (patch.side) {
+      // Centred, it frees both chests (front prints are still kept clear of it).
+      if (patch.side && patch.side !== 'center') {
         const across = chestPreset(otherSide(patch.side))
         next = {
           ...next,

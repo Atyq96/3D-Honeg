@@ -12,12 +12,12 @@ import { ReviewStep } from '../steps/ReviewStep'
 import { TextStep } from '../steps/TextStep'
 
 const TITLES: Record<StepId, string> = {
-  product: 'Pick your tee',
-  color: 'Set your colors',
-  pattern: 'Add a pattern',
-  logo: 'Add your logo',
-  text: 'Add text',
-  review: 'Review & export',
+  product: 'Choisissez votre t-shirt',
+  color: 'Choisissez vos couleurs',
+  pattern: 'Ajoutez un motif',
+  logo: 'Ajoutez vos logos',
+  text: 'Ajoutez du texte',
+  review: 'Vérifiez et exportez',
 }
 
 export function CustomizerSidebar() {
@@ -41,8 +41,8 @@ export function CustomizerSidebar() {
   }, [step])
 
   return (
-    <aside className="sidebar" aria-label="Customization">
-      <nav className="stepper" aria-label="Customization steps">
+    <aside className="sidebar" aria-label="Personnalisation">
+      <nav className="stepper" aria-label="Étapes de personnalisation">
         <ol>
           {STEPS.map((s, i) => (
             <li key={s.id} className={`${i < index ? 'is-past' : ''} ${s.id === step ? 'is-current' : ''}`}>
@@ -51,7 +51,7 @@ export function CustomizerSidebar() {
                   {done[s.id] && s.id !== step ? <Check size={13} strokeWidth={3} /> : i + 1}
                 </span>
                 <span className="step-label">{s.label}</span>
-                {done[s.id] && <span className="sr-only">(completed)</span>}
+                {done[s.id] && <span className="sr-only">(terminée)</span>}
               </button>
             </li>
           ))}
@@ -61,7 +61,7 @@ export function CustomizerSidebar() {
       <div className="panel" ref={panel}>
         <div className="panel-head">
           <span className="panel-kicker">
-            Step {index + 1} of {STEPS.length}
+            Étape {index + 1} sur {STEPS.length}
           </span>
           <h2 className="panel-title">{TITLES[step]}</h2>
         </div>
@@ -75,15 +75,15 @@ export function CustomizerSidebar() {
 
       <footer className="panel-footer">
         <button type="button" className="btn btn-ghost" disabled={index === 0} onClick={() => setStep(STEPS[index - 1].id)}>
-          <ChevronLeft size={16} aria-hidden /> Back
+          <ChevronLeft size={16} aria-hidden /> Retour
         </button>
         {index < STEPS.length - 1 ? (
           <button type="button" className="btn btn-primary" onClick={() => setStep(STEPS[index + 1].id)}>
-            Next: {STEPS[index + 1].label} <ChevronRight size={16} aria-hidden />
+            Suivant&nbsp;: {STEPS[index + 1].label} <ChevronRight size={16} aria-hidden />
           </button>
         ) : (
           <button type="button" className="btn btn-accent" onClick={() => void exportPreviewImage()}>
-            <Download size={16} aria-hidden /> Download preview
+            <Download size={16} aria-hidden /> Télécharger l’aperçu
           </button>
         )}
       </footer>

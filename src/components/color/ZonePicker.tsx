@@ -36,7 +36,7 @@ export function ZonePicker({ label, value, onChange, swatch }: Props) {
   return (
     <div className="zone-picker">
       {groups.length > 1 && (
-        <div className="chips zone-tabs" role="group" aria-label="Zone type">
+        <div className="chips zone-tabs" role="group" aria-label="Type de zone">
           {groups.map((g) => (
             <button key={g.id} type="button" className="chip" aria-pressed={group === g.id} onClick={() => setGroup(g.id)}>
               {g.label}

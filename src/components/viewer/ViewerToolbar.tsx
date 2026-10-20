@@ -37,18 +37,18 @@ export function ViewerToolbar({ stageRef }: { stageRef: RefObject<HTMLElement | 
   }
 
   return (
-    <div className="stage-tools" role="toolbar" aria-label="Preview controls" aria-orientation="vertical">
-      <IconButton label="Zoom in" tipSide="left" className="hide-touch" onClick={() => viewerBridge.get()?.zoom(1)}>
+    <div className="stage-tools" role="toolbar" aria-label="Commandes de l’aperçu" aria-orientation="vertical">
+      <IconButton label="Zoom avant" tipSide="left" className="hide-touch" onClick={() => viewerBridge.get()?.zoom(1)}>
         <ZoomIn size={18} />
       </IconButton>
-      <IconButton label="Zoom out" tipSide="left" className="hide-touch" onClick={() => viewerBridge.get()?.zoom(-1)}>
+      <IconButton label="Zoom arrière" tipSide="left" className="hide-touch" onClick={() => viewerBridge.get()?.zoom(-1)}>
         <ZoomOut size={18} />
       </IconButton>
-      <IconButton label="Reset camera" tipSide="left" onClick={() => viewerBridge.get()?.resetCamera()}>
+      <IconButton label="Recentrer la vue" tipSide="left" onClick={() => viewerBridge.get()?.resetCamera()}>
         <RotateCcw size={18} />
       </IconButton>
       <IconButton
-        label={expanded ? 'Exit full screen' : 'Full screen preview'}
+        label={expanded ? 'Quitter le plein écran' : 'Aperçu plein écran'}
         tipSide="left"
         aria-pressed={expanded}
         onClick={toggleFullscreen}

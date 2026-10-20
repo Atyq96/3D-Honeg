@@ -17,11 +17,11 @@ export function ReviewStep() {
 
   return (
     <>
-      <Section title="Summary" description="Rotate the preview to inspect every angle before exporting.">
+      <Section title="Récapitulatif" description="Faites tourner l’aperçu pour tout vérifier avant d’exporter.">
         <DesignSummary />
       </Section>
 
-      <Section title="Flats" description="Front and back, as your logos sit within the printable area.">
+      <Section title="Vues à plat" description="Devant et dos, avec vos impressions dans la zone imprimable.">
         <div className="flats">
           {(['front', 'back'] as const).map((side) => (
             <figure key={side} className="flat-card">
@@ -33,15 +33,15 @@ export function ReviewStep() {
                 brand={design.brand}
                 zones={design.zones}
                 logos={design.logos}
-                label={`${side} flat sketch`}
+                label={`Vue à plat (${side === 'front' ? 'devant' : 'dos'})`}
               />
-              <figcaption>{side === 'front' ? 'Front' : 'Back'}</figcaption>
+              <figcaption>{side === 'front' ? 'Devant' : 'Dos'}</figcaption>
             </figure>
           ))}
         </div>
       </Section>
 
-      <Section title="Export & save" description="Everything stays on your device — nothing is uploaded or ordered.">
+      <Section title="Exporter et enregistrer" description="Tout reste sur votre appareil&nbsp;: rien n’est envoyé ni commandé.">
         <div className="export-grid">
           <button
             type="button"
@@ -53,28 +53,28 @@ export function ReviewStep() {
               setExporting(false)
             }}
           >
-            <Download size={16} aria-hidden /> {exporting ? 'Rendering…' : 'Download preview (PNG)'}
+            <Download size={16} aria-hidden /> {exporting ? 'Rendu en cours…' : 'Télécharger l’aperçu (PNG)'}
           </button>
           <button type="button" className="btn btn-secondary" onClick={exportJson}>
-            <FileJson size={16} aria-hidden /> Export design (JSON)
+            <FileJson size={16} aria-hidden /> Exporter le design (JSON)
           </button>
           <button type="button" className="btn btn-secondary" onClick={pickDesignFile}>
-            <FileUp size={16} aria-hidden /> Import design
+            <FileUp size={16} aria-hidden /> Importer un design
           </button>
           <button type="button" className="btn btn-secondary" onClick={saveLocally}>
-            <Save size={16} aria-hidden /> Save in this browser
+            <Save size={16} aria-hidden /> Enregistrer dans ce navigateur
           </button>
         </div>
         <button type="button" className="btn btn-ghost is-danger reset-all" onClick={() => setConfirm(true)}>
-          <RotateCcw size={15} aria-hidden /> Reset entire design
+          <RotateCcw size={15} aria-hidden /> Réinitialiser tout le design
         </button>
       </Section>
 
       <ConfirmDialog
         open={confirm}
-        title="Reset the entire design?"
-        body="Product, colors and logo go back to their defaults. You can still undo this."
-        confirmLabel="Reset design"
+        title="Réinitialiser tout le design&nbsp;?"
+        body="Le produit, les couleurs, les logos et le texte reviennent aux valeurs par défaut. Vous pourrez encore annuler."
+        confirmLabel="Réinitialiser"
         onConfirm={resetAll}
         onClose={() => setConfirm(false)}
       />

@@ -65,9 +65,9 @@ export function LogoToolbar() {
     try {
       const { asset, warning } = await processLogoFile(file)
       useDesignStore.getState().replaceLogo(layer.id, asset)
-      notify(warning ? 'info' : 'success', warning ?? 'Image replaced — position and size kept.')
+      notify(warning ? 'info' : 'success', warning ?? 'Image remplacée\u00a0: position et taille conservées.')
     } catch (err) {
-      notify('error', err instanceof LogoFileError ? err.message : "That file couldn't be used.")
+      notify('error', err instanceof LogoFileError ? err.message : 'Ce fichier n’a pas pu être utilisé.')
     } finally {
       setBusy(false)
       if (fileInput.current) fileInput.current.value = ''
@@ -77,25 +77,25 @@ export function LogoToolbar() {
   const remove = () => {
     useDesignStore.getState().removeLogo(layer.id)
     useUiStore.getState().selectLogo(false)
-    notify('info', `Removed “${layer.asset.name}”. Undo to bring it back.`)
+    notify('info', `«\u00a0${layer.asset.name}\u00a0» retiré. Annulez pour le récupérer.`)
   }
 
   return (
-    <div className="logo-toolbar" ref={root} role="toolbar" aria-label="Logo tools">
+    <div className="logo-toolbar" ref={root} role="toolbar" aria-label="Outils du logo">
       <input ref={fileInput} type="file" accept={LOGO_ACCEPT} className="sr-only" tabIndex={-1} aria-hidden onChange={(e) => void replace(e.target.files?.[0])} />
 
       {layer.text ? (
-        <ToolButton label="Edit text" onClick={() => document.getElementById('text-content')?.focus()}>
+        <ToolButton label="Modifier le texte" onClick={() => document.getElementById('text-content')?.focus()}>
           <Type size={17} />
         </ToolButton>
       ) : (
-        <ToolButton label="Replace image" onClick={() => fileInput.current?.click()} disabled={busy}>
+        <ToolButton label="Remplacer l’image" onClick={() => fileInput.current?.click()} disabled={busy}>
           {busy ? <LoaderCircle size={17} className="spin" /> : <ImagePlus size={17} />}
         </ToolButton>
       )}
 
-      <PopoverAnchor open={open === 'fill'} label={layer.text ? 'Text color' : 'Fill color'} popover={<FillPopover />}>
-        <ToolButton label={layer.text ? 'Text color' : 'Fill color'} onClick={() => toggle('fill')} expanded={open === 'fill'} active={open === 'fill' || !!placement.tint}>
+      <PopoverAnchor open={open === 'fill'} label={layer.text ? 'Couleur du texte' : 'Couleur de remplissage'} popover={<FillPopover />}>
+        <ToolButton label={layer.text ? 'Couleur du texte' : 'Couleur de remplissage'} onClick={() => toggle('fill')} expanded={open === 'fill'} active={open === 'fill' || !!placement.tint}>
           <Paintbrush size={17} />
           {placement.tint && <span className={`tool-dot ${isLight(placement.tint) ? 'is-light' : ''}`} style={{ background: placement.tint }} aria-hidden />}
         </ToolButton>
@@ -103,8 +103,8 @@ export function LogoToolbar() {
 
       <span className="tool-divider" aria-hidden />
 
-      <label className="tool-opacity" data-tip="Opacity">
-        <span className="sr-only">Opacity</span>
+      <label className="tool-opacity" data-tip="Opacité">
+        <span className="sr-only">Opacité</span>
         <input
           type="range"
           className="range"
@@ -127,18 +127,18 @@ export function LogoToolbar() {
         </ToolButton>
       </PopoverAnchor>
 
-      <PopoverAnchor open={open === 'transform'} label="Transform" popover={<TransformPopover />}>
-        <ToolButton label="Transform" onClick={() => toggle('transform')} expanded={open === 'transform'} active={open === 'transform'}>
+      <PopoverAnchor open={open === 'transform'} label="Transformer" popover={<TransformPopover />}>
+        <ToolButton label="Transformer" onClick={() => toggle('transform')} expanded={open === 'transform'} active={open === 'transform'}>
           <BoxSelect size={17} />
         </ToolButton>
       </PopoverAnchor>
 
       <span className="tool-divider" aria-hidden />
 
-      <ToolButton label={layer.text ? 'Delete text' : 'Delete logo'} onClick={remove} danger>
+      <ToolButton label={layer.text ? 'Supprimer le texte' : 'Supprimer le logo'} onClick={remove} danger>
         <Trash2 size={17} />
       </ToolButton>
-      <ToolButton label="Done" onClick={() => useUiStore.getState().selectLogo(false)}>
+      <ToolButton label="Terminé" onClick={() => useUiStore.getState().selectLogo(false)}>
         <Check size={17} />
       </ToolButton>
     </div>
@@ -202,29 +202,29 @@ function FillPopover() {
   return (
     <>
       <div className="popover-head">
-        <strong>{layer.text ? 'Text color' : 'Fill color'}</strong>
-        <span className="muted">{layer.text ? 'Color of the lettering.' : 'Recolors every visible pixel of the logo.'}</span>
+        <strong>{layer.text ? 'Couleur du texte' : 'Couleur de remplissage'}</strong>
+        <span className="muted">{layer.text ? 'Couleur des lettres.' : 'Recolore chaque pixel visible du logo.'}</span>
       </div>
       {!layer.text && (
         <button type="button" className={`fill-original ${tint === null ? 'is-active' : ''}`} onClick={() => apply(null)}>
-          Original colors
+          Couleurs d’origine
         </button>
       )}
-      <InkPicker value={tint} onChange={apply} label={layer.text ? 'Text color' : 'Fill color'} id="fill-hex" />
+      <InkPicker value={tint} onChange={apply} label={layer.text ? 'Couleur du texte' : 'Couleur de remplissage'} id="fill-hex" />
     </>
   )
 }
 
 const GRID: [AlignX, AlignY, string][] = [
-  ['left', 'top', 'Top left'],
-  ['center', 'top', 'Top center'],
-  ['right', 'top', 'Top right'],
-  ['left', 'center', 'Middle left'],
-  ['center', 'center', 'Center'],
-  ['right', 'center', 'Middle right'],
-  ['left', 'bottom', 'Bottom left'],
-  ['center', 'bottom', 'Bottom center'],
-  ['right', 'bottom', 'Bottom right'],
+  ['left', 'top', 'En haut à gauche'],
+  ['center', 'top', 'En haut au centre'],
+  ['right', 'top', 'En haut à droite'],
+  ['left', 'center', 'Au milieu à gauche'],
+  ['center', 'center', 'Centre'],
+  ['right', 'center', 'Au milieu à droite'],
+  ['left', 'bottom', 'En bas à gauche'],
+  ['center', 'bottom', 'En bas au centre'],
+  ['right', 'bottom', 'En bas à droite'],
 ]
 
 function PositionPopover() {
@@ -240,13 +240,13 @@ function PositionPopover() {
     <>
       <div className="popover-head">
         <strong>Position</strong>
-        <span className="muted">Align within the printable area.</span>
+        <span className="muted">Alignez dans la zone imprimable.</span>
       </div>
       <button type="button" className={`lock-btn ${p.locked ? 'is-active' : ''}`} aria-pressed={p.locked} onClick={() => update({ locked: !p.locked })}>
         {p.locked ? <Lock size={15} aria-hidden /> : <Unlock size={15} aria-hidden />}
-        {p.locked ? 'Unlock position' : 'Lock position'}
+        {p.locked ? 'Déverrouiller la position' : 'Verrouiller la position'}
       </button>
-      <div className="align-grid" role="group" aria-label="Align logo">
+      <div className="align-grid" role="group" aria-label="Aligner le logo">
         {GRID.map(([ax, ay, label]) => (
           <button
             key={label}
@@ -275,10 +275,10 @@ function TransformPopover() {
   return (
     <>
       <div className="popover-head">
-        <strong>Transform</strong>
+        <strong>Transformer</strong>
       </div>
       <label className="popover-row">
-        <span>Rotate</span>
+        <span>Rotation</span>
         <input
           type="range"
           className="range"
@@ -294,14 +294,14 @@ function TransformPopover() {
       </label>
       <div className="flip-row">
         <button type="button" className={`flip-btn ${p.flipX ? 'is-active' : ''}`} aria-pressed={p.flipX} onClick={() => update({ flipX: !p.flipX })}>
-          <FlipHorizontal2 size={15} aria-hidden /> Flip horizontal
+          <FlipHorizontal2 size={15} aria-hidden /> Miroir horizontal
         </button>
         <button type="button" className={`flip-btn ${p.flipY ? 'is-active' : ''}`} aria-pressed={p.flipY} onClick={() => update({ flipY: !p.flipY })}>
-          <FlipVertical2 size={15} aria-hidden /> Flip vertical
+          <FlipVertical2 size={15} aria-hidden /> Miroir vertical
         </button>
       </div>
       <button type="button" className="btn btn-secondary btn-sm" onClick={reset}>
-        <RotateCcw size={14} aria-hidden /> Reset all transforms
+        <RotateCcw size={14} aria-hidden /> Réinitialiser les transformations
       </button>
     </>
   )

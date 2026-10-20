@@ -19,15 +19,15 @@ export interface TextFont {
 }
 
 export const TEXT_FONTS: TextFont[] = [
-  { id: 'anton', label: 'Anton', family: 'Anton', weight: 400, hint: 'Bold condensed' },
-  { id: 'bebas', label: 'Bebas Neue', family: 'Bebas Neue', weight: 400, hint: 'Tall caps' },
-  { id: 'graduate', label: 'Graduate', family: 'Graduate', weight: 400, hint: 'Varsity' },
-  { id: 'unbounded', label: 'Unbounded', family: 'Unbounded Variable', weight: 800, hint: 'Wide, HONEG style' },
-  { id: 'manrope', label: 'Manrope', family: 'Manrope Variable', weight: 800, hint: 'Clean sans' },
-  { id: 'playfair', label: 'Playfair', family: 'Playfair Display', weight: 800, hint: 'Classic serif' },
-  { id: 'stencil', label: 'Black Ops', family: 'Black Ops One', weight: 400, hint: 'Stencil' },
-  { id: 'marker', label: 'Marker', family: 'Permanent Marker', weight: 400, hint: 'Hand-drawn' },
-  { id: 'script', label: 'Pacifico', family: 'Pacifico', weight: 400, hint: 'Script' },
+  { id: 'anton', label: 'Anton', family: 'Anton', weight: 400, hint: 'Gras condensé' },
+  { id: 'bebas', label: 'Bebas Neue', family: 'Bebas Neue', weight: 400, hint: 'Capitales hautes' },
+  { id: 'graduate', label: 'Graduate', family: 'Graduate', weight: 400, hint: 'Style universitaire' },
+  { id: 'unbounded', label: 'Unbounded', family: 'Unbounded Variable', weight: 800, hint: 'Large, style HONEG' },
+  { id: 'manrope', label: 'Manrope', family: 'Manrope Variable', weight: 800, hint: 'Sans empattement' },
+  { id: 'playfair', label: 'Playfair', family: 'Playfair Display', weight: 800, hint: 'Classique à empattements' },
+  { id: 'stencil', label: 'Black Ops', family: 'Black Ops One', weight: 400, hint: 'Pochoir' },
+  { id: 'marker', label: 'Marker', family: 'Permanent Marker', weight: 400, hint: 'Écrit à la main' },
+  { id: 'script', label: 'Pacifico', family: 'Pacifico', weight: 400, hint: 'Manuscrite' },
 ]
 
 export const DEFAULT_FONT = 'anton'

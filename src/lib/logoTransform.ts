@@ -154,9 +154,9 @@ export function alignOffsets(t: LogoTransform, aspect: number, area: PrintArea, 
 /** Short human description of the logo's appearance tweaks, e.g. "flipped · fill #FFFFFF · 80% opacity". */
 export function describeLook(p: { flipX: boolean; flipY: boolean; tint: string | null; opacity: number; locked: boolean }): string {
   const parts: string[] = []
-  if (p.flipX || p.flipY) parts.push(p.flipX && p.flipY ? 'flipped both ways' : p.flipX ? 'flipped horizontally' : 'flipped vertically')
-  if (p.tint) parts.push(`fill ${p.tint}`)
-  if (p.opacity < 1) parts.push(`${Math.round(p.opacity * 100)}% opacity`)
-  if (p.locked) parts.push('locked')
+  if (p.flipX || p.flipY) parts.push(p.flipX && p.flipY ? 'miroir horizontal et vertical' : p.flipX ? 'miroir horizontal' : 'miroir vertical')
+  if (p.tint) parts.push(`remplissage ${p.tint}`)
+  if (p.opacity < 1) parts.push(`opacité ${Math.round(p.opacity * 100)} %`)
+  if (p.locked) parts.push('verrouillé')
   return parts.join(' · ')
 }

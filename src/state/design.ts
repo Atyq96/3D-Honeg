@@ -209,30 +209,30 @@ const PLACEMENTS: PlacementId[] = ['leftChest', 'centerChest', 'rightChest', 'up
  */
 export function parseDesign(raw: unknown): Design {
   const fail = (msg: string): never => {
-    throw new Error(`This file isn't a valid HONEG design: ${msg}`)
+    throw new Error(`Ce fichier n’est pas un design HONEG valide\u00a0: ${msg}`)
   }
-  if (!raw || typeof raw !== 'object') fail('expected a JSON object.')
+  if (!raw || typeof raw !== 'object') fail('un objet JSON est attendu.')
   const d = raw as Record<string, unknown>
-  if (d.version !== 1) fail('unsupported version.')
-  if (typeof d.productId !== 'string') fail('missing product.')
+  if (d.version !== 1) fail('version non prise en charge.')
+  if (typeof d.productId !== 'string') fail('produit manquant.')
   // Products come and go as models change; carry the design over to the default product.
   const productId = GARMENTS.some((g) => g.id === d.productId) ? (d.productId as string) : DEFAULT_GARMENT_ID
 
   const c = (d.colors ?? {}) as Record<string, unknown>
   const body = typeof c.body === 'string' ? normalizeHex(c.body) : null
-  if (!body) fail('invalid body color.')
+  if (!body) fail('couleur du corps invalide.')
   const optional = (v: unknown, name: string) => {
     if (v === null || v === undefined) return null
     const hex = typeof v === 'string' ? normalizeHex(v) : null
-    return hex ?? fail(`invalid ${name} color.`)
+    return hex ?? fail(`couleur invalide (${name}).`)
   }
 
   const num = (v: unknown, fallback: number) => (typeof v === 'number' && Number.isFinite(v) ? v : fallback)
 
   const asset = (raw: unknown): LogoAsset => {
     const l = (raw ?? {}) as Record<string, unknown>
-    if (typeof l.dataUrl !== 'string' || !/^data:image\/(png|jpeg);base64,/.test(l.dataUrl)) fail('logo must be an embedded PNG or JPEG image.')
-    if (typeof l.width !== 'number' || typeof l.height !== 'number' || l.width <= 0 || l.height <= 0) fail('logo size is missing.')
+    if (typeof l.dataUrl !== 'string' || !/^data:image\/(png|jpeg);base64,/.test(l.dataUrl)) fail('le logo doit être une image PNG ou JPEG intégrée.')
+    if (typeof l.width !== 'number' || typeof l.height !== 'number' || l.width <= 0 || l.height <= 0) fail('la taille du logo est manquante.')
     return {
       dataUrl: l.dataUrl as string,
       name: typeof l.name === 'string' ? l.name.slice(0, 120) : 'logo.png',
@@ -316,7 +316,7 @@ export function parseDesign(raw: unknown): Design {
   return {
     version: 1,
     productId,
-    colors: { body: body as string, sleeves: optional(c.sleeves, 'sleeve'), collar: optional(c.collar, 'collar') },
+    colors: { body: body as string, sleeves: optional(c.sleeves, 'manches'), collar: optional(c.collar, 'col') },
     logos,
     patterns: { body: pattern(rawPatterns.body), sleeves: pattern(rawPatterns.sleeves), collar: pattern(rawPatterns.collar) },
     zones: parseZones(d.zones, pattern),
@@ -329,7 +329,7 @@ function parseBrand(raw: unknown): BrandMarkSettings {
   const b = (raw ?? {}) as Record<string, unknown>
   const color = b.color === 'auto' ? 'auto' : typeof b.color === 'string' ? normalizeHex(b.color) : null
   return {
-    side: b.side === 'left' || b.side === 'right' ? b.side : DEFAULT_BRAND.side,
+    side: b.side === 'left' || b.side === 'right' || b.side === 'center' ? b.side : DEFAULT_BRAND.side,
     style: b.style === 'logo' || b.style === 'symbol' ? b.style : DEFAULT_BRAND.style,
     color: color ?? DEFAULT_BRAND.color,
   }

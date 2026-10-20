@@ -63,9 +63,9 @@ const RAGLAN_ZONES: PaintZoneDef[] = [
 
 const RAGLAN_TEE: GarmentDefinition = {
   id: 'raglan',
-  name: 'Raglan Sport Tee',
-  tagline: 'Regular fit · raglan sleeve',
-  tags: ['Regular fit', 'Raglan sleeve', 'Crew neck'],
+  name: 'T-shirt sport raglan',
+  tagline: 'Coupe classique · manches raglan',
+  tags: ['Coupe classique', 'Manches raglan', 'Col rond'],
   regions: ['body', 'sleeves', 'collar'],
   source: {
     kind: 'gltf',
@@ -81,11 +81,11 @@ const RAGLAN_TEE: GarmentDefinition = {
     back: { xMin: -0.135, xMax: 0.135, yMin: 0.07, yMax: 0.655 },
   },
   placements: [
-    { id: 'leftChest', side: 'front', label: 'Left chest', hint: "Small crest over the wearer's heart", anchor: [0.082, 0.525], defaultWidth: 0.08 },
-    { id: 'centerChest', side: 'front', label: 'Center chest', hint: 'Large statement print', anchor: [0, 0.445], defaultWidth: 0.22 },
-    { id: 'rightChest', side: 'front', label: 'Right chest', hint: "Small crest on the wearer's right", anchor: [-0.082, 0.525], defaultWidth: 0.08 },
-    { id: 'upperBack', side: 'back', label: 'Upper back', hint: 'Below the collar — club or team name', anchor: [0, 0.61], defaultWidth: 0.2 },
-    { id: 'centerBack', side: 'back', label: 'Center back', hint: 'Large back print', anchor: [0, 0.42], defaultWidth: 0.25 },
+    { id: 'leftChest', side: 'front', label: 'Poitrine gauche', hint: 'Petit écusson côté cœur', anchor: [0.082, 0.525], defaultWidth: 0.08 },
+    { id: 'centerChest', side: 'front', label: 'Centre poitrine', hint: 'Grand visuel sur le torse', anchor: [0, 0.445], defaultWidth: 0.22 },
+    { id: 'rightChest', side: 'front', label: 'Poitrine droite', hint: 'Petit écusson côté droit', anchor: [-0.082, 0.525], defaultWidth: 0.08 },
+    { id: 'upperBack', side: 'back', label: 'Haut du dos', hint: 'Sous le col\u00a0: nom du club ou de l’équipe', anchor: [0, 0.61], defaultWidth: 0.2 },
+    { id: 'centerBack', side: 'back', label: 'Milieu du dos', hint: 'Grand visuel dans le dos', anchor: [0, 0.42], defaultWidth: 0.25 },
   ],
   // Same chest height as the left/right chest presets, slightly smaller than a club crest.
   brandMark: { x: 0.085, y: 0.53, widthCm: 6 },

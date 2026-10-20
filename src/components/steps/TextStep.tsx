@@ -9,6 +9,7 @@ import { DEFAULT_FONT, getFont, TEXT_FONTS } from '../../config/fonts'
 import { isLight } from '../../lib/color'
 import { maxWidthCm, MIN_LOGO_CM } from '../../lib/logoTransform'
 import { renderText } from '../../lib/textRender'
+import { fr } from '../../lib/format'
 import { IconButton, RangeField, Segmented } from '../ui/controls'
 import { InkPicker } from '../ui/InkPicker'
 import { PlacementPicker } from '../logo/PlacementPicker'
@@ -30,25 +31,25 @@ export function TextStep() {
   const flatOnly = useUiStore((s) => s.viewerStatus === 'unsupported' || s.viewerStatus === 'error')
   return (
     <>
-      <Section title="Your text" description={`Names, numbers or slogans — up to ${MAX_TEXTS} text blocks, each with its own font, size and color.`}>
+      <Section title="Vos textes" description={`Noms, numéros ou slogans\u00a0: jusqu’à ${MAX_TEXTS} blocs de texte, chacun avec sa police, sa taille et sa couleur.`}>
         <TextList />
       </Section>
       {active && (
         <>
-          <Section title="Edit text">
+          <Section title="Modifier le texte">
             {/* Keyed so the draft and pending renders never leak between text blocks. */}
             <TextEditor key={active.id} layer={active} />
           </Section>
-          <Section title="Placement" description="Pick a side, then a print position. The dashed frame on the shirt shows the printable area.">
+          <Section title="Emplacement" description="Choisissez une face, puis une position. Le cadre en pointillés sur le t-shirt montre la zone imprimable.">
             <PlacementPicker layer={active} />
           </Section>
-          <Section title="Adjust">
+          <Section title="Ajuster">
             {!flatOnly && (
               <p className="logo-tip">
                 <MousePointerClick size={15} aria-hidden />
                 <span>
-                  Click the text on the shirt to drag it, resize it from a corner or rotate it from the top handle. <kbd>←</kbd>
-                  <kbd>→</kbd> nudge, <kbd>Del</kbd> removes.
+                  Cliquez sur le texte du t-shirt pour le déplacer, l’agrandir par un coin ou le faire pivoter avec la poignée du haut. <kbd>←</kbd>
+                  <kbd>→</kbd> pour décaler, <kbd>Suppr</kbd> pour supprimer.
                 </span>
               </p>
             )}
@@ -81,17 +82,17 @@ function TextList() {
   const add = async () => {
     setBusy(true)
     try {
-      const spec = { content: 'Your text', font: DEFAULT_FONT, align: 'center' as TextAlign }
+      const spec = { content: 'Votre texte', font: DEFAULT_FONT, align: 'center' as TextAlign }
       const { asset, capPx } = await renderText(spec)
       // Readable on the fabric: white on dark, black on light.
       const id = useDesignStore.getState().addText({ ...spec, capPx, sizeCm: 4 }, asset, isLight(body) ? '#0E0E0E' : '#FFFFFF')
       const layer = useDesignStore.getState().design.logos.find((l) => l.id === id)
-      if (!layer) return notify('info', `A garment carries up to ${MAX_TEXTS} text blocks. Remove one to add another.`)
+      if (!layer) return notify('info', `Un vêtement accueille jusqu’à ${MAX_TEXTS} blocs de texte. Retirez-en un pour en ajouter un autre.`)
       editLayer(layer)
       focusContent()
     } catch (err) {
       console.error(err)
-      notify('error', "The text couldn't be created. Try again.")
+      notify('error', 'Le texte n’a pas pu être créé. Réessayez.')
     } finally {
       setBusy(false)
     }
@@ -100,7 +101,7 @@ function TextList() {
   return (
     <div className="logo-library">
       {texts.length > 0 && (
-        <ul className="logo-list" aria-label="Your text blocks">
+        <ul className="logo-list" aria-label="Vos blocs de texte">
           {[...texts].reverse().map((layer) => {
             const index = logos.indexOf(layer)
             const isActive = layer.id === active?.id
@@ -119,7 +120,7 @@ function TextList() {
                   <span className="logo-item-text">
                     <strong title={name}>{name}</strong>
                     <span>
-                      {getFont(layer.text.font).label} · {letterHeightCm(layer)} cm · {preset?.label}
+                      {getFont(layer.text.font).label} · {fr(letterHeightCm(layer))} cm · {preset?.label}
                     </span>
                   </span>
                 </button>
@@ -127,8 +128,8 @@ function TextList() {
                   {logos.length > 1 && (
                     <>
                       <IconButton
-                        label={`Bring “${name}” forward`}
-                        tip="Bring forward"
+                        label={`Avancer «\u00a0${name}\u00a0»`}
+                        tip="Avancer"
                         className="icon-btn-sm"
                         disabled={index === logos.length - 1}
                         onClick={() => useDesignStore.getState().moveLogo(layer.id, 1)}
@@ -136,8 +137,8 @@ function TextList() {
                         <ChevronUp size={16} />
                       </IconButton>
                       <IconButton
-                        label={`Send “${name}” backward`}
-                        tip="Send backward"
+                        label={`Reculer «\u00a0${name}\u00a0»`}
+                        tip="Reculer"
                         className="icon-btn-sm"
                         disabled={index === 0}
                         onClick={() => useDesignStore.getState().moveLogo(layer.id, -1)}
@@ -147,14 +148,14 @@ function TextList() {
                     </>
                   )}
                   <IconButton
-                    label={`Remove “${name}”`}
-                    tip="Remove"
+                    label={`Retirer «\u00a0${name}\u00a0»`}
+                    tip="Retirer"
                     tipSide="left"
                     className="icon-btn-sm is-danger"
                     onClick={() => {
                       useDesignStore.getState().removeLogo(layer.id)
                       useUiStore.getState().selectLogo(false)
-                      notify('info', `Removed “${name}”. Undo to bring it back.`)
+                      notify('info', `«\u00a0${name}\u00a0» retiré. Annulez pour le récupérer.`)
                     }}
                   >
                     <Trash2 size={15} />
@@ -168,14 +169,14 @@ function TextList() {
       {texts.length < MAX_TEXTS ? (
         <button type="button" className="logo-add" onClick={() => void add()} disabled={busy}>
           {busy ? <LoaderCircle size={16} className="spin" aria-hidden /> : <Type size={16} aria-hidden />}
-          <span>{texts.length ? 'Add more text' : 'Add text'}</span>
+          <span>{texts.length ? 'Ajouter un autre texte' : 'Ajouter du texte'}</span>
           <span className="logo-add-count">
-            {texts.length} of {MAX_TEXTS}
+            {texts.length} sur {MAX_TEXTS}
           </span>
         </button>
       ) : (
         <p className="logo-limit">
-          {MAX_TEXTS} of {MAX_TEXTS} used — remove one to add another.
+          {MAX_TEXTS} sur {MAX_TEXTS} utilisés&nbsp;: retirez-en un pour en ajouter un autre.
         </p>
       )}
     </div>
@@ -211,7 +212,7 @@ function TextEditor({ layer }: { layer: TextLayer }) {
       setDraft(null)
     } catch (err) {
       console.error(err)
-      notify('error', "This text couldn't be drawn. Try other characters.")
+      notify('error', 'Ce texte n’a pas pu être dessiné. Essayez d’autres caractères.')
     }
   }
 
@@ -231,7 +232,7 @@ function TextEditor({ layer }: { layer: TextLayer }) {
     <div className="text-editor">
       <div className="field">
         <label className="field-label" htmlFor="text-content">
-          Text
+          Texte
         </label>
         <textarea
           id="text-content"
@@ -255,13 +256,13 @@ function TextEditor({ layer }: { layer: TextLayer }) {
           }}
         />
         <p id="text-content-hint" className={empty ? 'field-error' : 'field-hint'}>
-          {empty ? 'Type something to print.' : `Up to ${MAX_TEXT_LINES} lines, ${MAX_TEXT_LINE_CHARS} characters each. Press Enter for a new line.`}
+          {empty ? 'Saisissez un texte à imprimer.' : `Jusqu’à ${MAX_TEXT_LINES} lignes de ${MAX_TEXT_LINE_CHARS} caractères. Entrée pour aller à la ligne.`}
         </p>
       </div>
 
       <div className="field">
         <span className="field-label" id="text-font-label">
-          Font
+          Police
         </span>
         <div className="font-grid" role="radiogroup" aria-labelledby="text-font-label">
           {TEXT_FONTS.map((f) => (
@@ -285,7 +286,7 @@ function TextEditor({ layer }: { layer: TextLayer }) {
 
       <div className="field">
         <RangeField
-          label="Letter height"
+          label="Hauteur des lettres"
           icon={<Type size={15} aria-hidden />}
           value={letter}
           min={minLetter}
@@ -293,16 +294,16 @@ function TextEditor({ layer }: { layer: TextLayer }) {
           step={0.5}
           unit="cm"
           onChange={(v, dragging) => setLetter(v, dragging ? 'size' : undefined)}
-          hint="Height of capital letters as printed. Long text is limited by the printable width."
+          hint="Hauteur des majuscules une fois imprimées. Un texte long est limité par la largeur imprimable."
         />
-        <div className="size-chips" role="group" aria-label="Quick letter heights">
+        <div className="size-chips" role="group" aria-label="Hauteurs rapides">
           {SIZE_PRESETS.map(([label, cm]) => (
             <button
               key={label}
               type="button"
               className={`size-chip ${Math.abs(letter - Math.min(cm, maxLetter)) < 0.05 ? 'is-active' : ''}`}
               disabled={cm > maxLetter && label !== 'S'}
-              title={`${cm} cm letters`}
+              title={`Lettres de ${cm} cm`}
               onClick={() => setLetter(Math.min(cm, maxLetter))}
             >
               {label} <span>{cm} cm</span>
@@ -312,19 +313,19 @@ function TextEditor({ layer }: { layer: TextLayer }) {
       </div>
 
       <div className="field">
-        <span className="field-label">Color</span>
-        <InkPicker value={placement.tint} onChange={(hex) => useDesignStore.getState().updateTransform(layer.id, { tint: hex })} label="Text color" id="text-color-hex" />
+        <span className="field-label">Couleur</span>
+        <InkPicker value={placement.tint} onChange={(hex) => useDesignStore.getState().updateTransform(layer.id, { tint: hex })} label="Couleur du texte" id="text-color-hex" />
       </div>
 
       {text.content.includes('\n') && (
         <Segmented<TextAlign>
-          label="Line alignment"
+          label="Alignement des lignes"
           value={text.align}
           size="sm"
           options={[
-            { value: 'left', label: 'Left', icon: <AlignLeft size={15} aria-hidden /> },
-            { value: 'center', label: 'Center', icon: <AlignCenter size={15} aria-hidden /> },
-            { value: 'right', label: 'Right', icon: <AlignRight size={15} aria-hidden /> },
+            { value: 'left', label: 'Gauche', icon: <AlignLeft size={15} aria-hidden /> },
+            { value: 'center', label: 'Centre', icon: <AlignCenter size={15} aria-hidden /> },
+            { value: 'right', label: 'Droite', icon: <AlignRight size={15} aria-hidden /> },
           ]}
           onChange={(align) => void apply({ align })}
         />

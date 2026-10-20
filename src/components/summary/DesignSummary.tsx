@@ -11,6 +11,7 @@ import { describePatterns } from '../../patterns/describe'
 import { describeBrand } from '../../garments/brand'
 import { brandFabric, describeZones } from '../../state/paint'
 import { describeText } from '../../state/describeText'
+import { fr } from '../../lib/format'
 
 function Swatch({ hex }: { hex: string }) {
   return <span className={`dot ${isLight(hex) ? 'is-light' : ''}`} style={{ background: hex }} aria-hidden />
@@ -28,7 +29,7 @@ export function DesignSummary() {
   const texts = design.logos.filter((l) => l.text)
 
   const edit = (step: StepId, what: string) => (
-    <button type="button" className="icon-btn icon-btn-sm" aria-label={`Edit ${what}`} data-tip="Edit" data-tip-side="left" onClick={() => setStep(step)}>
+    <button type="button" className="icon-btn icon-btn-sm" aria-label={`Modifier\u00a0: ${what}`} data-tip="Modifier" data-tip-side="left" onClick={() => setStep(step)}>
       <Pencil size={14} />
     </button>
   )
@@ -41,11 +42,11 @@ export function DesignSummary() {
         <dt>{label}</dt>
         <dd>
           <Swatch hex={hex} />
-          <span>{presetName(hex) ?? 'Custom'}</span>
+          <span>{presetName(hex) ?? 'Personnalisée'}</span>
           <code>{hex}</code>
-          {follows && <span className="muted">· matches body</span>}
+          {follows && <span className="muted">· comme le corps</span>}
         </dd>
-        {edit('color', `${label.toLowerCase()} color`)}
+        {edit('color', `couleur (${label.toLowerCase()})`)}
       </div>
     )
   }
@@ -53,30 +54,30 @@ export function DesignSummary() {
   return (
     <dl className="summary">
       <div className="summary-row">
-        <dt>Product</dt>
+        <dt>Produit</dt>
         <dd>
           <span>{garment.name}</span>
           <span className="muted">· {garment.tagline}</span>
         </dd>
-        {edit('product', 'product')}
+        {edit('product', 'produit')}
       </div>
-      {colorRow('Body', 'body')}
-      {regions.includes('sleeves') && colorRow('Sleeves', 'sleeves')}
-      {regions.includes('collar') && colorRow('Collar', 'collar')}
+      {colorRow('Corps', 'body')}
+      {regions.includes('sleeves') && colorRow('Manches', 'sleeves')}
+      {regions.includes('collar') && colorRow('Col', 'collar')}
       <div className="summary-row">
-        <dt>Pattern</dt>
+        <dt>Motif</dt>
         <dd className="summary-stack">
           {patternLines.length ? (
             patternLines.map((p) => (
               <span key={p.zone}>
-                <span className="muted">{p.label}:</span> {p.text}
+                <span className="muted">{p.label}&nbsp;:</span> {p.text}
               </span>
             ))
           ) : (
-            <span className="muted">Plain fabric</span>
+            <span className="muted">Tissu uni</span>
           )}
         </dd>
-        {edit('pattern', 'pattern')}
+        {edit('pattern', 'motif')}
       </div>
       {zoneLines.length > 0 && (
         <div className="summary-row">
@@ -84,11 +85,11 @@ export function DesignSummary() {
           <dd className="summary-stack">
             {zoneLines.map((z) => (
               <span key={z.zone}>
-                <span className="muted">{z.label}:</span> {z.text}
+                <span className="muted">{z.label}&nbsp;:</span> {z.text}
               </span>
             ))}
           </dd>
-          {edit('color', 'color zones')}
+          {edit('color', 'zones de couleur')}
         </div>
       )}
       <div className="summary-row">
@@ -96,7 +97,7 @@ export function DesignSummary() {
         <dd>
           <span>{describeBrand(design.brand, brandFabric(design))}</span>
         </dd>
-        {edit('logo', 'HONEG mark')}
+        {edit('logo', 'marque HONEG')}
       </div>
       <div className="summary-row">
         <dt>{images.length > 1 ? 'Logos' : 'Logo'}</dt>
@@ -108,35 +109,35 @@ export function DesignSummary() {
                   <img src={asset.dataUrl} alt="" />
                 </span>
                 <span>
-                  {garment.placements.find((x) => x.id === p.placement)?.label} · {p.widthCm} cm wide · {p.rotationDeg}°
+                  {garment.placements.find((x) => x.id === p.placement)?.label} · {fr(p.widthCm)} cm de large · {p.rotationDeg}°
                   {describeLook(p) && <span className="muted"> · {describeLook(p)}</span>}
                   {(p.offsetXCm !== 0 || p.offsetYCm !== 0) && (
                     <span className="muted">
                       {' '}
-                      · offset {p.offsetXCm > 0 ? '+' : ''}
-                      {p.offsetXCm} / {p.offsetYCm > 0 ? '+' : ''}
-                      {p.offsetYCm} cm
+                      · décalage {p.offsetXCm > 0 ? '+' : ''}
+                      {fr(p.offsetXCm)} / {p.offsetYCm > 0 ? '+' : ''}
+                      {fr(p.offsetYCm)} cm
                     </span>
                   )}
                 </span>
               </span>
             ))
           ) : (
-            <span className="muted">No logo yet</span>
+            <span className="muted">Aucun logo</span>
           )}
         </dd>
         {edit('logo', 'logos')}
       </div>
       <div className="summary-row">
-        <dt>Text</dt>
+        <dt>Texte</dt>
         <dd className="summary-stack">
           {texts.length ? (
             texts.map((t) => <span key={t.id}>{describeText(design, t)}</span>)
           ) : (
-            <span className="muted">No text</span>
+            <span className="muted">Aucun texte</span>
           )}
         </dd>
-        {edit('text', 'text')}
+        {edit('text', 'texte')}
       </div>
     </dl>
   )

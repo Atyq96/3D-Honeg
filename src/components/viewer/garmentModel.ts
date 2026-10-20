@@ -57,7 +57,7 @@ export function gltfToModel(scene: Object3D, source: GarmentSource): GarmentMode
     const region = matchRegion(names, source.regionMatchers)
     parts.push({ region, geometry, logoTarget: source.logoTargets.includes(region), finish: region === 'collar' ? 'rib' : 'jersey' })
   })
-  if (!parts.length) throw new Error('The glTF model contains no garment meshes.')
+  if (!parts.length) throw new Error('Le modèle glTF ne contient aucune pièce de vêtement.')
 
   // Normalise: centre on X/Z, hem on y = 0, scale to the target height.
   const box = new Box3()

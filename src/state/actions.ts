@@ -7,6 +7,7 @@ import { describeLook } from '../lib/logoTransform'
 import { describePatterns } from '../patterns/describe'
 import { describeBrand } from '../garments/brand'
 import { brandFabric, describeZones } from './paint'
+import { fr } from '../lib/format'
 import { describeText } from './describeText'
 import { getGarment } from '../garments/catalog'
 import { presetName } from '../config/palette'
@@ -19,22 +20,22 @@ const notify = (...args: Parameters<ReturnType<typeof useUiStore.getState>['noti
 export function saveLocally() {
   const res = saveDesignLocally(useDesignStore.getState().design)
   if (!res.ok) notify('error', res.reason)
-  else if (res.withoutLogo) notify('info', 'Saved in this browser — without the logos, which are too large for local storage. Use Export design to keep them.')
-  else notify('success', 'Design saved in this browser.')
+  else if (res.withoutLogo) notify('info', 'Enregistré dans ce navigateur, sans les logos (trop lourds pour le stockage local). Exportez le design pour les conserver.')
+  else notify('success', 'Design enregistré dans ce navigateur.')
 }
 
 export function exportJson() {
   exportDesignJson(useDesignStore.getState().design)
-  notify('success', 'Design exported as JSON.')
+  notify('success', 'Design exporté en JSON.')
 }
 
 export async function importJson(file: File) {
   try {
     const design = await readDesignFile(file)
     useDesignStore.getState().replaceDesign(design)
-    notify('success', `Imported “${file.name}”.`)
+    notify('success', `«\u00a0${file.name}\u00a0» importé.`)
   } catch (err) {
-    notify('error', err instanceof Error ? err.message : "That file couldn't be imported.")
+    notify('error', err instanceof Error ? err.message : 'Ce fichier n’a pas pu être importé.')
   }
 }
 
@@ -71,13 +72,13 @@ async function renderFlats(design: Design): Promise<string[]> {
   })
 }
 
-/** "Left chest · 8 cm wide · 0°" — the long form adds flips, fill, opacity and lock. */
+/** "Poitrine gauche · 8 cm de large · 0°" — the long form adds flips, fill, opacity and lock. */
 function describeLogo(design: Design, layer: LogoLayer, long: boolean) {
   const p = layer.placement
   const preset = getGarment(design.productId).placements.find((x) => x.id === p.placement)
-  if (!long) return `${preset?.label ?? ''} ${p.widthCm} cm${p.rotationDeg ? ` ${p.rotationDeg}°` : ''}`
+  if (!long) return `${preset?.label ?? ''} ${fr(p.widthCm)} cm${p.rotationDeg ? ` ${p.rotationDeg}°` : ''}`
   const look = describeLook(p)
-  return `${preset?.label ?? ''} · ${p.widthCm} cm wide · ${p.rotationDeg}°${look ? ` · ${look}` : ''}`
+  return `${preset?.label ?? ''} · ${fr(p.widthCm)} cm de large · ${p.rotationDeg}°${look ? ` · ${look}` : ''}`
 }
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
@@ -100,10 +101,10 @@ export async function exportPreviewImage() {
     const patternLines = describePatterns(design.patterns, regions)
     const zoneLines = describeZones(design)
     const details = [
-      ...design.logos.filter((l) => l.text).map((t) => `Text — ${describeText(design, t)}`),
-      ...(patternLines.length ? [`Pattern — ${patternLines.map((p) => `${p.label}: ${p.text}`).join(' · ')}`] : []),
-      ...(zoneLines.length ? [`Zones — ${zoneLines.map((z) => `${z.label}: ${z.text}`).join('  ·  ')}`] : []),
-      `HONEG mark — ${describeBrand(design.brand, brandFabric(design))}`,
+      ...design.logos.filter((l) => l.text).map((t) => `Texte — ${describeText(design, t)}`),
+      ...(patternLines.length ? [`Motif — ${patternLines.map((p) => `${p.label}\u00a0: ${p.text}`).join(' · ')}`] : []),
+      ...(zoneLines.length ? [`Zones — ${zoneLines.map((z) => `${z.label}\u00a0: ${z.text}`).join('  ·  ')}`] : []),
+      `Marque HONEG — ${describeBrand(design.brand, brandFabric(design))}`,
     ]
     const LINE = 28
     const W = 1800
@@ -120,12 +121,12 @@ export async function exportPreviewImage() {
     ctx.fillStyle = '#0E0E0E'
     ctx.font = '700 34px "Manrope Variable", Manrope, system-ui, sans-serif'
     ctx.textBaseline = 'alphabetic'
-    ctx.fillText(`${garment.name} — custom design`, 190, 92)
+    ctx.fillText(`${garment.name} — design personnalisé`, 190, 92)
     ctx.fillStyle = '#6B6A67'
     ctx.font = '500 20px "Manrope Variable", Manrope, system-ui, sans-serif'
     ctx.fillText(garment.tagline, 190, 122)
     ctx.textAlign = 'right'
-    ctx.fillText(new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }), W - 72, 92)
+    ctx.fillText(new Date().toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' }), W - 72, 92)
     ctx.textAlign = 'left'
 
     const panelY = 168
@@ -144,7 +145,7 @@ export async function exportPreviewImage() {
       ctx.fillStyle = '#484847'
       ctx.font = '700 15px "Manrope Variable", Manrope, system-ui, sans-serif'
       ctx.letterSpacing = '3px'
-      ctx.fillText(i === 0 ? 'FRONT' : 'BACK', x + 28, panelY + panelH - 26)
+      ctx.fillText(i === 0 ? 'DEVANT' : 'DOS', x + 28, panelY + panelH - 26)
       ctx.letterSpacing = '0px'
     })
 
@@ -163,13 +164,13 @@ export async function exportPreviewImage() {
       ctx.stroke()
       ctx.fillStyle = '#0E0E0E'
       ctx.font = '600 20px "Manrope Variable", Manrope, system-ui, sans-serif'
-      const text = `${presetName(hex) ?? 'Custom'} ${hex}`
+      const text = `${presetName(hex) ?? 'Personnalisée'} ${hex}`
       ctx.fillText(text, x + 38, y + 4)
       x += 38 + ctx.measureText(text).width + 56
     }
-    chip('Body', resolvedColor(design.colors, 'body'))
-    if (regions.includes('sleeves')) chip('Sleeves', resolvedColor(design.colors, 'sleeves'))
-    if (regions.includes('collar')) chip('Collar', resolvedColor(design.colors, 'collar'))
+    chip('Corps', resolvedColor(design.colors, 'body'))
+    if (regions.includes('sleeves')) chip('Manches', resolvedColor(design.colors, 'sleeves'))
+    if (regions.includes('collar')) chip('Col', resolvedColor(design.colors, 'collar'))
     const images = design.logos.filter((l) => !l.text)
     if (images.length) {
       ctx.fillStyle = '#6B6A67'
@@ -185,14 +186,14 @@ export async function exportPreviewImage() {
     details.forEach((line, i) => ctx.fillText(line, 72, y + 50 + i * LINE, W - 144))
     ctx.fillStyle = '#6B6A67'
     ctx.font = '500 15px "Manrope Variable", Manrope, system-ui, sans-serif'
-    ctx.fillText('Prototype preview generated in the browser — on-screen colors are indicative.', 72, H - 36)
+    ctx.fillText('Aperçu prototype généré dans le navigateur — les couleurs à l’écran sont indicatives.', 72, H - 36)
 
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'))
     if (!blob) throw new Error('empty')
     downloadBlob(blob, `honeg-${garment.id}-${stamp()}.png`)
-    notify('success', 'Preview image downloaded.')
+    notify('success', 'Image d’aperçu téléchargée.')
   } catch (err) {
     console.error(err)
-    notify('error', "The preview image couldn't be created. Try again, or export the design as JSON.")
+    notify('error', 'L’image d’aperçu n’a pas pu être créée. Réessayez, ou exportez le design en JSON.')
   }
 }

@@ -20,8 +20,8 @@ export function ProductStep() {
 
   return (
     <>
-      <Section title="Choose your cut" description="Colors and your logos carry over when you switch cuts.">
-        <div className="product-list" role="radiogroup" aria-label="Product">
+      <Section title="Choisissez la coupe" description="Vos couleurs, logos et textes sont conservés si vous changez de coupe.">
+        <div className="product-list" role="radiogroup" aria-label="Produit">
           {GARMENTS.map((g) => {
             const selected = g.id === productId
             return (
@@ -48,9 +48,9 @@ export function ProductStep() {
           })}
         </div>
       </Section>
-      <Section title="View" description={flatOnly ? 'Front and back are available in the flat preview.' : 'Drag the preview to rotate freely, or jump to a side.'}>
+      <Section title="Vue" description={flatOnly ? 'La face et le dos sont disponibles dans l’aperçu à plat.' : 'Faites glisser l’aperçu pour le tourner librement, ou choisissez un côté.'}>
         <Segmented
-          label="Garment view"
+          label="Vue du vêtement"
           value={view}
           options={flatOnly ? VIEW_OPTIONS.map((o) => ({ ...o, disabled: o.value === 'left' || o.value === 'right' })) : VIEW_OPTIONS}
           onChange={setView}

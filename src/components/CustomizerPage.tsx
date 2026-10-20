@@ -53,7 +53,7 @@ function useLogoShortcuts() {
         e.preventDefault()
         removeLogo(layer.id)
         ui.selectLogo(false)
-        ui.notify('info', `Removed “${layer.asset.name}”. Undo to bring it back.`)
+        ui.notify('info', `«\u00a0${layer.asset.name}\u00a0» retiré. Annulez pour le récupérer.`)
         return
       }
       const step = e.shiftKey ? 1 : 0.2
@@ -80,7 +80,7 @@ function useRestoreSavedDesign() {
     const design = fixDesign(saved)
     useDesignStore.setState({ design, past: [], future: [] })
     useUiStore.getState().setView(design.logos[design.logos.length - 1]?.placement.side ?? 'front')
-    useUiStore.getState().notify('info', 'Welcome back — your saved design was restored.')
+    useUiStore.getState().notify('info', 'Bon retour\u00a0! Votre design enregistré a été restauré.')
   }, [])
 }
 
@@ -91,7 +91,7 @@ export function CustomizerPage() {
   return (
     <div className="app">
       <a href="#customize" className="skip-link">
-        Skip to customization
+        Aller à la personnalisation
       </a>
       <TopBar />
       <main className="workspace" id="customize">

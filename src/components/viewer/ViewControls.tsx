@@ -10,7 +10,7 @@ export function ViewControls() {
   const options = flat ? VIEW_OPTIONS.map((o) => ({ ...o, disabled: o.value === 'left' || o.value === 'right' })) : VIEW_OPTIONS
   return (
     <div className="stage-views">
-      <Segmented label="Camera view" value={view} options={options} onChange={setView} size="sm" />
+      <Segmented label="Vue de la caméra" value={view} options={options} onChange={setView} size="sm" />
     </div>
   )
 }

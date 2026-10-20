@@ -4,6 +4,8 @@ A browser-based 3D T-shirt configurator for HONEG, built by Lunar Innovate. User
 
 Branding (logo, palette, type direction) follows [honeg.fr](https://www.honeg.fr/): ink `#0E0E0E`, paper `#F6F5F2`, amber `#F2A900`, graphite greys. The UI uses Manrope; Unbounded stands in for the brand's commercial Benzin display face.
 
+The interface is in **French**, written directly in the components (no i18n layer, since French is the only language). Numbers use a decimal comma (`lib/format.ts`), and French punctuation gets a non-breaking space before `:` `?` `!` and inside « ». Code, comments and this README stay in English.
+
 ## Run it
 
 ```bash
@@ -108,7 +110,7 @@ The print is a projected decal (`DecalGeometry`), so it needs no UVs and follows
 
 Every garment carries the HONEG mark on the chest, the way sportswear makers place their logo. It can't be removed. In the Logo step's **HONEG mark** section the customer picks:
 
-- **Side:** wearer's left or right chest (right by default)
+- **Position:** wearer's left chest, centre, or right chest (right by default). Centred, it leaves both chests free for logos.
 - **Style:** full logo or symbol only
 - **Color:** Auto (white on dark fabric, black on light), white, black or amber
 
@@ -201,9 +203,9 @@ public/models/                  prepared garment models
 | Separate sleeve / collar colors | From the model's UV-island split |
 | Color zones | 14 more zones (single sleeves, front/back, halves, side panels, shoulders, stripes, sash), each with a color and optional pattern, picked by 3D thumbnail |
 | All-over patterns | 69 patterns (from inkjet) per zone: search and categories, ink color, size, angle, density, opacity, shuffle, apply to all zones |
-| Logo upload | Up to 3 logos or photos, several at once; PNG (transparency kept), JPG, WebP, SVG (sanitized), 10 MB limit, signature check, border trim, low-res warning, HONEG sample logos |
+| Logo upload | Up to 3 logos or photos, several at once; PNG (transparency kept), JPG, WebP, SVG (sanitized), 10 MB limit, signature check, border trim, low-res warning |
 | Placement | Left / center / right chest, upper / center back, with a printable-area frame on the shirt |
-| HONEG mark | Always printed; left or right chest, logo or symbol, auto/white/black/amber; customer prints keep clear of it |
+| HONEG mark | Always printed; left chest, centre or right chest, logo or symbol, auto/white/black/amber; customer prints keep clear of it |
 | Text | Up to 3 blocks, 9 fonts, letter height in cm (slider + S/M/L/XL), palette or HEX color, multi-line alignment |
 | On-model editing | Select, drag, corner resize, rotate with snaps, snap guides, toolbar, keyboard (see Logo controls) |
 | Undo / redo | Buttons + Ctrl/⌘+Z, Ctrl/⌘+Shift+Z, Ctrl+Y |

@@ -16,14 +16,14 @@ export function TopBar() {
   const [confirm, setConfirm] = useState(false)
 
   const exportItems: MenuItem[] = [
-    { label: 'Preview image (PNG)', icon: <Image size={16} aria-hidden />, onSelect: () => void exportPreviewImage() },
-    { label: 'Design file (JSON)', icon: <FileJson size={16} aria-hidden />, onSelect: exportJson },
-    { label: 'Import design…', icon: <FileUp size={16} aria-hidden />, onSelect: pickDesignFile },
+    { label: 'Image d’aperçu (PNG)', icon: <Image size={16} aria-hidden />, onSelect: () => void exportPreviewImage() },
+    { label: 'Fichier du design (JSON)', icon: <FileJson size={16} aria-hidden />, onSelect: exportJson },
+    { label: 'Importer un design…', icon: <FileUp size={16} aria-hidden />, onSelect: pickDesignFile },
   ]
   const moreItems: MenuItem[] = [
-    { label: 'Save in this browser', icon: <Save size={16} aria-hidden />, onSelect: saveLocally },
+    { label: 'Enregistrer dans ce navigateur', icon: <Save size={16} aria-hidden />, onSelect: saveLocally },
     ...exportItems,
-    { label: 'Reset design', icon: <RotateCcw size={16} aria-hidden />, onSelect: () => setConfirm(true), danger: true },
+    { label: 'Réinitialiser le design', icon: <RotateCcw size={16} aria-hidden />, onSelect: () => setConfirm(true), danger: true },
   ]
 
   return (
@@ -32,42 +32,42 @@ export function TopBar() {
         <img src="/brand/honeg-logo-black.png" alt="HONEG" className="brand-logo" width={46} height={34} />
         <span className="brand-divider" aria-hidden />
         <div className="brand-text">
-          <span className="brand-title">3D Customizer</span>
-          <span className="brand-sub">Custom sportswear</span>
+          <span className="brand-title">Personnalisation 3D</span>
+          <span className="brand-sub">Sportswear sur mesure</span>
         </div>
       </div>
 
       <div className="topbar-actions">
-        <IconButton label="Undo" tip={`Undo (${MOD}Z)`} disabled={!canUndo} onClick={undo}>
+        <IconButton label="Annuler" tip={`Annuler (${MOD}Z)`} disabled={!canUndo} onClick={undo}>
           <Undo2 size={18} />
         </IconButton>
-        <IconButton label="Redo" tip={`Redo (${MOD}Shift+Z)`} disabled={!canRedo} onClick={redo}>
+        <IconButton label="Rétablir" tip={`Rétablir (${MOD}Maj+Z)`} disabled={!canRedo} onClick={redo}>
           <Redo2 size={18} />
         </IconButton>
         <span className="topbar-sep" aria-hidden />
         <button type="button" className="btn btn-ghost hide-sm" onClick={() => setConfirm(true)}>
-          <RotateCcw size={16} aria-hidden /> Reset
+          <RotateCcw size={16} aria-hidden /> Réinitialiser
         </button>
         <button type="button" className="btn btn-ghost hide-sm" onClick={saveLocally}>
-          <Save size={16} aria-hidden /> Save
+          <Save size={16} aria-hidden /> Enregistrer
         </button>
         <div className="hide-sm">
           <Menu
-            label="Export"
+            label="Exporter"
             items={exportItems}
             trigger={(props) => (
               <button type="button" className="btn btn-primary" {...props}>
-                <Download size={16} aria-hidden /> Export <ChevronDown size={14} aria-hidden />
+                <Download size={16} aria-hidden /> Exporter <ChevronDown size={14} aria-hidden />
               </button>
             )}
           />
         </div>
         <div className="show-sm">
           <Menu
-            label="Design actions"
+            label="Actions du design"
             items={moreItems}
             trigger={(props) => (
-              <button type="button" className="icon-btn" aria-label="Design actions" {...props}>
+              <button type="button" className="icon-btn" aria-label="Actions du design" {...props}>
                 <Ellipsis size={20} />
               </button>
             )}
@@ -77,9 +77,9 @@ export function TopBar() {
 
       <ConfirmDialog
         open={confirm}
-        title="Reset the entire design?"
-        body="Product, colors and logo go back to their defaults. You can still undo this."
-        confirmLabel="Reset design"
+        title="Réinitialiser tout le design&nbsp;?"
+        body="Le produit, les couleurs, les logos et le texte reviennent aux valeurs par défaut. Vous pourrez encore annuler."
+        confirmLabel="Réinitialiser"
         onConfirm={resetAll}
         onClose={() => setConfirm(false)}
       />

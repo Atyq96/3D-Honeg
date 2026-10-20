@@ -60,18 +60,18 @@ export function ShirtColorPicker({ label, value, defaultValue, onChange, compact
       <div className="color-current">
         <span className={`color-current-swatch ${isLight(value) ? 'is-light' : ''}`} style={{ background: value }} aria-hidden />
         <div className="color-current-text">
-          <span className="color-current-name">{name ?? 'Custom color'}</span>
+          <span className="color-current-name">{name ?? 'Couleur personnalisée'}</span>
           <code className="color-current-hex">{value}</code>
         </div>
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => choose(defaultValue)} disabled={value === defaultValue}>
-          <RotateCcw size={14} aria-hidden /> Default
+          <RotateCcw size={14} aria-hidden /> Par défaut
         </button>
       </div>
       )}
 
       <div className="field">
         <span className="field-label" id={`${id}-presets`}>
-          {compact ? `${label} color` : 'Presets'}
+          {compact ? `Couleur\u00a0: ${label.toLowerCase()}` : 'Couleurs prédéfinies'}
         </span>
         <div className="swatches" role="radiogroup" aria-labelledby={`${id}-presets`}>
           {COLOR_PRESETS.map((p) => {
@@ -96,9 +96,9 @@ export function ShirtColorPicker({ label, value, defaultValue, onChange, compact
       </div>
 
       <div className="field">
-        {!compact && <span className="field-label">Custom</span>}
+        {!compact && <span className="field-label">Personnalisée</span>}
         {!compact && (
-          <div className="picker" aria-label={`${label} color picker`}>
+          <div className="picker" aria-label={`Sélecteur de couleur\u00a0: ${label.toLowerCase()}`}>
             <HexColorPicker
               color={value}
               onChange={(c) => {
@@ -111,7 +111,7 @@ export function ShirtColorPicker({ label, value, defaultValue, onChange, compact
         )}
         <div className={`hex-input ${error ? 'is-invalid' : ''}`}>
           <label htmlFor={`${id}-hex`} className="sr-only">
-            {label} HEX color
+            Couleur HEX : {label.toLowerCase()}
           </label>
           <span className="hex-input-swatch" style={{ background: value }} aria-hidden />
           <input
@@ -138,7 +138,7 @@ export function ShirtColorPicker({ label, value, defaultValue, onChange, compact
           </p>
         ) : (
           <p id={`${id}-help`} className="field-hint">
-            Type #RGB or #RRGGBB — the preview updates as soon as the code is valid.
+            Saisissez #RVB ou #RRVVBB&nbsp;: l’aperçu se met à jour dès que le code est valide.
           </p>
         )}
       </div>

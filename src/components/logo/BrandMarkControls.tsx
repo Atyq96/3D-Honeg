@@ -6,13 +6,17 @@ import { useUiStore } from '../../state/uiStore'
 import { isLight, onColor } from '../../lib/color'
 import { Segmented } from '../ui/controls'
 
-const SIDE_LABEL: Record<BrandSide, string> = { left: 'left', right: 'right' }
-const otherChest = (side: BrandSide) => SIDE_LABEL[side === 'left' ? 'right' : 'left']
+const WHERE: Record<BrandSide, string> = {
+  left: 'sur la poitrine gauche du porteur',
+  center: 'au centre de la poitrine',
+  right: 'sur la poitrine droite du porteur',
+}
 
 /**
  * The HONEG mark is always printed (like a sportswear maker's logo); customers
- * only pick its chest, style and colour. Choosing the chest your own logo is on
- * moves your logo across, and vice versa.
+ * only pick where it sits (left chest, centre or right chest), its style and
+ * its colour. Choosing the chest your own logo is on moves your logo across;
+ * centred, it leaves both chests free.
  */
 export function BrandMarkControls() {
   const brand = useDesignStore((s) => s.design.brand)
@@ -26,21 +30,24 @@ export function BrandMarkControls() {
     const after = useDesignStore.getState().design.logos
     const moved = after.filter((l) => before.find((b) => b.id === l.id)?.placement.placement !== l.placement.placement)
     useUiStore.getState().setView('front')
-    if (moved.length)
+    if (moved.length && side !== 'center') {
+      const chest = side === 'left' ? 'droite' : 'gauche'
       useUiStore
         .getState()
-        .notify('info', `${moved.length > 1 ? 'Your chest logos' : 'Your logo'} moved to the ${otherChest(side)} chest to make room for the HONEG mark.`)
+        .notify('info', `${moved.length > 1 ? 'Vos logos de poitrine passent' : 'Votre logo passe'} sur la poitrine ${chest} pour laisser la place à la marque HONEG.`)
+    }
   }
 
   return (
     <div className="brand-controls">
       <Segmented<BrandSide>
-        label="HONEG mark position"
+        label="Position de la marque HONEG"
         value={brand.side}
         onChange={changeSide}
         options={[
-          { value: 'left', label: 'Left chest', title: "Wearer's left" },
-          { value: 'right', label: 'Right chest', title: "Wearer's right" },
+          { value: 'left', label: 'Gauche', title: 'Poitrine gauche du porteur' },
+          { value: 'center', label: 'Centre', title: 'Au centre de la poitrine' },
+          { value: 'right', label: 'Droite', title: 'Poitrine droite du porteur' },
         ]}
       />
 
@@ -48,7 +55,7 @@ export function BrandMarkControls() {
         <span className="field-label" aria-hidden>
           Style
         </span>
-        <div className="brand-styles" role="radiogroup" aria-label="HONEG mark style">
+        <div className="brand-styles" role="radiogroup" aria-label="Style de la marque HONEG">
           {(Object.keys(BRAND_ASSETS) as BrandStyle[]).map((style) => (
             <button
               key={style}
@@ -67,9 +74,9 @@ export function BrandMarkControls() {
 
       <div className="field">
         <span className="field-label" aria-hidden>
-          Color
+          Couleur
         </span>
-        <div className="brand-colors" role="radiogroup" aria-label="HONEG mark color">
+        <div className="brand-colors" role="radiogroup" aria-label="Couleur de la marque HONEG">
           {BRAND_COLORS.map((c) => {
             const ink = brandInk(c.value, fabric)
             const selected = brand.color === c.value
@@ -80,7 +87,7 @@ export function BrandMarkControls() {
                 role="radio"
                 aria-checked={selected}
                 className="brand-color"
-                title={c.value === 'auto' ? `Auto — ${ink === '#FFFFFF' ? 'white' : 'black'} on this fabric` : c.label}
+                title={c.value === 'auto' ? `Auto\u00a0: ${ink === '#FFFFFF' ? 'blanc' : 'noir'} sur ce tissu` : c.label}
                 onClick={() => setBrand({ color: c.value })}
               >
                 <span className={`brand-color-dot ${isLight(ink) ? 'is-light' : ''}`} style={{ background: ink, color: onColor(ink) }} aria-hidden>
@@ -93,9 +100,7 @@ export function BrandMarkControls() {
         </div>
       </div>
 
-      <p className="field-hint">
-        Printed on the wearer's {SIDE_LABEL[brand.side]} chest. Your own prints always keep clear of it.
-      </p>
+      <p className="field-hint">Imprimée {WHERE[brand.side]}. Vos propres impressions restent toujours à distance.</p>
     </div>
   )
 }

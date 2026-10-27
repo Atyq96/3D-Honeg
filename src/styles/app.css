@@ -201,10 +201,11 @@ code {
   align-items: center;
   gap: 9px;
 }
-.brand-logo svg {
+.brand-logo img {
   flex: none;
   width: 34px;
   height: 34px;
+  object-fit: contain;
 }
 .brand-wordmark {
   font-family: var(--font-display);
@@ -1641,7 +1642,7 @@ code {
   .brand {
     gap: 10px;
   }
-  .brand-logo svg {
+  .brand-logo img {
     width: 28px;
     height: 28px;
   }
@@ -2665,4 +2666,56 @@ code {
 }
 .zone-caption strong {
   color: var(--ink);
+}
+
+/* Language switch (EN | FR) in the top bar */
+.lang-switch {
+  display: inline-flex;
+  flex: none;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+.lang-switch button {
+  height: 26px;
+  min-width: 34px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  transition: background-color 0.15s var(--ease), color 0.15s var(--ease);
+}
+.lang-switch button:hover {
+  color: var(--ink);
+}
+.lang-switch button[aria-checked='true'] {
+  background: var(--ink);
+  color: #fff;
+}
+@media (max-width: 599px) {
+  /* Phones: logo + wordmark, language switch and the actions; the secondary title goes. */
+  .brand-divider,
+  .brand-text {
+    display: none;
+  }
+}
+@media (max-width: 379px) {
+  .topbar .topbar-sep {
+    display: none;
+  }
+  .topbar-actions {
+    gap: 2px;
+  }
+  .brand-wordmark {
+    font-size: 15px;
+  }
+  .lang-switch button {
+    min-width: 30px;
+    padding: 0 6px;
+  }
 }

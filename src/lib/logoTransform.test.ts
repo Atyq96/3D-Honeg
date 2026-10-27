@@ -86,7 +86,7 @@ describe('direct manipulation helpers', () => {
 
   it('describes appearance tweaks', () => {
     expect(describeLook({ flipX: true, flipY: false, tint: '#FFFFFF', opacity: 0.8, locked: true })).toBe(
-      'miroir horizontal · remplissage #FFFFFF · opacité 80 % · verrouillé',
+      'flipped horizontally · fill #FFFFFF · 80% opacity · locked',
     )
     expect(describeLook({ flipX: false, flipY: false, tint: null, opacity: 1, locked: false })).toBe('')
   })

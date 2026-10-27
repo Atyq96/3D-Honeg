@@ -2,6 +2,7 @@ import { useEffect, useState, type RefObject } from 'react'
 import { Maximize2, Minimize2, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react'
 import { IconButton } from '../ui/controls'
 import { viewerBridge } from './viewerBridge'
+import { useT } from '../../i18n'
 
 /**
  * Zoom / reset / fullscreen. Fullscreen uses the Fullscreen API where available
@@ -9,6 +10,7 @@ import { viewerBridge } from './viewerBridge'
  */
 export function ViewerToolbar({ stageRef }: { stageRef: RefObject<HTMLElement | null> }) {
   const [expanded, setExpanded] = useState(false)
+  const m = useT()
 
   useEffect(() => {
     const onChange = () => setExpanded(document.fullscreenElement === stageRef.current)
@@ -37,18 +39,18 @@ export function ViewerToolbar({ stageRef }: { stageRef: RefObject<HTMLElement | 
   }
 
   return (
-    <div className="stage-tools" role="toolbar" aria-label="Commandes de l’aperçu" aria-orientation="vertical">
-      <IconButton label="Zoom avant" tipSide="left" className="hide-touch" onClick={() => viewerBridge.get()?.zoom(1)}>
+    <div className="stage-tools" role="toolbar" aria-label={m.viewer.controls} aria-orientation="vertical">
+      <IconButton label={m.viewer.zoomIn} tipSide="left" className="hide-touch" onClick={() => viewerBridge.get()?.zoom(1)}>
         <ZoomIn size={18} />
       </IconButton>
-      <IconButton label="Zoom arrière" tipSide="left" className="hide-touch" onClick={() => viewerBridge.get()?.zoom(-1)}>
+      <IconButton label={m.viewer.zoomOut} tipSide="left" className="hide-touch" onClick={() => viewerBridge.get()?.zoom(-1)}>
         <ZoomOut size={18} />
       </IconButton>
-      <IconButton label="Recentrer la vue" tipSide="left" onClick={() => viewerBridge.get()?.resetCamera()}>
+      <IconButton label={m.viewer.resetCamera} tipSide="left" onClick={() => viewerBridge.get()?.resetCamera()}>
         <RotateCcw size={18} />
       </IconButton>
       <IconButton
-        label={expanded ? 'Quitter le plein écran' : 'Aperçu plein écran'}
+        label={expanded ? m.viewer.exitFullscreen : m.viewer.fullscreen}
         tipSide="left"
         aria-pressed={expanded}
         onClick={toggleFullscreen}

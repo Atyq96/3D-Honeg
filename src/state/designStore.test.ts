@@ -116,12 +116,12 @@ describe('parseDesign', () => {
   })
 
   it.each([
-    [null, /objet JSON/],
+    [null, /JSON object/],
     [{ version: 2 }, /version/],
-    [{ version: 1 }, /produit manquant/],
-    [{ version: 1, productId: 'raglan', colors: { body: 'blue' } }, /couleur du corps/],
-    [{ version: 1, productId: 'raglan', colors: { body: '#000' }, logo: { dataUrl: 'javascript:alert(1)', width: 1, height: 1 } }, /PNG ou JPEG/],
-    [{ version: 1, productId: 'raglan', colors: { body: '#000' }, logos: [{ asset: { dataUrl: 'data:text/html;base64,AA', width: 1, height: 1 } }] }, /PNG ou JPEG/],
+    [{ version: 1 }, /missing product/],
+    [{ version: 1, productId: 'raglan', colors: { body: 'blue' } }, /body color/],
+    [{ version: 1, productId: 'raglan', colors: { body: '#000' }, logo: { dataUrl: 'javascript:alert(1)', width: 1, height: 1 } }, /PNG or JPEG/],
+    [{ version: 1, productId: 'raglan', colors: { body: '#000' }, logos: [{ asset: { dataUrl: 'data:text/html;base64,AA', width: 1, height: 1 } }] }, /PNG or JPEG/],
   ])('rejects invalid input %#', (input, message) => {
     expect(() => parseDesign(input)).toThrow(message)
   })
@@ -418,7 +418,7 @@ describe('paint zones', () => {
     // The left half doesn't reach the right chest.
     store().setColor('halfLeft', '#001D4B')
     expect(brandFabric(store().design)).toBe('#ED1C24')
-    expect(describeZones(store().design).map((z) => z.label)).toEqual(['Moitié gauche', 'Écharpe'])
+    expect(describeZones(store().design).map((z) => z.label)).toEqual(['Left half', 'Sash'])
   })
 })
 
@@ -454,6 +454,6 @@ describe('brand mark centred', () => {
   it('round-trips through export and reads well', () => {
     store().setBrand({ side: 'center' })
     expect(parseDesign(JSON.parse(JSON.stringify(store().design))).brand.side).toBe('center')
-    expect(describeBrand(store().design.brand, '#0E0E0E')).toBe('Centre poitrine · Logo · Auto (blanc)')
+    expect(describeBrand(store().design.brand, '#0E0E0E')).toBe('Center chest · Logo · Auto (white)')
   })
 })

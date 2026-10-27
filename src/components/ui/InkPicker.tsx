@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Check } from 'lucide-react'
-import { COLOR_PRESETS } from '../../config/palette'
+import { COLOR_PRESETS, presetName } from '../../config/palette'
+import { useT } from '../../i18n'
 import { isLight, normalizeHex, onColor } from '../../lib/color'
 
 const SWATCHES = [...new Set(['#FFFFFF', '#0E0E0E', ...COLOR_PRESETS.map((p) => p.hex)])]
@@ -8,11 +9,12 @@ const SWATCHES = [...new Set(['#FFFFFF', '#0E0E0E', ...COLOR_PRESETS.map((p) => 
 /** Print colour: palette swatches plus a live HEX field (logo fill, text colour). */
 export function InkPicker({ value, onChange, label, id }: { value: string | null; onChange: (hex: string) => void; label: string; id: string }) {
   const [hex, setHex] = useState(value ?? '')
+  const m = useT()
   return (
     <>
       <div className="fill-swatches" role="radiogroup" aria-label={label}>
         {SWATCHES.map((c) => {
-          const name = COLOR_PRESETS.find((p) => p.hex === c)?.name ?? (c === '#FFFFFF' ? 'Blanc' : c === '#0E0E0E' ? 'Noir' : c)
+          const name = presetName(c) ?? c
           return (
             <button
               key={c}
@@ -42,7 +44,7 @@ export function InkPicker({ value, onChange, label, id }: { value: string | null
         }}
       >
         <label className="sr-only" htmlFor={id}>
-          {label} (HEX)
+          {m.color.hexField(label)}
         </label>
         <span className="fill-hex-swatch" style={{ background: normalizeHex(hex) ?? value ?? 'transparent' }} aria-hidden />
         <input

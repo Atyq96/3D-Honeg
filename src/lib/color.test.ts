@@ -22,9 +22,9 @@ describe('hexError', () => {
     expect(hexError('#abc')).toBeNull()
   })
   it('explains what is wrong', () => {
-    expect(hexError('')).toMatch(/Saisissez une couleur HEX/)
-    expect(hexError('#12Z')).toMatch(/0–9 et A–F/)
-    expect(hexError('#1234')).toMatch(/3 ou 6 caractères/)
+    expect(hexError('')).toMatch(/Enter a HEX/)
+    expect(hexError('#12Z')).toMatch(/0–9 and A–F/)
+    expect(hexError('#1234')).toMatch(/3 or 6 digits/)
   })
 })
 

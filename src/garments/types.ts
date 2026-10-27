@@ -24,8 +24,6 @@ export interface PrintArea {
 export interface PlacementPreset {
   id: PlacementId
   side: Side
-  label: string
-  hint: string
   /** Anchor centre in view space for `side`, metres. */
   anchor: V2
   /** Default logo width, metres. */
@@ -86,9 +84,6 @@ export interface GarmentSource {
 
 export interface GarmentDefinition {
   id: string
-  name: string
-  tagline: string
-  tags: string[]
   /** Regions that can be coloured independently on this model. */
   regions: RegionId[]
   source: GarmentSource

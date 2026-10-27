@@ -10,6 +10,7 @@ import { ViewerToolbar } from './ViewerToolbar'
 import { StageSummary } from '../summary/StageSummary'
 import { LogoToolbar } from '../logo/LogoToolbar'
 import { editLayer } from '../../state/useActiveLogo'
+import { t, useT } from '../../i18n'
 
 const ViewerCanvas = lazy(() => import('./ViewerCanvas'))
 
@@ -33,6 +34,7 @@ export function ProductViewer3D() {
   const [interacted, setInteracted] = useState(false)
   const stageRef = useRef<HTMLElement>(null)
   const status = useUiStore((s) => s.viewerStatus)
+  const m = useT()
   const viewerError = useUiStore((s) => s.viewerError)
   const setViewerStatus = useUiStore((s) => s.setViewerStatus)
   const logoSelected = useUiStore((s) => s.logoSelected)
@@ -45,10 +47,10 @@ export function ProductViewer3D() {
   const fallback = !supported || status === 'error'
 
   return (
-    <section className="stage" ref={stageRef} aria-label="Aperçu du design" data-status={status}>
+    <section className="stage" ref={stageRef} aria-label={m.viewer.preview} data-status={status}>
       {fallback ? (
         <FallbackPreview
-          reason={supported ? viewerError ?? 'L’aperçu 3D s’est arrêté de façon inattendue.' : null}
+          reason={supported ? viewerError ?? m.viewer.stopped : null}
           onRetry={
             supported
               ? () => {
@@ -71,7 +73,7 @@ export function ProductViewer3D() {
       {status === 'loading' && !fallback && (
         <div className="stage-loading" role="status">
           <LoaderCircle className="spin" size={22} aria-hidden />
-          <span>Préparation de l’aperçu 3D…</span>
+          <span>{m.viewer.preparing}</span>
         </div>
       )}
 
@@ -80,7 +82,7 @@ export function ProductViewer3D() {
       <ViewControls />
       {!fallback && status === 'ready' && !interacted && (
         <p className="stage-hint" aria-hidden>
-          <Hand size={14} /> {coarsePointer ? 'Glissez pour tourner · pincez pour zoomer' : 'Glissez pour tourner · molette pour zoomer'}
+          <Hand size={14} /> {coarsePointer ? m.viewer.hintTouch : m.viewer.hintMouse}
         </p>
       )}
     </section>
@@ -89,14 +91,15 @@ export function ProductViewer3D() {
 
 function friendlyError(e: Error) {
   const msg = e.message || ''
-  if (/webgl|context/i.test(msg)) return 'Votre navigateur n’a pas pu démarrer WebGL.'
-  if (/fetch|load|404|gltf|glb/i.test(msg)) return 'Le modèle 3D n’a pas pu être chargé.'
-  return 'L’aperçu 3D a rencontré une erreur inattendue.'
+  if (/webgl|context/i.test(msg)) return t().viewer.errWebgl
+  if (/fetch|load|404|gltf|glb/i.test(msg)) return t().viewer.errModel
+  return t().viewer.errUnexpected
 }
 
 function FallbackPreview({ reason, onRetry }: { reason: string | null; onRetry?: () => void }) {
   const design = useDesignStore((s) => s.design)
   const view = useUiStore((s) => s.view)
+  const m = useT()
   const side = view === 'back' ? 'back' : 'front'
   return (
     <div className="stage-fallback">
@@ -109,7 +112,7 @@ function FallbackPreview({ reason, onRetry }: { reason: string | null; onRetry?:
         brand={design.brand}
         zones={design.zones}
         logos={design.logos}
-        label={`Aperçu à plat (${side === 'front' ? 'face' : 'dos'}) de votre design`}
+        label={m.viewer.flatLabel(side)}
         onLogoClick={(id) => {
           const layer = design.logos.find((l) => l.id === id)
           if (layer) editLayer(layer, { turn: false })
@@ -118,15 +121,14 @@ function FallbackPreview({ reason, onRetry }: { reason: string | null; onRetry?:
       <div className="fallback-note" role="status">
         <MonitorX size={18} aria-hidden />
         <div>
-          <strong>{reason ? 'Aperçu 3D indisponible' : 'La 3D n’est pas prise en charge ici'}</strong>
+          <strong>{reason ? m.viewer.unavailable : m.viewer.unsupported}</strong>
           <p>
-            {reason ?? 'WebGL est désactivé ou non pris en charge sur cet appareil.'} Vous pouvez continuer à personnaliser&nbsp;: cet aperçu à plat
-            se met à jour en direct et les exports fonctionnent.
+            {reason ?? m.viewer.noWebgl} {m.viewer.keepGoing}
           </p>
         </div>
         {onRetry && (
           <button type="button" className="btn btn-secondary btn-sm" onClick={onRetry}>
-            <RefreshCw size={15} aria-hidden /> Réessayer la 3D
+            <RefreshCw size={15} aria-hidden /> {m.viewer.retry}
           </button>
         )}
       </div>

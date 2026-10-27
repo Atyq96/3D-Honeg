@@ -61,31 +61,28 @@ export interface PaintZoneDef {
 
 export type ZoneGroup = 'parts' | 'panels' | 'halves' | 'stripes'
 
-export const ZONE_GROUPS: { id: ZoneGroup; label: string }[] = [
-  { id: 'parts', label: 'Pièces' },
-  { id: 'panels', label: 'Panneaux' },
-  { id: 'halves', label: 'Moitiés' },
-  { id: 'stripes', label: 'Bandes' },
-]
+/** Picker tabs, in order; labels and hints come from the i18n dictionaries (`zones`). */
+export const ZONE_GROUPS: ZoneGroup[] = ['parts', 'panels', 'halves', 'stripes']
 
-export const ZONE_INFO: Record<ZoneId, { label: string; group: ZoneGroup; hint: string; view: Side }> = {
-  body: { label: 'Corps', group: 'parts', hint: 'Devant et dos', view: 'front' },
-  sleeves: { label: 'Manches', group: 'parts', hint: 'Les deux manches', view: 'front' },
-  collar: { label: 'Col', group: 'parts', hint: 'Bord-côte du col', view: 'front' },
-  sleeveLeft: { label: 'Manche gauche', group: 'parts', hint: 'Manche gauche du porteur', view: 'front' },
-  sleeveRight: { label: 'Manche droite', group: 'parts', hint: 'Manche droite du porteur', view: 'front' },
-  front: { label: 'Devant', group: 'panels', hint: 'Panneau avant', view: 'front' },
-  back: { label: 'Dos', group: 'panels', hint: 'Panneau arrière', view: 'back' },
-  sidePanels: { label: 'Côtés', group: 'panels', hint: 'Bandes latérales des deux côtés', view: 'front' },
-  yoke: { label: 'Épaules', group: 'panels', hint: 'Empiècement sur les épaules et le haut des manches', view: 'front' },
-  halfLeft: { label: 'Moitié gauche', group: 'halves', hint: 'Côté gauche du porteur, manche comprise', view: 'front' },
-  halfRight: { label: 'Moitié droite', group: 'halves', hint: 'Côté droit du porteur, manche comprise', view: 'front' },
-  halfTop: { label: 'Moitié haute', group: 'halves', hint: 'De la poitrine aux épaules, manches comprises', view: 'front' },
-  halfBottom: { label: 'Moitié basse', group: 'halves', hint: 'De la taille au bas du t-shirt', view: 'front' },
-  chestBand: { label: 'Bande poitrine', group: 'stripes', hint: 'Bande sur la poitrine et les manches', view: 'front' },
-  centerStripe: { label: 'Bande centrale', group: 'stripes', hint: 'Au milieu, devant et dos', view: 'front' },
-  hemBand: { label: 'Bas du t-shirt', group: 'stripes', hint: 'Bande le long de l’ourlet', view: 'front' },
-  sash: { label: 'Écharpe', group: 'stripes', hint: 'Bande diagonale sur le devant', view: 'front' },
+/** Picker tab and thumbnail view of each zone. */
+export const ZONE_INFO: Record<ZoneId, { group: ZoneGroup; view: Side }> = {
+  body: { group: 'parts', view: 'front' },
+  sleeves: { group: 'parts', view: 'front' },
+  collar: { group: 'parts', view: 'front' },
+  sleeveLeft: { group: 'parts', view: 'front' },
+  sleeveRight: { group: 'parts', view: 'front' },
+  front: { group: 'panels', view: 'front' },
+  back: { group: 'panels', view: 'back' },
+  sidePanels: { group: 'panels', view: 'front' },
+  yoke: { group: 'panels', view: 'front' },
+  halfLeft: { group: 'halves', view: 'front' },
+  halfRight: { group: 'halves', view: 'front' },
+  halfTop: { group: 'halves', view: 'front' },
+  halfBottom: { group: 'halves', view: 'front' },
+  chestBand: { group: 'stripes', view: 'front' },
+  centerStripe: { group: 'stripes', view: 'front' },
+  hemBand: { group: 'stripes', view: 'front' },
+  sash: { group: 'stripes', view: 'front' },
 }
 
 const applies = (planes: ZonePlane[], x: number, y: number, z: number) => planes.every(([a, b, c, d]) => a * x + b * y + c * z >= d)

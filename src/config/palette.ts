@@ -1,26 +1,26 @@
+import { colorName } from '../i18n/labels'
+
 /** Preset garment colours: neutrals and the app accent first, then team colours. */
 export interface ColorPreset {
-  name: string
   hex: string
 }
 
 export const COLOR_PRESETS: ColorPreset[] = [
-  { name: 'Noir', hex: '#0E0E0E' },
-  { name: 'Craie', hex: '#F6F5F2' },
-  { name: 'Blanc', hex: '#FFFFFF' },
-  { name: 'Ambre', hex: '#F2A900' },
-  { name: 'Graphite', hex: '#484847' },
-  { name: 'Pierre', hex: '#BCBBB9' },
-  { name: 'Minuit', hex: '#001D4B' },
-  { name: 'Bleu roi', hex: '#003A96' },
-  { name: 'Ciel', hex: '#0088CB' },
-  { name: 'Rouge course', hex: '#ED1C24' },
-  { name: 'Forêt', hex: '#2B5336' },
-  { name: 'Jaune volt', hex: '#FFCB05' },
+  { hex: '#0E0E0E' },
+  { hex: '#F6F5F2' },
+  { hex: '#FFFFFF' },
+  { hex: '#F2A900' },
+  { hex: '#484847' },
+  { hex: '#BCBBB9' },
+  { hex: '#001D4B' },
+  { hex: '#003A96' },
+  { hex: '#0088CB' },
+  { hex: '#ED1C24' },
+  { hex: '#2B5336' },
+  { hex: '#FFCB05' },
 ]
 
 export const DEFAULT_BODY_COLOR = '#0E0E0E'
 
-export function presetName(hex: string): string | null {
-  return COLOR_PRESETS.find((p) => p.hex === hex.toUpperCase())?.name ?? null
-}
+/** Display name of a palette colour (current language), or null for a custom colour. */
+export const presetName = (hex: string): string | null => colorName(hex)

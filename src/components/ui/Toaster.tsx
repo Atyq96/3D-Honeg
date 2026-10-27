@@ -1,5 +1,6 @@
 import { CircleAlert, CircleCheck, Info, X } from 'lucide-react'
 import { useUiStore } from '../../state/uiStore'
+import { useT } from '../../i18n'
 
 const ICONS = { success: CircleCheck, error: CircleAlert, info: Info }
 
@@ -7,6 +8,7 @@ const ICONS = { success: CircleCheck, error: CircleAlert, info: Info }
 export function Toaster() {
   const toasts = useUiStore((s) => s.toasts)
   const dismiss = useUiStore((s) => s.dismiss)
+  const m = useT()
   return (
     <div className="toaster">
       <div aria-live="polite" className="sr-only">
@@ -21,7 +23,7 @@ export function Toaster() {
           <div key={t.id} className={`toast toast-${t.kind}`}>
             <Icon size={18} aria-hidden />
             <span>{t.message}</span>
-            <button type="button" className="toast-close" aria-label="Fermer la notification" onClick={() => dismiss(t.id)}>
+            <button type="button" className="toast-close" aria-label={m.common.dismiss} onClick={() => dismiss(t.id)}>
               <X size={14} />
             </button>
           </div>

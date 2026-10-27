@@ -7,6 +7,7 @@ import { FlatPreview } from '../viewer/FlatPreview'
 import { ConfirmDialog } from '../ui/controls'
 import { DesignSummary } from '../summary/DesignSummary'
 import { Section } from './Section'
+import { useT } from '../../i18n'
 
 export function ReviewStep() {
   const design = useDesignStore((s) => s.design)
@@ -14,14 +15,15 @@ export function ReviewStep() {
   const [confirm, setConfirm] = useState(false)
   const [exporting, setExporting] = useState(false)
   const garment = getGarment(design.productId)
+  const m = useT()
 
   return (
     <>
-      <Section title="Récapitulatif" description="Faites tourner l’aperçu pour tout vérifier avant d’exporter.">
+      <Section title={m.review.summary} description={m.review.summaryDesc}>
         <DesignSummary />
       </Section>
 
-      <Section title="Vues à plat" description="Devant et dos, avec vos impressions dans la zone imprimable.">
+      <Section title={m.review.flats} description={m.review.flatsDesc}>
         <div className="flats">
           {(['front', 'back'] as const).map((side) => (
             <figure key={side} className="flat-card">
@@ -33,15 +35,15 @@ export function ReviewStep() {
                 brand={design.brand}
                 zones={design.zones}
                 logos={design.logos}
-                label={`Vue à plat (${side === 'front' ? 'devant' : 'dos'})`}
+                label={m.review.flatAria(side)}
               />
-              <figcaption>{side === 'front' ? 'Devant' : 'Dos'}</figcaption>
+              <figcaption>{side === 'front' ? m.logo.front : m.logo.back}</figcaption>
             </figure>
           ))}
         </div>
       </Section>
 
-      <Section title="Exporter et enregistrer" description="Tout reste sur votre appareil&nbsp;: rien n’est envoyé ni commandé.">
+      <Section title={m.review.exportTitle} description={m.review.exportDesc}>
         <div className="export-grid">
           <button
             type="button"
@@ -53,28 +55,28 @@ export function ReviewStep() {
               setExporting(false)
             }}
           >
-            <Download size={16} aria-hidden /> {exporting ? 'Rendu en cours…' : 'Télécharger l’aperçu (PNG)'}
+            <Download size={16} aria-hidden /> {exporting ? m.review.rendering : m.review.downloadPng}
           </button>
           <button type="button" className="btn btn-secondary" onClick={exportJson}>
-            <FileJson size={16} aria-hidden /> Exporter le design (JSON)
+            <FileJson size={16} aria-hidden /> {m.review.exportJson}
           </button>
           <button type="button" className="btn btn-secondary" onClick={pickDesignFile}>
-            <FileUp size={16} aria-hidden /> Importer un design
+            <FileUp size={16} aria-hidden /> {m.review.importDesign}
           </button>
           <button type="button" className="btn btn-secondary" onClick={saveLocally}>
-            <Save size={16} aria-hidden /> Enregistrer dans ce navigateur
+            <Save size={16} aria-hidden /> {m.review.saveBrowser}
           </button>
         </div>
         <button type="button" className="btn btn-ghost is-danger reset-all" onClick={() => setConfirm(true)}>
-          <RotateCcw size={15} aria-hidden /> Réinitialiser tout le design
+          <RotateCcw size={15} aria-hidden /> {m.review.resetAll}
         </button>
       </Section>
 
       <ConfirmDialog
         open={confirm}
-        title="Réinitialiser tout le design&nbsp;?"
-        body="Le produit, les couleurs, les logos et le texte reviennent aux valeurs par défaut. Vous pourrez encore annuler."
-        confirmLabel="Réinitialiser"
+        title={m.topbar.confirmTitle}
+        body={m.topbar.confirmBody}
+        confirmLabel={m.topbar.confirmLabel}
         onConfirm={resetAll}
         onClose={() => setConfirm(false)}
       />

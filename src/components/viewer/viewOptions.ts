@@ -1,9 +1,10 @@
 import type { ViewId } from '../../state/uiStore'
 import type { SegmentOption } from '../ui/controls'
+import type { Messages } from '../../i18n'
 
-export const VIEW_OPTIONS: SegmentOption<ViewId>[] = [
-  { value: 'front', label: 'Face' },
-  { value: 'back', label: 'Dos' },
-  { value: 'left', label: 'Gauche', title: 'Côté gauche du porteur' },
-  { value: 'right', label: 'Droite', title: 'Côté droit du porteur' },
+export const viewOptions = (m: Messages): SegmentOption<ViewId>[] => [
+  { value: 'front', label: m.views.front },
+  { value: 'back', label: m.views.back },
+  { value: 'left', label: m.views.left, title: m.views.leftTitle },
+  { value: 'right', label: m.views.right, title: m.views.rightTitle },
 ]

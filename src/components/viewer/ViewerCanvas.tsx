@@ -3,6 +3,7 @@ import { NeutralToneMapping } from 'three'
 import { useUiStore } from '../../state/uiStore'
 import { Scene } from './Scene'
 import { draggedRecently } from './gizmoDrag'
+import { t } from '../../i18n'
 
 /**
  * Everything that depends on three.js lives behind this lazily-loaded module,
@@ -26,7 +27,7 @@ export default function ViewerCanvas() {
         gl.toneMappingExposure = 1.02
         gl.domElement.addEventListener('webglcontextlost', (e) => {
           e.preventDefault()
-          setViewerStatus('error', 'Le contexte graphique a été perdu (carte graphique occupée ou onglet en arrière-plan).')
+          setViewerStatus('error', t().viewer.errContextLost)
         })
       }}
     >

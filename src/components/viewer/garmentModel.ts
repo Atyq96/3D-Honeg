@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { Box3, BufferGeometry, Float32BufferAttribute, Matrix4, type BufferAttribute, type InterleavedBufferAttribute, type Material, type Mesh, type Object3D } from 'three'
 import { useGLTF } from '@react-three/drei'
 import type { GarmentModelData, GarmentPart, GarmentSource, RegionId } from '../../garments/types'
+import { t } from '../../i18n'
 
 function meshNames(mesh: Mesh) {
   const materials = (Array.isArray(mesh.material) ? mesh.material : [mesh.material]) as Material[]
@@ -57,7 +58,7 @@ export function gltfToModel(scene: Object3D, source: GarmentSource): GarmentMode
     const region = matchRegion(names, source.regionMatchers)
     parts.push({ region, geometry, logoTarget: source.logoTargets.includes(region), finish: region === 'collar' ? 'rib' : 'jersey' })
   })
-  if (!parts.length) throw new Error('Le modèle glTF ne contient aucune pièce de vêtement.')
+  if (!parts.length) throw new Error(t().viewer.errNoMeshes)
 
   // Normalise: centre on X/Z, hem on y = 0, scale to the target height.
   const box = new Box3()

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CATEGORY_LABELS, getPattern, PATTERNS, tileSvg } from './library'
+import { getPattern, PATTERN_CATEGORIES, PATTERNS, tileSvg } from './library'
 import { describePatterns } from './describe'
 
 const params = (density: number, seed = 42) => ({ color: '#0E0E0E', bg: '#F6F5F2', density, seed })
@@ -8,7 +8,7 @@ describe('pattern library (adapted from inkjet)', () => {
   it('has a broad, uniquely named set', () => {
     expect(PATTERNS.length).toBeGreaterThanOrEqual(60)
     expect(new Set(PATTERNS.map((p) => p.id)).size).toBe(PATTERNS.length)
-    for (const p of PATTERNS) expect(Object.keys(CATEGORY_LABELS)).toContain(p.category)
+    for (const p of PATTERNS) expect(PATTERN_CATEGORIES).toContain(p.category)
   })
 
   it.each(PATTERNS.map((p) => [p.id]))('%s renders valid markup at every density', (id) => {
@@ -47,7 +47,7 @@ describe('pattern library (adapted from inkjet)', () => {
   it('describes applied patterns per zone', () => {
     const fill = { id: 'houndstooth', color: '#0E0E0E', sizeCm: 2.5, angle: 15, density: 0.5, opacity: 0.8, seed: 42 }
     expect(describePatterns({ body: fill, sleeves: null, collar: null }, ['body', 'sleeves'])).toEqual([
-      { zone: 'body', label: 'Corps', text: 'Pied-de-poule #0E0E0E · 2,5 cm · 15° · opacité 80 %' },
+      { zone: 'body', label: 'Body', text: 'Houndstooth #0E0E0E · 2.5 cm · 15° · 80% opacity' },
     ])
   })
 })

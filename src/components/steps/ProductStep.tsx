@@ -4,7 +4,8 @@ import { useDesignStore } from '../../state/designStore'
 import { useUiStore } from '../../state/uiStore'
 import { FlatPreview } from '../viewer/FlatPreview'
 import { Segmented } from '../ui/controls'
-import { VIEW_OPTIONS } from '../viewer/viewOptions'
+import { viewOptions } from '../viewer/viewOptions'
+import { useT } from '../../i18n'
 import { Section } from './Section'
 
 export function ProductStep() {
@@ -17,11 +18,13 @@ export function ProductStep() {
   const view = useUiStore((s) => s.view)
   const setView = useUiStore((s) => s.setView)
   const flatOnly = useUiStore((s) => s.viewerStatus === 'unsupported' || s.viewerStatus === 'error')
+  const m = useT()
+  const views = viewOptions(m)
 
   return (
     <>
-      <Section title="Choisissez la coupe" description="Vos couleurs, logos et textes sont conservés si vous changez de coupe.">
-        <div className="product-list" role="radiogroup" aria-label="Produit">
+      <Section title={m.product.cutTitle} description={m.product.cutDesc}>
+        <div className="product-list" role="radiogroup" aria-label={m.product.aria}>
           {GARMENTS.map((g) => {
             const selected = g.id === productId
             return (
@@ -30,10 +33,10 @@ export function ProductStep() {
                   <FlatPreview garment={g} side="front" colors={colors} patterns={patterns} brand={brand} zones={zones} />
                 </span>
                 <span className="product-info">
-                  <span className="product-name">{g.name}</span>
-                  <span className="product-tagline">{g.tagline}</span>
+                  <span className="product-name">{m.garments[g.id].name}</span>
+                  <span className="product-tagline">{m.garments[g.id].tagline}</span>
                   <span className="product-tags">
-                    {g.tags.map((t) => (
+                    {m.garments[g.id].tags.map((t) => (
                       <span key={t} className="tag">
                         {t}
                       </span>
@@ -48,11 +51,11 @@ export function ProductStep() {
           })}
         </div>
       </Section>
-      <Section title="Vue" description={flatOnly ? 'La face et le dos sont disponibles dans l’aperçu à plat.' : 'Faites glisser l’aperçu pour le tourner librement, ou choisissez un côté.'}>
+      <Section title={m.product.viewTitle} description={flatOnly ? m.product.viewFlat : m.product.viewDrag}>
         <Segmented
-          label="Vue du vêtement"
+          label={m.views.garment}
           value={view}
-          options={flatOnly ? VIEW_OPTIONS.map((o) => ({ ...o, disabled: o.value === 'left' || o.value === 'right' })) : VIEW_OPTIONS}
+          options={flatOnly ? views.map((o) => ({ ...o, disabled: o.value === 'left' || o.value === 'right' })) : views}
           onChange={setView}
         />
       </Section>

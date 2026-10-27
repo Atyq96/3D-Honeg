@@ -5,6 +5,7 @@ import { normalizeHex } from '../lib/color'
 import { getPattern } from '../patterns/library'
 import type { BrandSide, BrandStyle } from '../config/brand'
 import { PAINT_ZONE_IDS, type PaintZoneId } from '../garments/zones'
+import { t } from '../i18n'
 
 export interface LogoAsset {
   /** PNG data URL (rasterised, trimmed and capped at 1024 px). */
@@ -209,30 +210,30 @@ const PLACEMENTS: PlacementId[] = ['leftChest', 'centerChest', 'rightChest', 'up
  */
 export function parseDesign(raw: unknown): Design {
   const fail = (msg: string): never => {
-    throw new Error(`Ce fichier n’est pas un design Lunar 3D valide\u00a0: ${msg}`)
+    throw new Error(t().design.invalid(msg))
   }
-  if (!raw || typeof raw !== 'object') fail('un objet JSON est attendu.')
+  if (!raw || typeof raw !== 'object') fail(t().design.expectedObject)
   const d = raw as Record<string, unknown>
-  if (d.version !== 1) fail('version non prise en charge.')
-  if (typeof d.productId !== 'string') fail('produit manquant.')
+  if (d.version !== 1) fail(t().design.version)
+  if (typeof d.productId !== 'string') fail(t().design.product)
   // Products come and go as models change; carry the design over to the default product.
   const productId = GARMENTS.some((g) => g.id === d.productId) ? (d.productId as string) : DEFAULT_GARMENT_ID
 
   const c = (d.colors ?? {}) as Record<string, unknown>
   const body = typeof c.body === 'string' ? normalizeHex(c.body) : null
-  if (!body) fail('couleur du corps invalide.')
+  if (!body) fail(t().design.bodyColor)
   const optional = (v: unknown, name: string) => {
     if (v === null || v === undefined) return null
     const hex = typeof v === 'string' ? normalizeHex(v) : null
-    return hex ?? fail(`couleur invalide (${name}).`)
+    return hex ?? fail(t().design.partColor(name))
   }
 
   const num = (v: unknown, fallback: number) => (typeof v === 'number' && Number.isFinite(v) ? v : fallback)
 
   const asset = (raw: unknown): LogoAsset => {
     const l = (raw ?? {}) as Record<string, unknown>
-    if (typeof l.dataUrl !== 'string' || !/^data:image\/(png|jpeg);base64,/.test(l.dataUrl)) fail('le logo doit être une image PNG ou JPEG intégrée.')
-    if (typeof l.width !== 'number' || typeof l.height !== 'number' || l.width <= 0 || l.height <= 0) fail('la taille du logo est manquante.')
+    if (typeof l.dataUrl !== 'string' || !/^data:image\/(png|jpeg);base64,/.test(l.dataUrl)) fail(t().design.logoImage)
+    if (typeof l.width !== 'number' || typeof l.height !== 'number' || l.width <= 0 || l.height <= 0) fail(t().design.logoSize)
     return {
       dataUrl: l.dataUrl as string,
       name: typeof l.name === 'string' ? l.name.slice(0, 120) : 'logo.png',
@@ -316,7 +317,7 @@ export function parseDesign(raw: unknown): Design {
   return {
     version: 1,
     productId,
-    colors: { body: body as string, sleeves: optional(c.sleeves, 'manches'), collar: optional(c.collar, 'col') },
+    colors: { body: body as string, sleeves: optional(c.sleeves, t().design.sleeve), collar: optional(c.collar, t().design.collar) },
     logos,
     patterns: { body: pattern(rawPatterns.body), sleeves: pattern(rawPatterns.sleeves), collar: pattern(rawPatterns.collar) },
     zones: parseZones(d.zones, pattern),

@@ -5,6 +5,7 @@ import type { LogoLayer } from '../../state/design'
 import { getGarment } from '../../garments/catalog'
 import { maxWidthCm, MIN_LOGO_CM, offsetRange } from '../../lib/logoTransform'
 import { RangeField } from '../ui/controls'
+import { useT } from '../../i18n'
 
 /**
  * Size, rotation and position of one print, with ranges derived from the
@@ -13,6 +14,7 @@ import { RangeField } from '../ui/controls'
  */
 export function LogoTransformControls({ layer, showSize = true }: { layer: LogoLayer; showSize?: boolean }) {
   const productId = useDesignStore((s) => s.design.productId)
+  const m = useT()
   const { updateTransform, resetTransform } = useDesignStore.getState()
   const update: (patch: Parameters<typeof updateTransform>[1], opts?: Parameters<typeof updateTransform>[2]) => void = (patch, opts) =>
     updateTransform(layer.id, patch, opts)
@@ -28,7 +30,7 @@ export function LogoTransformControls({ layer, showSize = true }: { layer: LogoL
     <div className="transform-controls">
       {showSize && (
         <RangeField
-          label="Taille (largeur)"
+          label={m.logo.size}
           icon={<Scaling size={15} aria-hidden />}
           value={placement.widthCm}
           min={MIN_LOGO_CM}
@@ -39,7 +41,7 @@ export function LogoTransformControls({ layer, showSize = true }: { layer: LogoL
         />
       )}
       <RangeField
-        label="Rotation"
+        label={m.logo.rotation}
         icon={<RotateCw size={15} aria-hidden />}
         value={placement.rotationDeg}
         min={-180}
@@ -49,7 +51,7 @@ export function LogoTransformControls({ layer, showSize = true }: { layer: LogoL
         onChange={(v, dragging) => update({ rotationDeg: v }, { coalesce: dragging ? 'rotation' : undefined })}
       />
       <RangeField
-        label="Horizontal"
+        label={m.logo.horizontal}
         icon={<ArrowLeftRight size={15} aria-hidden />}
         value={placement.offsetXCm}
         min={range.x[0]}
@@ -59,7 +61,7 @@ export function LogoTransformControls({ layer, showSize = true }: { layer: LogoL
         onChange={(v, dragging) => update({ offsetXCm: v }, { coalesce: dragging ? 'offsetX' : undefined })}
       />
       <RangeField
-        label="Vertical"
+        label={m.logo.vertical}
         icon={<ArrowUpDown size={15} aria-hidden />}
         value={placement.offsetYCm}
         min={range.y[0]}
@@ -67,10 +69,10 @@ export function LogoTransformControls({ layer, showSize = true }: { layer: LogoL
         step={0.5}
         unit="cm"
         onChange={(v, dragging) => update({ offsetYCm: v }, { coalesce: dragging ? 'offsetY' : undefined })}
-        hint="Les décalages partent de l’emplacement choisi et restent dans la zone imprimable."
+        hint={m.logo.offsetsHint}
       />
       <button type="button" className="btn btn-secondary btn-sm" onClick={() => resetTransform(layer.id)}>
-        <RotateCcw size={15} aria-hidden /> Réinitialiser taille, rotation et position
+        <RotateCcw size={15} aria-hidden /> {m.logo.resetTransform}
       </button>
     </div>
   )

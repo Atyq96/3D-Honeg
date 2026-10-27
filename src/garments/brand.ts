@@ -1,6 +1,7 @@
 import type { GarmentDefinition, PrintArea } from './types'
 import type { V2 } from './flat/geom2d'
-import { BRAND_ASSETS, BRAND_COLORS, brandInk, type BrandSide, type BrandStyle } from '../config/brand'
+import { BRAND_ASSETS, brandInk, type BrandSide, type BrandStyle } from '../config/brand'
+import { t } from '../i18n'
 
 export interface BrandPlacement {
   /** Front view space (x to the viewer's right), metres. */
@@ -32,12 +33,11 @@ export function brandKeepOut(garment: GarmentDefinition, brand: { side: BrandSid
   return { xMin: rect.xMin - margin, xMax: rect.xMax + margin, yMin: rect.yMin - margin, yMax: rect.yMax + margin }
 }
 
-/** e.g. "Poitrine droite · Logo · Auto (blanc)". */
-const BRAND_SIDE_LABEL: Record<BrandSide, string> = { left: 'Poitrine gauche', center: 'Centre poitrine', right: 'Poitrine droite' }
-
+/** e.g. "Right chest · Logo · Auto (white)". */
 export function describeBrand(brand: { side: BrandSide; style: BrandStyle; color: string }, fabric: string): string {
+  const m = t()
   const ink = brandInk(brand.color, fabric)
   const color =
-    brand.color === 'auto' ? `Auto (${ink === '#FFFFFF' ? 'blanc' : 'noir'})` : (BRAND_COLORS.find((c) => c.value === brand.color)?.label ?? brand.color)
-  return `${BRAND_SIDE_LABEL[brand.side]} · ${BRAND_ASSETS[brand.style].label} · ${color}`
+    brand.color === 'auto' ? m.brand.autoValue(ink === '#FFFFFF') : (m.brand.colors[brand.color] ?? brand.color)
+  return `${m.brand.sides[brand.side]} · ${m.brand.styles[brand.style]} · ${color}`
 }

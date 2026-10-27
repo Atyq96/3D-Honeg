@@ -1,5 +1,6 @@
 import type { PrintArea } from '../garments/types'
 import type { V2 } from '../garments/flat/geom2d'
+import { t } from '../i18n'
 
 /** Logo transform as edited in the UI. Offsets are in the view space of the chosen side. */
 export interface LogoTransform {
@@ -154,9 +155,10 @@ export function alignOffsets(t: LogoTransform, aspect: number, area: PrintArea, 
 /** Short human description of the logo's appearance tweaks, e.g. "flipped · fill #FFFFFF · 80% opacity". */
 export function describeLook(p: { flipX: boolean; flipY: boolean; tint: string | null; opacity: number; locked: boolean }): string {
   const parts: string[] = []
-  if (p.flipX || p.flipY) parts.push(p.flipX && p.flipY ? 'miroir horizontal et vertical' : p.flipX ? 'miroir horizontal' : 'miroir vertical')
-  if (p.tint) parts.push(`remplissage ${p.tint}`)
-  if (p.opacity < 1) parts.push(`opacité ${Math.round(p.opacity * 100)} %`)
-  if (p.locked) parts.push('verrouillé')
+  const m = t().look
+  if (p.flipX || p.flipY) parts.push(p.flipX && p.flipY ? m.flippedBoth : p.flipX ? m.flippedH : m.flippedV)
+  if (p.tint) parts.push(m.fill(p.tint))
+  if (p.opacity < 1) parts.push(m.opacity(Math.round(p.opacity * 100)))
+  if (p.locked) parts.push(m.locked)
   return parts.join(' · ')
 }

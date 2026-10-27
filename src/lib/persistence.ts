@@ -1,4 +1,5 @@
 import { parseDesign, type Design } from '../state/design'
+import { t } from '../i18n'
 
 const STORAGE_KEY = 'lunar3d.customizer.design.v1'
 
@@ -14,7 +15,7 @@ export function saveDesignLocally(design: Design): SaveResult {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...design, logos: [] }))
       return { ok: true, withoutLogo: true }
     } catch {
-      return { ok: false, reason: 'Votre navigateur bloque le stockage local\u00a0: le design n’a pas pu être enregistré. Exportez-le plutôt.' }
+      return { ok: false, reason: t().exportSheet.storageBlocked }
     }
   }
 }
@@ -48,17 +49,17 @@ export function downloadBlob(blob: Blob, filename: string) {
 }
 
 export function exportDesignJson(design: Design) {
-  const payload = { ...design, exportedAt: new Date().toISOString(), app: 'Lunar 3D — personnalisation 3D (démo)' }
+  const payload = { ...design, exportedAt: new Date().toISOString(), app: 'Lunar 3D — 3D customizer (demo)' }
   downloadBlob(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }), `lunar-3d-design-${stamp()}.json`)
 }
 
 export async function readDesignFile(file: File): Promise<Design> {
-  if (file.size > 12 * 1024 * 1024) throw new Error('Ce fichier est trop lourd pour être un export de design.')
+  if (file.size > 12 * 1024 * 1024) throw new Error(t().exportSheet.tooLarge)
   let json: unknown
   try {
     json = JSON.parse(await file.text())
   } catch {
-    throw new Error('Ce fichier n’est pas un JSON valide. Choisissez un design exporté depuis cet outil.')
+    throw new Error(t().exportSheet.notJson)
   }
   return parseDesign(json)
 }

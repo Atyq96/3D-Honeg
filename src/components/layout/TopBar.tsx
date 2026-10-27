@@ -4,6 +4,8 @@ import { useDesignStore } from '../../state/designStore'
 import { exportJson, exportPreviewImage, pickDesignFile, saveLocally } from '../../state/actions'
 import { ConfirmDialog, IconButton, Menu, type MenuItem } from '../ui/controls'
 import { LunarLogo } from './LunarLogo'
+import { LanguageSwitch } from './LanguageSwitch'
+import { useT } from '../../i18n'
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.userAgent)
 const MOD = isMac ? '⌘' : 'Ctrl+'
@@ -15,16 +17,17 @@ export function TopBar() {
   const redo = useDesignStore((s) => s.redo)
   const resetAll = useDesignStore((s) => s.resetAll)
   const [confirm, setConfirm] = useState(false)
+  const m = useT()
 
   const exportItems: MenuItem[] = [
-    { label: 'Image d’aperçu (PNG)', icon: <Image size={16} aria-hidden />, onSelect: () => void exportPreviewImage() },
-    { label: 'Fichier du design (JSON)', icon: <FileJson size={16} aria-hidden />, onSelect: exportJson },
-    { label: 'Importer un design…', icon: <FileUp size={16} aria-hidden />, onSelect: pickDesignFile },
+    { label: m.topbar.exportPreview, icon: <Image size={16} aria-hidden />, onSelect: () => void exportPreviewImage() },
+    { label: m.topbar.exportJson, icon: <FileJson size={16} aria-hidden />, onSelect: exportJson },
+    { label: m.topbar.importDesign, icon: <FileUp size={16} aria-hidden />, onSelect: pickDesignFile },
   ]
   const moreItems: MenuItem[] = [
-    { label: 'Enregistrer dans ce navigateur', icon: <Save size={16} aria-hidden />, onSelect: saveLocally },
+    { label: m.topbar.saveBrowser, icon: <Save size={16} aria-hidden />, onSelect: saveLocally },
     ...exportItems,
-    { label: 'Réinitialiser le design', icon: <RotateCcw size={16} aria-hidden />, onSelect: () => setConfirm(true), danger: true },
+    { label: m.topbar.resetDesign, icon: <RotateCcw size={16} aria-hidden />, onSelect: () => setConfirm(true), danger: true },
   ]
 
   return (
@@ -33,42 +36,44 @@ export function TopBar() {
         <LunarLogo />
         <span className="brand-divider" aria-hidden />
         <div className="brand-text">
-          <span className="brand-title">Personnalisation 3D</span>
-          <span className="brand-sub">Démo · sportswear sur mesure</span>
+          <span className="brand-title">{m.app.title}</span>
+          <span className="brand-sub">{m.app.subtitle}</span>
         </div>
       </div>
 
       <div className="topbar-actions">
-        <IconButton label="Annuler" tip={`Annuler (${MOD}Z)`} disabled={!canUndo} onClick={undo}>
+        <LanguageSwitch />
+        <span className="topbar-sep" aria-hidden />
+        <IconButton label={m.topbar.undo} tip={m.topbar.undoTip(MOD)} disabled={!canUndo} onClick={undo}>
           <Undo2 size={18} />
         </IconButton>
-        <IconButton label="Rétablir" tip={`Rétablir (${MOD}Maj+Z)`} disabled={!canRedo} onClick={redo}>
+        <IconButton label={m.topbar.redo} tip={m.topbar.redoTip(MOD)} disabled={!canRedo} onClick={redo}>
           <Redo2 size={18} />
         </IconButton>
         <span className="topbar-sep" aria-hidden />
         <button type="button" className="btn btn-ghost hide-sm" onClick={() => setConfirm(true)}>
-          <RotateCcw size={16} aria-hidden /> Réinitialiser
+          <RotateCcw size={16} aria-hidden /> {m.topbar.reset}
         </button>
         <button type="button" className="btn btn-ghost hide-sm" onClick={saveLocally}>
-          <Save size={16} aria-hidden /> Enregistrer
+          <Save size={16} aria-hidden /> {m.topbar.save}
         </button>
         <div className="hide-sm">
           <Menu
-            label="Exporter"
+            label={m.topbar.export}
             items={exportItems}
             trigger={(props) => (
               <button type="button" className="btn btn-primary" {...props}>
-                <Download size={16} aria-hidden /> Exporter <ChevronDown size={14} aria-hidden />
+                <Download size={16} aria-hidden /> {m.topbar.export} <ChevronDown size={14} aria-hidden />
               </button>
             )}
           />
         </div>
         <div className="show-sm">
           <Menu
-            label="Actions du design"
+            label={m.topbar.designActions}
             items={moreItems}
             trigger={(props) => (
-              <button type="button" className="icon-btn" aria-label="Actions du design" {...props}>
+              <button type="button" className="icon-btn" aria-label={m.topbar.designActions} {...props}>
                 <Ellipsis size={20} />
               </button>
             )}
@@ -78,9 +83,9 @@ export function TopBar() {
 
       <ConfirmDialog
         open={confirm}
-        title="Réinitialiser tout le design&nbsp;?"
-        body="Le produit, les couleurs, les logos et le texte reviennent aux valeurs par défaut. Vous pourrez encore annuler."
-        confirmLabel="Réinitialiser"
+        title={m.topbar.confirmTitle}
+        body={m.topbar.confirmBody}
+        confirmLabel={m.topbar.confirmLabel}
         onConfirm={resetAll}
         onClose={() => setConfirm(false)}
       />

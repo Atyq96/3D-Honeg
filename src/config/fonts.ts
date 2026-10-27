@@ -14,20 +14,18 @@ export interface TextFont {
   /** CSS font-family as registered by the @font-face rules. */
   family: string
   weight: number
-  /** What it's good for, shown under the name. */
-  hint: string
 }
 
 export const TEXT_FONTS: TextFont[] = [
-  { id: 'anton', label: 'Anton', family: 'Anton', weight: 400, hint: 'Gras condensé' },
-  { id: 'bebas', label: 'Bebas Neue', family: 'Bebas Neue', weight: 400, hint: 'Capitales hautes' },
-  { id: 'graduate', label: 'Graduate', family: 'Graduate', weight: 400, hint: 'Style universitaire' },
-  { id: 'unbounded', label: 'Unbounded', family: 'Unbounded Variable', weight: 800, hint: 'Large et géométrique' },
-  { id: 'manrope', label: 'Manrope', family: 'Manrope Variable', weight: 800, hint: 'Sans empattement' },
-  { id: 'playfair', label: 'Playfair', family: 'Playfair Display', weight: 800, hint: 'Classique à empattements' },
-  { id: 'stencil', label: 'Black Ops', family: 'Black Ops One', weight: 400, hint: 'Pochoir' },
-  { id: 'marker', label: 'Marker', family: 'Permanent Marker', weight: 400, hint: 'Écrit à la main' },
-  { id: 'script', label: 'Pacifico', family: 'Pacifico', weight: 400, hint: 'Manuscrite' },
+  { id: 'anton', label: 'Anton', family: 'Anton', weight: 400 },
+  { id: 'bebas', label: 'Bebas Neue', family: 'Bebas Neue', weight: 400 },
+  { id: 'graduate', label: 'Graduate', family: 'Graduate', weight: 400 },
+  { id: 'unbounded', label: 'Unbounded', family: 'Unbounded Variable', weight: 800 },
+  { id: 'manrope', label: 'Manrope', family: 'Manrope Variable', weight: 800 },
+  { id: 'playfair', label: 'Playfair', family: 'Playfair Display', weight: 800 },
+  { id: 'stencil', label: 'Black Ops', family: 'Black Ops One', weight: 400 },
+  { id: 'marker', label: 'Marker', family: 'Permanent Marker', weight: 400 },
+  { id: 'script', label: 'Pacifico', family: 'Pacifico', weight: 400 },
 ]
 
 export const DEFAULT_FONT = 'anton'

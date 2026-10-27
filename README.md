@@ -2,9 +2,19 @@
 
 A browser-based 3D T-shirt configurator by Lunar Innovate, shown as a brand-neutral demo: wherever a client brand would appear, it uses a "YOUR LOGO" placeholder. Users set garment colors, print all-over patterns per zone, upload up to three logos or photos, add text in a choice of fonts, then move, resize and rotate everything directly on a real-time 3D raglan tee, and export a preview image or the design file.
 
-The app is branded **Lunar 3D**: a crescent-moon mark (`config/lunar.ts`, `public/favicon.svg`), ink `#0E0E0E` on paper `#F6F5F2` with an amber `#F2A900` accent and graphite greys. The UI uses Manrope, with Unbounded for display type.
+The app is branded **Lunar 3D** with the Lunar Innovate mark (`public/brand/lunar-logo.png`, tab icon `public/favicon.png`): ink `#0E0E0E` on paper `#F6F5F2` with an amber `#F2A900` accent and graphite greys. The UI uses Manrope, with Unbounded for display type.
 
-The interface is in **French**, written directly in the components (no i18n layer, since French is the only language). Numbers use a decimal comma (`lib/format.ts`), and French punctuation gets a non-breaking space before `:` `?` `!` and inside « ». Code, comments and this README stay in English.
+## Languages
+
+The interface is in **English** (the default) and **French**. The **EN | FR** switch in the top bar changes everything live: the UI, toasts, validation messages, the summary and the PNG export. The choice is remembered in the browser (`localStorage`), and it sets the page `lang` and title.
+
+- **Dictionaries:** all text lives in `src/i18n/en.ts` and `src/i18n/fr.ts`. The French dictionary is typed against the English one, so a missing or misshapen translation fails the build. A test (`i18n.test.ts`) checks the same thing at runtime, and that every pattern, palette colour, zone, print position and product has a name in both languages.
+- **Labels by id:** labels that belong to data (zone names, palette colours, the 69 pattern names, print positions, the product) are keyed by id in the dictionaries; the config files hold no display text.
+- **Using it:** components call `useT()` and re-render when the language changes. Code outside React (toasts, exports, file and design validation) calls `t()`.
+- **Numbers and typography:** numbers show with a decimal comma in French (`lib/format.ts`). French strings use a non-breaking space (` `) before `:` `?` `!` and inside « ».
+- **Not translated:** saved and exported design files carry only ids, so a design made in one language opens in the other.
+
+To add a language, copy `fr.ts`, translate it, and add it to `src/i18n/index.ts` and the switch in `LanguageSwitch.tsx`.
 
 ## Run it
 
@@ -108,7 +118,7 @@ The print is a projected decal (`DecalGeometry`), so it needs no UVs and follows
 
 ## Brand mark ("YOUR LOGO")
 
-Every garment carries a brand mark on the chest, the way sportswear makers place their logo. It can't be removed. In this demo it's a neutral placeholder: a star badge with a "YOUR LOGO" wordmark (`src/assets/your-logo.png`, and `your-logo-symbol.png` for the badge alone). To brand the customizer for a client, replace those two images and their aspect ratios in `config/brand.ts`. In the Logo step's **Logo de marque** section the customer picks:
+Every garment carries a brand mark on the chest, the way sportswear makers place their logo. It can't be removed. In this demo it's a neutral placeholder: a star badge with a "YOUR LOGO" wordmark (`src/assets/your-logo.png`, and `your-logo-symbol.png` for the badge alone). To brand the customizer for a client, replace those two images and their aspect ratios in `config/brand.ts`. In the Logo step's **Brand logo** section the customer picks:
 
 - **Position:** wearer's left chest, centre, or right chest (right by default). Centred, it leaves both chests free for logos.
 - **Style:** full logo (badge and wordmark) or symbol (badge only)
@@ -184,6 +194,7 @@ src/
     zones.ts                    paint zones: ids, labels, plane tests, flat-sketch polygons
     flat/                       2D silhouette for flats (not used for 3D)
   config/                       Lunar 3D identity, palette, brand mark assets and colors, text fonts
+  i18n/                         en.ts (main) and fr.ts dictionaries, language store, useT() / t()
   patterns/                     pattern library (adapted from inkjet) + descriptions
   state/                        design schema + validation, store (undo/redo, clamping), UI store,
                                 useActiveLogo (which logo is being edited), actions

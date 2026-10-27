@@ -8,13 +8,14 @@ import type { BrandSide } from '../../config/brand'
 import { brandPlacement } from '../../garments/brand'
 import type { PrintArea } from '../../garments/types'
 import type { V2 } from '../../garments/flat/geom2d'
+import { t, useT } from '../../i18n'
 
 // Map garment metres (x ±0.3, y 0–0.72) into a 40×40 glyph.
 const gx = (x: number) => 20 + x * 52
 const gy = (y: number) => 38 - y * 46
 
 /** Tiny tee glyph with the placement marked, so presets are recognisable at a glance. */
-function PlacementGlyph({ preset, brand, others }: { preset: PlacementPreset; brand: V2; others: PrintArea[] }) {
+function PlacementGlyph({ preset, brand, brandLabel, others }: { preset: PlacementPreset; brand: V2; brandLabel: string; others: PrintArea[] }) {
   const x = gx(preset.anchor[0])
   const y = gy(preset.anchor[1])
   const w = Math.max(3.5, preset.defaultWidth * 52)
@@ -26,7 +27,7 @@ function PlacementGlyph({ preset, brand, others }: { preset: PlacementPreset; br
       />
       {preset.side === 'front' && (
         <rect x={gx(brand[0]) - 1.8} y={gy(brand[1]) - 0.9} width={3.6} height={1.8} rx={0.6} className="placement-glyph-brand">
-          <title>Logo de marque</title>
+          <title>{brandLabel}</title>
         </rect>
       )}
       {/* Your other logos on this side, so you can see what's already there. */}
@@ -42,12 +43,13 @@ function PlacementGlyph({ preset, brand, others }: { preset: PlacementPreset; br
 function announceBrandMove(before: BrandSide) {
   const after = useDesignStore.getState().design.brand.side
   if (after !== before && after !== 'center')
-    useUiStore.getState().notify('info', `Le logo de marque passe sur la poitrine ${after === 'left' ? 'gauche' : 'droite'} pour laisser la place.`)
+    useUiStore.getState().notify('info', t().brand.markMoved(after))
 }
 
 /** Side and print position of one logo or text block. */
 export function PlacementPicker({ layer }: { layer: LogoLayer }) {
   const design = useDesignStore((s) => s.design)
+  const m = useT()
   const setSide = useDesignStore((s) => s.setSide)
   const setPlacement = useDesignStore((s) => s.setPlacement)
   const setView = useUiStore((s) => s.setView)
@@ -60,11 +62,11 @@ export function PlacementPicker({ layer }: { layer: LogoLayer }) {
   return (
     <div className="placement">
       <Segmented<Side>
-        label="Face du vêtement"
+        label={m.logo.sideAria}
         value={side}
         options={[
-          { value: 'front', label: 'Devant' },
-          { value: 'back', label: 'Dos' },
+          { value: 'front', label: m.logo.front },
+          { value: 'back', label: m.logo.back },
         ]}
         onChange={(s) => {
           const before = useDesignStore.getState().design.brand.side
@@ -73,7 +75,7 @@ export function PlacementPicker({ layer }: { layer: LogoLayer }) {
           announceBrandMove(before)
         }}
       />
-      <div className="placement-grid" role="radiogroup" aria-label={`Emplacement (${side === 'front' ? 'devant' : 'dos'})`}>
+      <div className="placement-grid" role="radiogroup" aria-label={m.logo.placementAria(side)}>
         {presets.map((p) => {
           // Taking the mark's chest moves the mark across — unless another logo is already there.
           const blocked = !canUsePlacement(design, layer.id, p.id)
@@ -85,10 +87,10 @@ export function PlacementPicker({ layer }: { layer: LogoLayer }) {
               aria-checked={layer.placement.placement === p.id}
               aria-disabled={blocked || undefined}
               className={`placement-card ${blocked ? 'is-blocked' : ''}`}
-              title={blocked ? 'Le logo de marque est ici, et une autre impression occupe l’autre poitrine.' : undefined}
+              title={blocked ? m.brand.blockedTitle : undefined}
               onClick={() => {
                 if (blocked) {
-                  useUiStore.getState().notify('info', 'Le logo de marque a besoin d’une poitrine libre, et l’autre est déjà occupée. Déplacez d’abord cette impression, ou centrez le logo de marque.')
+                  useUiStore.getState().notify('info', m.brand.blocked)
                   return
                 }
                 const before = useDesignStore.getState().design.brand.side
@@ -97,9 +99,9 @@ export function PlacementPicker({ layer }: { layer: LogoLayer }) {
                 announceBrandMove(before)
               }}
             >
-              <PlacementGlyph preset={p} brand={brand} others={others.filter((o) => o.placement.side === p.side).map((o) => logoRect(design, o))} />
-              <span className="placement-label">{p.label}</span>
-              <span className="placement-hint">{blocked ? 'Logo de marque' : p.hint}</span>
+              <PlacementGlyph preset={p} brand={brand} brandLabel={m.brand.glyph} others={others.filter((o) => o.placement.side === p.side).map((o) => logoRect(design, o))} />
+              <span className="placement-label">{m.placements[p.id].label}</span>
+              <span className="placement-hint">{blocked ? m.brand.glyph : m.placements[p.id].hint}</span>
             </button>
           )
         })}

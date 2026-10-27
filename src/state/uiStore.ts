@@ -75,11 +75,5 @@ export const useUiStore = create<UiStore>()((set, get) => ({
   dismiss: (id) => set({ toasts: get().toasts.filter((t) => t.id !== id) }),
 }))
 
-export const STEPS: { id: StepId; label: string; short: string }[] = [
-  { id: 'product', label: 'Produit', short: 'Produit' },
-  { id: 'color', label: 'Couleurs', short: 'Couleurs' },
-  { id: 'pattern', label: 'Motif', short: 'Motif' },
-  { id: 'logo', label: 'Logo', short: 'Logo' },
-  { id: 'text', label: 'Texte', short: 'Texte' },
-  { id: 'review', label: 'Récap', short: 'Récap' },
-]
+/** The workflow, in order; labels and titles come from the i18n dictionaries (`steps`). */
+export const STEPS: StepId[] = ['product', 'color', 'pattern', 'logo', 'text', 'review']

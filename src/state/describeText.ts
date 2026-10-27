@@ -1,14 +1,14 @@
 import { getFont } from '../config/fonts'
-import { getGarment } from '../garments/catalog'
 import { letterHeightCm, type Design, type LogoLayer } from './design'
 import { presetName } from '../config/palette'
-import { fr } from '../lib/format'
+import { num } from '../lib/format'
+import { t } from '../i18n'
 
-/** e.g. `« ÉQUIPE » · Anton · lettres de 4 cm · Centre poitrine · Blanc`. */
-export function describeText(design: Design, layer: LogoLayer): string {
+/** e.g. `“TEAM” · Anton · 4 cm letters · Center chest · White` (in the current language). */
+export function describeText(_design: Design, layer: LogoLayer): string {
   if (!layer.text) return ''
-  const preset = getGarment(design.productId).placements.find((p) => p.id === layer.placement.placement)
+  const m = t()
   const tint = layer.placement.tint ?? '#0E0E0E'
-  const color = presetName(tint) ?? (tint === '#FFFFFF' ? 'Blanc' : tint === '#0E0E0E' ? 'Noir' : tint)
-  return `«\u00a0${layer.asset.name}\u00a0» · ${getFont(layer.text.font).label} · lettres de ${fr(letterHeightCm(layer))} cm · ${preset?.label ?? ''} · ${color}`
+  const color = presetName(tint) ?? tint
+  return m.text.describe(layer.asset.name, getFont(layer.text.font).label, num(letterHeightCm(layer)), m.placements[layer.placement.placement].label, color)
 }

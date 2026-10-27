@@ -23,6 +23,7 @@ import { isLight } from '../../lib/color'
 import { InkPicker } from '../ui/InkPicker'
 import { alignOffsets, type AlignX, type AlignY } from '../../lib/logoTransform'
 import { LOGO_ACCEPT, LogoFileError, processLogoFile } from '../../lib/logoFile'
+import { t, useT } from '../../i18n'
 
 type PopoverName = 'fill' | 'position' | 'transform' | null
 type Updater = ReturnType<typeof useDesignStore.getState>['updateTransform']
@@ -36,6 +37,7 @@ export function LogoToolbar() {
   const selected = useUiStore((s) => s.logoSelected)
   const layer = useActiveLogo()
   const [open, setOpen] = useState<PopoverName>(null)
+  const m = useT()
   const [busy, setBusy] = useState(false)
   const root = useRef<HTMLDivElement>(null)
   const fileInput = useRef<HTMLInputElement>(null)
@@ -65,9 +67,9 @@ export function LogoToolbar() {
     try {
       const { asset, warning } = await processLogoFile(file)
       useDesignStore.getState().replaceLogo(layer.id, asset)
-      notify(warning ? 'info' : 'success', warning ?? 'Image remplacée\u00a0: position et taille conservées.')
+      notify(warning ? 'info' : 'success', warning ?? t().logo.replaced)
     } catch (err) {
-      notify('error', err instanceof LogoFileError ? err.message : 'Ce fichier n’a pas pu être utilisé.')
+      notify('error', err instanceof LogoFileError ? err.message : t().logo.unusable)
     } finally {
       setBusy(false)
       if (fileInput.current) fileInput.current.value = ''
@@ -77,25 +79,25 @@ export function LogoToolbar() {
   const remove = () => {
     useDesignStore.getState().removeLogo(layer.id)
     useUiStore.getState().selectLogo(false)
-    notify('info', `«\u00a0${layer.asset.name}\u00a0» retiré. Annulez pour le récupérer.`)
+    notify('info', t().common.removed(layer.asset.name))
   }
 
   return (
-    <div className="logo-toolbar" ref={root} role="toolbar" aria-label="Outils du logo">
+    <div className="logo-toolbar" ref={root} role="toolbar" aria-label={m.toolbar.aria}>
       <input ref={fileInput} type="file" accept={LOGO_ACCEPT} className="sr-only" tabIndex={-1} aria-hidden onChange={(e) => void replace(e.target.files?.[0])} />
 
       {layer.text ? (
-        <ToolButton label="Modifier le texte" onClick={() => document.getElementById('text-content')?.focus()}>
+        <ToolButton label={m.toolbar.editText} onClick={() => document.getElementById('text-content')?.focus()}>
           <Type size={17} />
         </ToolButton>
       ) : (
-        <ToolButton label="Remplacer l’image" onClick={() => fileInput.current?.click()} disabled={busy}>
+        <ToolButton label={m.toolbar.replaceImage} onClick={() => fileInput.current?.click()} disabled={busy}>
           {busy ? <LoaderCircle size={17} className="spin" /> : <ImagePlus size={17} />}
         </ToolButton>
       )}
 
-      <PopoverAnchor open={open === 'fill'} label={layer.text ? 'Couleur du texte' : 'Couleur de remplissage'} popover={<FillPopover />}>
-        <ToolButton label={layer.text ? 'Couleur du texte' : 'Couleur de remplissage'} onClick={() => toggle('fill')} expanded={open === 'fill'} active={open === 'fill' || !!placement.tint}>
+      <PopoverAnchor open={open === 'fill'} label={layer.text ? m.toolbar.textColor : m.toolbar.fillColor} popover={<FillPopover />}>
+        <ToolButton label={layer.text ? m.toolbar.textColor : m.toolbar.fillColor} onClick={() => toggle('fill')} expanded={open === 'fill'} active={open === 'fill' || !!placement.tint}>
           <Paintbrush size={17} />
           {placement.tint && <span className={`tool-dot ${isLight(placement.tint) ? 'is-light' : ''}`} style={{ background: placement.tint }} aria-hidden />}
         </ToolButton>
@@ -103,8 +105,8 @@ export function LogoToolbar() {
 
       <span className="tool-divider" aria-hidden />
 
-      <label className="tool-opacity" data-tip="Opacité">
-        <span className="sr-only">Opacité</span>
+      <label className="tool-opacity" data-tip={m.toolbar.opacity}>
+        <span className="sr-only">{m.toolbar.opacity}</span>
         <input
           type="range"
           className="range"
@@ -121,24 +123,24 @@ export function LogoToolbar() {
 
       <span className="tool-divider" aria-hidden />
 
-      <PopoverAnchor open={open === 'position'} label="Position" popover={<PositionPopover />}>
-        <ToolButton label="Position" onClick={() => toggle('position')} expanded={open === 'position'} active={open === 'position'}>
+      <PopoverAnchor open={open === 'position'} label={m.toolbar.position} popover={<PositionPopover />}>
+        <ToolButton label={m.toolbar.position} onClick={() => toggle('position')} expanded={open === 'position'} active={open === 'position'}>
           {placement.locked ? <Lock size={17} /> : <Move size={17} />}
         </ToolButton>
       </PopoverAnchor>
 
-      <PopoverAnchor open={open === 'transform'} label="Transformer" popover={<TransformPopover />}>
-        <ToolButton label="Transformer" onClick={() => toggle('transform')} expanded={open === 'transform'} active={open === 'transform'}>
+      <PopoverAnchor open={open === 'transform'} label={m.toolbar.transform} popover={<TransformPopover />}>
+        <ToolButton label={m.toolbar.transform} onClick={() => toggle('transform')} expanded={open === 'transform'} active={open === 'transform'}>
           <BoxSelect size={17} />
         </ToolButton>
       </PopoverAnchor>
 
       <span className="tool-divider" aria-hidden />
 
-      <ToolButton label={layer.text ? 'Supprimer le texte' : 'Supprimer le logo'} onClick={remove} danger>
+      <ToolButton label={layer.text ? m.toolbar.deleteText : m.toolbar.deleteLogo} onClick={remove} danger>
         <Trash2 size={17} />
       </ToolButton>
-      <ToolButton label="Terminé" onClick={() => useUiStore.getState().selectLogo(false)}>
+      <ToolButton label={m.toolbar.done} onClick={() => useUiStore.getState().selectLogo(false)}>
         <Check size={17} />
       </ToolButton>
     </div>
@@ -196,40 +198,42 @@ function PopoverAnchor({ open, label, popover, children }: { open: boolean; labe
 
 function FillPopover() {
   const layer = useActiveLogo()
+  const m = useT()
   if (!layer) return null
   const tint = layer.placement.tint
   const apply = (value: string | null) => useDesignStore.getState().updateTransform(layer.id, { tint: value })
   return (
     <>
       <div className="popover-head">
-        <strong>{layer.text ? 'Couleur du texte' : 'Couleur de remplissage'}</strong>
-        <span className="muted">{layer.text ? 'Couleur des lettres.' : 'Recolore chaque pixel visible du logo.'}</span>
+        <strong>{layer.text ? m.toolbar.textColor : m.toolbar.fillColor}</strong>
+        <span className="muted">{layer.text ? m.toolbar.textDesc : m.toolbar.fillDesc}</span>
       </div>
       {!layer.text && (
         <button type="button" className={`fill-original ${tint === null ? 'is-active' : ''}`} onClick={() => apply(null)}>
-          Couleurs d’origine
+          {m.toolbar.original}
         </button>
       )}
-      <InkPicker value={tint} onChange={apply} label={layer.text ? 'Couleur du texte' : 'Couleur de remplissage'} id="fill-hex" />
+      <InkPicker value={tint} onChange={apply} label={layer.text ? m.toolbar.textColor : m.toolbar.fillColor} id="fill-hex" />
     </>
   )
 }
 
-const GRID: [AlignX, AlignY, string][] = [
-  ['left', 'top', 'En haut à gauche'],
-  ['center', 'top', 'En haut au centre'],
-  ['right', 'top', 'En haut à droite'],
-  ['left', 'center', 'Au milieu à gauche'],
-  ['center', 'center', 'Centre'],
-  ['right', 'center', 'Au milieu à droite'],
-  ['left', 'bottom', 'En bas à gauche'],
-  ['center', 'bottom', 'En bas au centre'],
-  ['right', 'bottom', 'En bas à droite'],
+const GRID: [AlignX, AlignY][] = [
+  ['left', 'top'],
+  ['center', 'top'],
+  ['right', 'top'],
+  ['left', 'center'],
+  ['center', 'center'],
+  ['right', 'center'],
+  ['left', 'bottom'],
+  ['center', 'bottom'],
+  ['right', 'bottom'],
 ]
 
 function PositionPopover() {
   const productId = useDesignStore((s) => s.design.productId)
   const layer = useActiveLogo()
+  const m = useT()
   if (!layer) return null
   const update = (patch: Parameters<Updater>[1]) => useDesignStore.getState().updateTransform(layer.id, patch)
   const garment = getGarment(productId)
@@ -239,15 +243,17 @@ function PositionPopover() {
   return (
     <>
       <div className="popover-head">
-        <strong>Position</strong>
-        <span className="muted">Alignez dans la zone imprimable.</span>
+        <strong>{m.toolbar.position}</strong>
+        <span className="muted">{m.toolbar.positionDesc}</span>
       </div>
       <button type="button" className={`lock-btn ${p.locked ? 'is-active' : ''}`} aria-pressed={p.locked} onClick={() => update({ locked: !p.locked })}>
         {p.locked ? <Lock size={15} aria-hidden /> : <Unlock size={15} aria-hidden />}
-        {p.locked ? 'Déverrouiller la position' : 'Verrouiller la position'}
+        {p.locked ? m.toolbar.unlock : m.toolbar.lock}
       </button>
-      <div className="align-grid" role="group" aria-label="Aligner le logo">
-        {GRID.map(([ax, ay, label]) => (
+      <div className="align-grid" role="group" aria-label={m.toolbar.alignAria}>
+        {GRID.map(([ax, ay]) => {
+          const label = m.toolbar.align[`${ax}-${ay}`]
+          return (
           <button
             key={label}
             type="button"
@@ -259,7 +265,8 @@ function PositionPopover() {
           >
             <span className={`align-dot align-${ax}-${ay}`} aria-hidden />
           </button>
-        ))}
+          )
+        })}
       </div>
     </>
   )
@@ -267,6 +274,7 @@ function PositionPopover() {
 
 function TransformPopover() {
   const layer = useActiveLogo()
+  const m = useT()
   if (!layer) return null
   const p = layer.placement
   const update = (patch: Parameters<Updater>[1], opts?: Parameters<Updater>[2]) => useDesignStore.getState().updateTransform(layer.id, patch, opts)
@@ -275,10 +283,10 @@ function TransformPopover() {
   return (
     <>
       <div className="popover-head">
-        <strong>Transformer</strong>
+        <strong>{m.toolbar.transform}</strong>
       </div>
       <label className="popover-row">
-        <span>Rotation</span>
+        <span>{m.toolbar.rotate}</span>
         <input
           type="range"
           className="range"
@@ -294,14 +302,14 @@ function TransformPopover() {
       </label>
       <div className="flip-row">
         <button type="button" className={`flip-btn ${p.flipX ? 'is-active' : ''}`} aria-pressed={p.flipX} onClick={() => update({ flipX: !p.flipX })}>
-          <FlipHorizontal2 size={15} aria-hidden /> Miroir horizontal
+          <FlipHorizontal2 size={15} aria-hidden /> {m.toolbar.flipH}
         </button>
         <button type="button" className={`flip-btn ${p.flipY ? 'is-active' : ''}`} aria-pressed={p.flipY} onClick={() => update({ flipY: !p.flipY })}>
-          <FlipVertical2 size={15} aria-hidden /> Miroir vertical
+          <FlipVertical2 size={15} aria-hidden /> {m.toolbar.flipV}
         </button>
       </div>
       <button type="button" className="btn btn-secondary btn-sm" onClick={reset}>
-        <RotateCcw size={14} aria-hidden /> Réinitialiser les transformations
+        <RotateCcw size={14} aria-hidden /> {m.toolbar.resetAll}
       </button>
     </>
   )

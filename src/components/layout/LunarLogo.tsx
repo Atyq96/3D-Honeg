@@ -1,16 +1,11 @@
-import { APP_NAME, CRESCENT_PATH, LUNAR_ACCENT, LUNAR_INK } from '../../config/lunar'
+import { APP_NAME, LUNAR_LOGO_URL } from '../../config/lunar'
 
-/** Lunar 3D mark (amber crescent on an ink tile) with its wordmark. Same artwork as public/favicon.svg. */
+/** Lunar Innovate mark with the Lunar 3D wordmark. */
 export function LunarLogo() {
   return (
-    <span className="brand-logo" role="img" aria-label={APP_NAME}>
-      <svg viewBox="0 0 32 32" aria-hidden>
-        <rect width="32" height="32" rx="8" fill={LUNAR_INK} />
-        <path d={CRESCENT_PATH} fill={LUNAR_ACCENT} />
-      </svg>
-      <span className="brand-wordmark" aria-hidden>
-        {APP_NAME}
-      </span>
+    <span className="brand-logo">
+      <img src={LUNAR_LOGO_URL} alt="" width={34} height={34} />
+      <span className="brand-wordmark">{APP_NAME}</span>
     </span>
   )
 }

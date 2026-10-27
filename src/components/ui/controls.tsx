@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type ReactNode, type KeyboardEvent } from 'react'
-import { fr } from '../../lib/format'
+import { num } from '../../lib/format'
+import { useT } from '../../i18n'
 
 /* ------------------------------------------------------------------ */
 /* Icon button with tooltip                                            */
@@ -120,7 +121,7 @@ export function RangeField({ label, value, min, max, step, unit, icon, disabled,
             aria-label={`${label} (${unit})`}
             inputMode="decimal"
             disabled={disabled}
-            value={draft ?? fr(value)}
+            value={draft ?? num(value)}
             onChange={(e) => setDraft(e.target.value)}
             onBlur={commitDraft}
             onKeyDown={(e) => {
@@ -140,7 +141,7 @@ export function RangeField({ label, value, min, max, step, unit, icon, disabled,
         step={step}
         value={value}
         disabled={disabled || min === max}
-        aria-valuetext={`${fr(value)} ${unit}`}
+        aria-valuetext={`${num(value)} ${unit}`}
         style={{ ['--pct' as string]: `${pct}%` }}
         onChange={(e) => onChange(parseFloat(e.target.value), true)}
       />
@@ -261,6 +262,7 @@ interface ConfirmProps {
 export function ConfirmDialog({ open, title, body, confirmLabel, onConfirm, onClose }: ConfirmProps) {
   const ref = useRef<HTMLDialogElement>(null)
   const id = useId()
+  const m = useT()
   useEffect(() => {
     const d = ref.current
     if (!d) return
@@ -273,7 +275,7 @@ export function ConfirmDialog({ open, title, body, confirmLabel, onConfirm, onCl
       <p>{body}</p>
       <div className="dialog-actions">
         <button type="button" className="btn btn-ghost" onClick={onClose} autoFocus>
-          Annuler
+          {m.common.cancel}
         </button>
         <button
           type="button"

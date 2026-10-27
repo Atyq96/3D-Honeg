@@ -7,8 +7,9 @@ import { describeLook } from '../lib/logoTransform'
 import { describePatterns } from '../patterns/describe'
 import { describeBrand } from '../garments/brand'
 import { brandFabric, describeZones } from './paint'
-import { fr } from '../lib/format'
-import { APP_NAME, CRESCENT_PATH, LUNAR_ACCENT, LUNAR_INK } from '../config/lunar'
+import { num } from '../lib/format'
+import { APP_NAME, LUNAR_LOGO_URL } from '../config/lunar'
+import { t } from '../i18n'
 import { describeText } from './describeText'
 import { getGarment } from '../garments/catalog'
 import { presetName } from '../config/palette'
@@ -18,25 +19,26 @@ import { FlatPreview } from '../components/viewer/FlatPreview'
 
 const notify = (...args: Parameters<ReturnType<typeof useUiStore.getState>['notify']>) => useUiStore.getState().notify(...args)
 
+
 export function saveLocally() {
   const res = saveDesignLocally(useDesignStore.getState().design)
   if (!res.ok) notify('error', res.reason)
-  else if (res.withoutLogo) notify('info', 'Enregistré dans ce navigateur, sans les logos (trop lourds pour le stockage local). Exportez le design pour les conserver.')
-  else notify('success', 'Design enregistré dans ce navigateur.')
+  else if (res.withoutLogo) notify('info', t().exportSheet.savedNoLogos)
+  else notify('success', t().exportSheet.saved)
 }
 
 export function exportJson() {
   exportDesignJson(useDesignStore.getState().design)
-  notify('success', 'Design exporté en JSON.')
+  notify('success', t().exportSheet.exported)
 }
 
 export async function importJson(file: File) {
   try {
     const design = await readDesignFile(file)
     useDesignStore.getState().replaceDesign(design)
-    notify('success', `«\u00a0${file.name}\u00a0» importé.`)
+    notify('success', t().exportSheet.imported(file.name))
   } catch (err) {
-    notify('error', err instanceof Error ? err.message : 'Ce fichier n’a pas pu être importé.')
+    notify('error', err instanceof Error ? err.message : t().exportSheet.importFailed)
   }
 }
 
@@ -73,13 +75,14 @@ async function renderFlats(design: Design): Promise<string[]> {
   })
 }
 
-/** "Poitrine gauche · 8 cm de large · 0°" — the long form adds flips, fill, opacity and lock. */
-function describeLogo(design: Design, layer: LogoLayer, long: boolean) {
+/** "Left chest · 8 cm wide · 0°" — the long form adds flips, fill, opacity and lock. */
+function describeLogo(layer: LogoLayer, long: boolean) {
   const p = layer.placement
-  const preset = getGarment(design.productId).placements.find((x) => x.id === p.placement)
-  if (!long) return `${preset?.label ?? ''} ${fr(p.widthCm)} cm${p.rotationDeg ? ` ${p.rotationDeg}°` : ''}`
+  const m = t()
+  const where = m.placements[p.placement].label
+  if (!long) return `${where} ${num(p.widthCm)} cm${p.rotationDeg ? ` ${p.rotationDeg}°` : ''}`
   const look = describeLook(p)
-  return `${preset?.label ?? ''} · ${fr(p.widthCm)} cm de large · ${p.rotationDeg}°${look ? ` · ${look}` : ''}`
+  return `${where} · ${m.summary.wide(num(p.widthCm))} · ${p.rotationDeg}°${look ? ` · ${look}` : ''}`
 }
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
@@ -95,17 +98,18 @@ export async function exportPreviewImage() {
     await document.fonts.ready
     const api = viewerBridge.get()
     const renders = api ? api.capture(['front', 'back'], 900, 1100) : await renderFlats(design)
-    const [front, back] = await Promise.all([loadImage(renders[0]), loadImage(renders[1])])
+    const [front, back, logo] = await Promise.all([loadImage(renders[0]), loadImage(renders[1]), loadImage(LUNAR_LOGO_URL)])
+    const m = t()
 
     // One detail line each for text, pattern and the brand mark; the sheet grows to fit them.
     const regions = colorRegions(design.productId, useUiStore.getState().modelRegions)
     const patternLines = describePatterns(design.patterns, regions)
     const zoneLines = describeZones(design)
     const details = [
-      ...design.logos.filter((l) => l.text).map((t) => `Texte — ${describeText(design, t)}`),
-      ...(patternLines.length ? [`Motif — ${patternLines.map((p) => `${p.label}\u00a0: ${p.text}`).join(' · ')}`] : []),
-      ...(zoneLines.length ? [`Zones — ${zoneLines.map((z) => `${z.label}\u00a0: ${z.text}`).join('  ·  ')}`] : []),
-      `Logo de marque — ${describeBrand(design.brand, brandFabric(design))}`,
+      ...design.logos.filter((l) => l.text).map((l) => `${m.exportSheet.text} — ${describeText(design, l)}`),
+      ...(patternLines.length ? [`${m.exportSheet.pattern} — ${patternLines.map((p) => `${p.label}${m.common.colon} ${p.text}`).join(' · ')}`] : []),
+      ...(zoneLines.length ? [`${m.exportSheet.zones} — ${zoneLines.map((z) => `${z.label}${m.common.colon} ${z.text}`).join('  ·  ')}`] : []),
+      `${m.exportSheet.brand} — ${describeBrand(design.brand, brandFabric(design))}`,
     ]
     const LINE = 28
     const W = 1800
@@ -117,25 +121,17 @@ export async function exportPreviewImage() {
     ctx.fillStyle = '#F6F5F2'
     ctx.fillRect(0, 0, W, H)
 
-    // Lunar 3D tile: amber crescent on ink (the favicon artwork, scaled from its 32-unit box).
-    roundRect(ctx, 72, 52, 64, 64, 16)
-    ctx.fillStyle = LUNAR_INK
+    ctx.drawImage(logo, 72, 52, 64, 64)
     ctx.fill()
-    ctx.save()
-    ctx.translate(72, 52)
-    ctx.scale(2, 2)
-    ctx.fillStyle = LUNAR_ACCENT
-    ctx.fill(new Path2D(CRESCENT_PATH))
-    ctx.restore()
     ctx.fillStyle = '#0E0E0E'
     ctx.font = '700 34px "Manrope Variable", Manrope, system-ui, sans-serif'
     ctx.textBaseline = 'alphabetic'
-    ctx.fillText(`${garment.name} — design personnalisé`, 190, 92)
+    ctx.fillText(m.exportSheet.title(m.garments[garment.id].name), 190, 92)
     ctx.fillStyle = '#6B6A67'
     ctx.font = '500 20px "Manrope Variable", Manrope, system-ui, sans-serif'
-    ctx.fillText(garment.tagline, 190, 122)
+    ctx.fillText(m.garments[garment.id].tagline, 190, 122)
     ctx.textAlign = 'right'
-    ctx.fillText(new Date().toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' }), W - 72, 92)
+    ctx.fillText(new Date().toLocaleDateString(m.exportSheet.dateLocale, { year: 'numeric', month: 'long', day: 'numeric' }), W - 72, 92)
     ctx.textAlign = 'left'
 
     const panelY = 168
@@ -154,7 +150,7 @@ export async function exportPreviewImage() {
       ctx.fillStyle = '#484847'
       ctx.font = '700 15px "Manrope Variable", Manrope, system-ui, sans-serif'
       ctx.letterSpacing = '3px'
-      ctx.fillText(i === 0 ? 'DEVANT' : 'DOS', x + 28, panelY + panelH - 26)
+      ctx.fillText(i === 0 ? m.exportSheet.front : m.exportSheet.back, x + 28, panelY + panelH - 26)
       ctx.letterSpacing = '0px'
     })
 
@@ -173,21 +169,21 @@ export async function exportPreviewImage() {
       ctx.stroke()
       ctx.fillStyle = '#0E0E0E'
       ctx.font = '600 20px "Manrope Variable", Manrope, system-ui, sans-serif'
-      const text = `${presetName(hex) ?? 'Personnalisée'} ${hex}`
+      const text = `${presetName(hex) ?? m.common.custom} ${hex}`
       ctx.fillText(text, x + 38, y + 4)
       x += 38 + ctx.measureText(text).width + 56
     }
-    chip('Corps', resolvedColor(design.colors, 'body'))
-    if (regions.includes('sleeves')) chip('Manches', resolvedColor(design.colors, 'sleeves'))
-    if (regions.includes('collar')) chip('Col', resolvedColor(design.colors, 'collar'))
+    chip(m.summary.body, resolvedColor(design.colors, 'body'))
+    if (regions.includes('sleeves')) chip(m.summary.sleeves, resolvedColor(design.colors, 'sleeves'))
+    if (regions.includes('collar')) chip(m.summary.collar, resolvedColor(design.colors, 'collar'))
     const images = design.logos.filter((l) => !l.text)
     if (images.length) {
       ctx.fillStyle = '#6B6A67'
       ctx.font = '600 15px "Manrope Variable", Manrope, system-ui, sans-serif'
-      ctx.fillText(images.length > 1 ? `LOGOS (${images.length})` : 'LOGO', x, y - 26)
+      ctx.fillText(images.length > 1 ? m.exportSheet.logos(images.length) : m.exportSheet.logo, x, y - 26)
       ctx.fillStyle = '#0E0E0E'
       ctx.font = '600 20px "Manrope Variable", Manrope, system-ui, sans-serif'
-      const text = images.length === 1 ? describeLogo(design, images[0], true) : images.map((l) => describeLogo(design, l, false)).join('   ·   ')
+      const text = images.length === 1 ? describeLogo(images[0], true) : images.map((l) => describeLogo(l, false)).join('   ·   ')
       ctx.fillText(text, x, y + 4, W - 72 - x)
     }
     ctx.fillStyle = '#0E0E0E'
@@ -195,14 +191,14 @@ export async function exportPreviewImage() {
     details.forEach((line, i) => ctx.fillText(line, 72, y + 50 + i * LINE, W - 144))
     ctx.fillStyle = '#6B6A67'
     ctx.font = '500 15px "Manrope Variable", Manrope, system-ui, sans-serif'
-    ctx.fillText(`Démo ${APP_NAME} — aperçu généré dans le navigateur, les couleurs à l’écran sont indicatives.`, 72, H - 36)
+    ctx.fillText(m.exportSheet.footer(APP_NAME), 72, H - 36)
 
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'))
     if (!blob) throw new Error('empty')
     downloadBlob(blob, `lunar-3d-${garment.id}-${stamp()}.png`)
-    notify('success', 'Image d’aperçu téléchargée.')
+    notify('success', m.exportSheet.downloaded)
   } catch (err) {
     console.error(err)
-    notify('error', 'L’image d’aperçu n’a pas pu être créée. Réessayez, ou exportez le design en JSON.')
+    notify('error', t().exportSheet.failed)
   }
 }

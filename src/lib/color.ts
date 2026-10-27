@@ -1,3 +1,5 @@
+import { t } from '../i18n'
+
 const HEX_RE = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i
 
 /** Normalises `#RGB`, `RGB`, `#RRGGBB` or `RRGGBB` to `#RRGGBB` (uppercase). Returns null if invalid. */
@@ -12,10 +14,10 @@ export function normalizeHex(input: string): string | null {
 /** Human-readable reason a HEX value is invalid, or null if it is valid. */
 export function hexError(input: string): string | null {
   const raw = input.trim()
-  if (!raw) return 'Saisissez une couleur HEX, par ex. #2563EB.'
+  if (!raw) return t().color.hexEmpty
   const body = raw.startsWith('#') ? raw.slice(1) : raw
-  if (/[^0-9a-f]/i.test(body)) return 'Utilisez uniquement 0–9 et A–F après le #.'
-  if (body.length !== 3 && body.length !== 6) return 'Utilisez 3 ou 6 caractères, par ex. #FA0 ou #FFAA00.'
+  if (/[^0-9a-f]/i.test(body)) return t().color.hexChars
+  if (body.length !== 3 && body.length !== 6) return t().color.hexLength
   return null
 }
 

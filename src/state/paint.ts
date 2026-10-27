@@ -1,8 +1,9 @@
 import type { RegionId } from '../garments/types'
 import { getGarment } from '../garments/catalog'
 import { brandPlacement } from '../garments/brand'
-import { inZone, isPaintZone, ZONE_INFO, type PaintZoneId, type ZoneId } from '../garments/zones'
+import { inZone, isPaintZone, type PaintZoneId, type ZoneId } from '../garments/zones'
 import { presetName } from '../config/palette'
+import { t } from '../i18n'
 import { describeFill } from '../patterns/describe'
 import { resolvedColor, type Design, type ZonePaint } from './design'
 
@@ -36,7 +37,7 @@ export function describeZones(design: Pick<Design, 'productId' | 'zones'>): { zo
   return getGarment(design.productId).paintZones.flatMap((z) => {
     const paint = design.zones[z.id]
     if (!paint) return []
-    const color = `${presetName(paint.color) ?? 'Personnalisée'} ${paint.color}`
-    return [{ zone: z.id, label: ZONE_INFO[z.id].label, text: paint.pattern ? `${color} · ${describeFill(paint.pattern)}` : color }]
+    const color = `${presetName(paint.color) ?? t().common.custom} ${paint.color}`
+    return [{ zone: z.id, label: t().zones.items[z.id].label, text: paint.pattern ? `${color} · ${describeFill(paint.pattern)}` : color }]
   })
 }

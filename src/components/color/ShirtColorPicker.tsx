@@ -3,6 +3,7 @@ import { HexColorPicker } from 'react-colorful'
 import { Check, RotateCcw } from 'lucide-react'
 import { COLOR_PRESETS, presetName } from '../../config/palette'
 import { hexError, isLight, normalizeHex, onColor } from '../../lib/color'
+import { useT } from '../../i18n'
 
 interface Props {
   /** Accessible name for the colour being edited, e.g. "Body". */
@@ -21,6 +22,7 @@ interface Props {
  */
 export function ShirtColorPicker({ label, value, defaultValue, onChange, compact = false }: Props) {
   const id = useId()
+  const m = useT()
   const [draft, setDraft] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const name = presetName(value)
@@ -60,18 +62,18 @@ export function ShirtColorPicker({ label, value, defaultValue, onChange, compact
       <div className="color-current">
         <span className={`color-current-swatch ${isLight(value) ? 'is-light' : ''}`} style={{ background: value }} aria-hidden />
         <div className="color-current-text">
-          <span className="color-current-name">{name ?? 'Couleur personnalisée'}</span>
+          <span className="color-current-name">{name ?? m.color.customColor}</span>
           <code className="color-current-hex">{value}</code>
         </div>
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => choose(defaultValue)} disabled={value === defaultValue}>
-          <RotateCcw size={14} aria-hidden /> Par défaut
+          <RotateCcw size={14} aria-hidden /> {m.color.default}
         </button>
       </div>
       )}
 
       <div className="field">
         <span className="field-label" id={`${id}-presets`}>
-          {compact ? `Couleur\u00a0: ${label.toLowerCase()}` : 'Couleurs prédéfinies'}
+          {compact ? m.color.compactLabel(label) : m.color.presets}
         </span>
         <div className="swatches" role="radiogroup" aria-labelledby={`${id}-presets`}>
           {COLOR_PRESETS.map((p) => {
@@ -82,8 +84,8 @@ export function ShirtColorPicker({ label, value, defaultValue, onChange, compact
                 type="button"
                 role="radio"
                 aria-checked={selected}
-                aria-label={`${p.name}, ${p.hex}`}
-                data-tip={p.name}
+                aria-label={`${presetName(p.hex)}, ${p.hex}`}
+                data-tip={presetName(p.hex) ?? p.hex}
                 className={`swatch ${isLight(p.hex) ? 'is-light' : ''}`}
                 style={{ background: p.hex, color: onColor(p.hex) }}
                 onClick={() => choose(p.hex)}
@@ -96,9 +98,9 @@ export function ShirtColorPicker({ label, value, defaultValue, onChange, compact
       </div>
 
       <div className="field">
-        {!compact && <span className="field-label">Personnalisée</span>}
+        {!compact && <span className="field-label">{m.color.customLabel}</span>}
         {!compact && (
-          <div className="picker" aria-label={`Sélecteur de couleur\u00a0: ${label.toLowerCase()}`}>
+          <div className="picker" aria-label={m.color.pickerAria(label)}>
             <HexColorPicker
               color={value}
               onChange={(c) => {
@@ -111,7 +113,7 @@ export function ShirtColorPicker({ label, value, defaultValue, onChange, compact
         )}
         <div className={`hex-input ${error ? 'is-invalid' : ''}`}>
           <label htmlFor={`${id}-hex`} className="sr-only">
-            Couleur HEX : {label.toLowerCase()}
+            {m.color.hexLabel(label)}
           </label>
           <span className="hex-input-swatch" style={{ background: value }} aria-hidden />
           <input
@@ -138,7 +140,7 @@ export function ShirtColorPicker({ label, value, defaultValue, onChange, compact
           </p>
         ) : (
           <p id={`${id}-help`} className="field-hint">
-            Saisissez #RVB ou #RRVVBB&nbsp;: l’aperçu se met à jour dès que le code est valide.
+            {m.color.hexHelp}
           </p>
         )}
       </div>

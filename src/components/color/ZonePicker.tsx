@@ -4,6 +4,7 @@ import { isPaintZone, ZONE_GROUPS, ZONE_INFO, type ZoneGroup, type ZoneId } from
 import { useDesignStore } from '../../state/designStore'
 import { useUiStore } from '../../state/uiStore'
 import { useZones } from '../../state/useColorRegions'
+import { useT } from '../../i18n'
 import { FlatPreview } from '../viewer/FlatPreview'
 
 const NEUTRAL = '#D9D6CF'
@@ -27,8 +28,9 @@ interface Props {
 export function ZonePicker({ label, value, onChange, swatch }: Props) {
   const zones = useZones()
   const thumbs = useUiStore((s) => s.zoneThumbs)
+  const m = useT()
   const [group, setGroup] = useState<ZoneGroup>(ZONE_INFO[value].group)
-  const groups = ZONE_GROUPS.filter((g) => zones.some((z) => ZONE_INFO[z].group === g.id))
+  const groups = ZONE_GROUPS.filter((g) => zones.some((z) => ZONE_INFO[z].group === g))
   const visible = zones.filter((z) => ZONE_INFO[z].group === group)
   // Painted paint zones per group, so users can see where their colours are.
   const painted = (g: ZoneGroup) => zones.filter((z) => ZONE_INFO[z].group === g && isPaintZone(z) && swatch(z)).length
@@ -36,18 +38,18 @@ export function ZonePicker({ label, value, onChange, swatch }: Props) {
   return (
     <div className="zone-picker">
       {groups.length > 1 && (
-        <div className="chips zone-tabs" role="group" aria-label="Type de zone">
+        <div className="chips zone-tabs" role="group" aria-label={m.zones.typeAria}>
           {groups.map((g) => (
-            <button key={g.id} type="button" className="chip" aria-pressed={group === g.id} onClick={() => setGroup(g.id)}>
-              {g.label}
-              {painted(g.id) > 0 && <span className="zone-tab-count">{painted(g.id)}</span>}
+            <button key={g} type="button" className="chip" aria-pressed={group === g} onClick={() => setGroup(g)}>
+              {m.zones.groups[g]}
+              {painted(g) > 0 && <span className="zone-tab-count">{painted(g)}</span>}
             </button>
           ))}
         </div>
       )}
       <div className="zone-grid" role="radiogroup" aria-label={label}>
         {visible.map((z) => {
-          const info = ZONE_INFO[z]
+          const info = m.zones.items[z]
           const dot = swatch(z)
           return (
             <button key={z} type="button" role="radio" aria-checked={value === z} className="zone-card" title={info.hint} onClick={() => onChange(z)}>

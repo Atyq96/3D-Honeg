@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Check, ChevronLeft, ChevronRight, Download } from 'lucide-react'
 import { STEPS, useUiStore, type StepId } from '../../state/uiStore'
+import { useT } from '../../i18n'
 import { useDesignStore } from '../../state/designStore'
 import { DEFAULT_BODY_COLOR } from '../../config/palette'
 import { exportPreviewImage } from '../../state/actions'
@@ -11,21 +12,14 @@ import { PatternStep } from '../steps/PatternStep'
 import { ReviewStep } from '../steps/ReviewStep'
 import { TextStep } from '../steps/TextStep'
 
-const TITLES: Record<StepId, string> = {
-  product: 'Choisissez votre t-shirt',
-  color: 'Choisissez vos couleurs',
-  pattern: 'Ajoutez un motif',
-  logo: 'Ajoutez vos logos',
-  text: 'Ajoutez du texte',
-  review: 'Vérifiez et exportez',
-}
 
 export function CustomizerSidebar() {
   const step = useUiStore((s) => s.step)
   const setStep = useUiStore((s) => s.setStep)
   const design = useDesignStore((s) => s.design)
   const panel = useRef<HTMLDivElement>(null)
-  const index = STEPS.findIndex((s) => s.id === step)
+  const index = STEPS.indexOf(step)
+  const m = useT()
 
   const done: Record<StepId, boolean> = {
     product: true,
@@ -41,17 +35,17 @@ export function CustomizerSidebar() {
   }, [step])
 
   return (
-    <aside className="sidebar" aria-label="Personnalisation">
-      <nav className="stepper" aria-label="Étapes de personnalisation">
+    <aside className="sidebar" aria-label={m.steps.sidebar}>
+      <nav className="stepper" aria-label={m.steps.nav}>
         <ol>
           {STEPS.map((s, i) => (
-            <li key={s.id} className={`${i < index ? 'is-past' : ''} ${s.id === step ? 'is-current' : ''}`}>
-              <button type="button" className="step-btn" aria-current={s.id === step ? 'step' : undefined} onClick={() => setStep(s.id)}>
-                <span className={`step-num ${done[s.id] && s.id !== step ? 'is-done' : ''}`} aria-hidden>
-                  {done[s.id] && s.id !== step ? <Check size={13} strokeWidth={3} /> : i + 1}
+            <li key={s} className={`${i < index ? 'is-past' : ''} ${s === step ? 'is-current' : ''}`}>
+              <button type="button" className="step-btn" aria-current={s === step ? 'step' : undefined} onClick={() => setStep(s)}>
+                <span className={`step-num ${done[s] && s !== step ? 'is-done' : ''}`} aria-hidden>
+                  {done[s] && s !== step ? <Check size={13} strokeWidth={3} /> : i + 1}
                 </span>
-                <span className="step-label">{s.label}</span>
-                {done[s.id] && <span className="sr-only">(terminée)</span>}
+                <span className="step-label">{m.steps[s].label}</span>
+                {done[s] && <span className="sr-only">{m.common.completed}</span>}
               </button>
             </li>
           ))}
@@ -61,9 +55,9 @@ export function CustomizerSidebar() {
       <div className="panel" ref={panel}>
         <div className="panel-head">
           <span className="panel-kicker">
-            Étape {index + 1} sur {STEPS.length}
+            {m.common.stepOf(index + 1, STEPS.length)}
           </span>
-          <h2 className="panel-title">{TITLES[step]}</h2>
+          <h2 className="panel-title">{m.steps[step].title}</h2>
         </div>
         {step === 'product' && <ProductStep />}
         {step === 'color' && <ColorStep />}
@@ -74,16 +68,16 @@ export function CustomizerSidebar() {
       </div>
 
       <footer className="panel-footer">
-        <button type="button" className="btn btn-ghost" disabled={index === 0} onClick={() => setStep(STEPS[index - 1].id)}>
-          <ChevronLeft size={16} aria-hidden /> Retour
+        <button type="button" className="btn btn-ghost" disabled={index === 0} onClick={() => setStep(STEPS[index - 1])}>
+          <ChevronLeft size={16} aria-hidden /> {m.common.back}
         </button>
         {index < STEPS.length - 1 ? (
-          <button type="button" className="btn btn-primary" onClick={() => setStep(STEPS[index + 1].id)}>
-            Suivant&nbsp;: {STEPS[index + 1].label} <ChevronRight size={16} aria-hidden />
+          <button type="button" className="btn btn-primary" onClick={() => setStep(STEPS[index + 1])}>
+            {m.common.next(m.steps[STEPS[index + 1]].label)} <ChevronRight size={16} aria-hidden />
           </button>
         ) : (
           <button type="button" className="btn btn-accent" onClick={() => void exportPreviewImage()}>
-            <Download size={16} aria-hidden /> Télécharger l’aperçu
+            <Download size={16} aria-hidden /> {m.common.downloadPreview}
           </button>
         )}
       </footer>

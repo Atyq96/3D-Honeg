@@ -7,6 +7,7 @@ import { TopBar } from './layout/TopBar'
 import { CustomizerSidebar } from './layout/CustomizerSidebar'
 import { ProductViewer3D } from './viewer/ProductViewer3D'
 import { Toaster } from './ui/Toaster'
+import { t, useT } from '../i18n'
 
 function isTextField(el: Element | null) {
   return !!el && (el instanceof HTMLTextAreaElement || (el instanceof HTMLInputElement && !['range', 'checkbox', 'radio', 'button'].includes(el.type)))
@@ -53,7 +54,7 @@ function useLogoShortcuts() {
         e.preventDefault()
         removeLogo(layer.id)
         ui.selectLogo(false)
-        ui.notify('info', `«\u00a0${layer.asset.name}\u00a0» retiré. Annulez pour le récupérer.`)
+        ui.notify('info', t().common.removed(layer.asset.name))
         return
       }
       const step = e.shiftKey ? 1 : 0.2
@@ -80,18 +81,19 @@ function useRestoreSavedDesign() {
     const design = fixDesign(saved)
     useDesignStore.setState({ design, past: [], future: [] })
     useUiStore.getState().setView(design.logos[design.logos.length - 1]?.placement.side ?? 'front')
-    useUiStore.getState().notify('info', 'Bon retour\u00a0! Votre design enregistré a été restauré.')
+    useUiStore.getState().notify('info', t().app.welcomeBack)
   }, [])
 }
 
 export function CustomizerPage() {
+  const m = useT()
   useUndoShortcuts()
   useLogoShortcuts()
   useRestoreSavedDesign()
   return (
     <div className="app">
       <a href="#customize" className="skip-link">
-        Aller à la personnalisation
+        {m.app.skip}
       </a>
       <TopBar />
       <main className="workspace" id="customize">

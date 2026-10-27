@@ -31,7 +31,7 @@ export interface TeeParams {
 }
 
 /**
- * Silhouette matched to public/models/honeg-raglan-tee.glb after normalisation
+ * Silhouette matched to public/models/raglan-tee.glb after normalisation
  * (measured: torso half-width 17–19 cm, front neck 0.644 m, back neck 0.70 m,
  * sleeve hem ≈ 0.39 m).
  */

@@ -92,7 +92,7 @@ describe('direct manipulation helpers', () => {
   })
 })
 
-describe('keep-out zone (HONEG mark)', () => {
+describe('keep-out zone (brand mark)', () => {
   const keepOut = { xMin: 0.05, xMax: 0.12, yMin: 0.45, yMax: 0.5 }
   const overlaps = (t: { widthCm: number; offsetXCm: number; offsetYCm: number }, anchor: [number, number], aspect = 1) => {
     const w = t.widthCm / 100, h = w / aspect

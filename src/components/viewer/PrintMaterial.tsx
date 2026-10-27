@@ -3,7 +3,7 @@ import type { Texture } from 'three'
 import { fabricTextures } from './fabric'
 
 /**
- * Material for anything printed on the fabric (customer logo, HONEG mark):
+ * Material for anything printed on the fabric (customer logo, brand mark):
  * lit like ink on cloth, with the knit grain showing through, drawn just in
  * front of the garment surface to avoid z-fighting. `layer` orders overlapping prints.
  */

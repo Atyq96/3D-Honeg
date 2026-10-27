@@ -43,7 +43,7 @@ export function LogoStep() {
           </Section>
         </>
       )}
-      <Section title="Marque HONEG" description="Chaque vêtement HONEG porte sa marque, comme le logo d’un équipementier sportif. Placez-la à gauche, au centre ou à droite&nbsp;: vos impressions s’organisent autour.">
+      <Section title="Logo de marque" description="Comme celui d’un équipementier sportif, le logo de la marque figure sur chaque vêtement (ici un logo d’exemple, «&nbsp;YOUR LOGO&nbsp;»). Placez-le à gauche, au centre ou à droite&nbsp;: vos impressions s’organisent autour.">
         <BrandMarkControls />
       </Section>
     </>

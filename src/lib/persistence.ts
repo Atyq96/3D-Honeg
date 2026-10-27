@@ -1,6 +1,6 @@
 import { parseDesign, type Design } from '../state/design'
 
-const STORAGE_KEY = 'honeg.customizer.design.v1'
+const STORAGE_KEY = 'lunar3d.customizer.design.v1'
 
 export type SaveResult = { ok: true; withoutLogo?: boolean } | { ok: false; reason: string }
 
@@ -48,8 +48,8 @@ export function downloadBlob(blob: Blob, filename: string) {
 }
 
 export function exportDesignJson(design: Design) {
-  const payload = { ...design, exportedAt: new Date().toISOString(), app: 'HONEG Personnalisation 3D (prototype)' }
-  downloadBlob(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }), `honeg-design-${stamp()}.json`)
+  const payload = { ...design, exportedAt: new Date().toISOString(), app: 'Lunar 3D — personnalisation 3D (démo)' }
+  downloadBlob(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }), `lunar-3d-design-${stamp()}.json`)
 }
 
 export async function readDesignFile(file: File): Promise<Design> {

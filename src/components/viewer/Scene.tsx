@@ -24,11 +24,11 @@ function StudioLighting() {
   )
 }
 
-/** Dev-only: the live scene and renderer, for end-to-end tests (like window.__honeg). */
+/** Dev-only: the live scene and renderer, for end-to-end tests (like window.__lunar3d). */
 function ExposeForTests() {
   const three = useThree()
   useEffect(() => {
-    ;(window as unknown as { __honegThree: unknown }).__honegThree = { scene: three.scene, gl: three.gl, invalidate: three.invalidate }
+    ;(window as unknown as { __lunar3dThree: unknown }).__lunar3dThree = { scene: three.scene, gl: three.gl, invalidate: three.invalidate }
   }, [three.scene, three.gl, three.invalidate])
   return null
 }

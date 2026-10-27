@@ -105,7 +105,7 @@ export function createFabricMaterial(finish: 'jersey' | 'rib', uvScale = 1) {
     envMapIntensity: 0.85,
   })
   m.onBeforeCompile = insideShading
-  m.customProgramCacheKey = () => 'honeg-fabric'
+  m.customProgramCacheKey = () => 'lunar-fabric'
   return m
 }
 

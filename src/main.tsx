@@ -8,7 +8,7 @@ import { useDesignStore } from './state/designStore'
 import { useUiStore } from './state/uiStore'
 
 // Dev-only handles for end-to-end tests.
-if (import.meta.env.DEV) Object.assign(window, { __honeg: { useDesignStore, useUiStore } })
+if (import.meta.env.DEV) Object.assign(window, { __lunar3d: { useDesignStore, useUiStore } })
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -1,8 +1,8 @@
-# HONEG 3D Customizer — MVP
+# Lunar 3D — 3D T-shirt customizer demo
 
-A browser-based 3D T-shirt configurator for HONEG, built by Lunar Innovate. Users set garment colors, print all-over patterns per zone, upload up to three logos or photos, add text in a choice of fonts, then move, resize and rotate everything directly on a real-time 3D raglan tee, and export a preview image or the design file.
+A browser-based 3D T-shirt configurator by Lunar Innovate, shown as a brand-neutral demo: wherever a client brand would appear, it uses a "YOUR LOGO" placeholder. Users set garment colors, print all-over patterns per zone, upload up to three logos or photos, add text in a choice of fonts, then move, resize and rotate everything directly on a real-time 3D raglan tee, and export a preview image or the design file.
 
-Branding (logo, palette, type direction) follows [honeg.fr](https://www.honeg.fr/): ink `#0E0E0E`, paper `#F6F5F2`, amber `#F2A900`, graphite greys. The UI uses Manrope; Unbounded stands in for the brand's commercial Benzin display face.
+The app is branded **Lunar 3D**: a crescent-moon mark (`config/lunar.ts`, `public/favicon.svg`), ink `#0E0E0E` on paper `#F6F5F2` with an amber `#F2A900` accent and graphite greys. The UI uses Manrope, with Unbounded for display type.
 
 The interface is in **French**, written directly in the components (no i18n layer, since French is the only language). Numbers use a decimal comma (`lib/format.ts`), and French punctuation gets a non-breaking space before `:` `?` `!` and inside « ». Code, comments and this README stay in English.
 
@@ -35,7 +35,7 @@ React 19 · TypeScript · Vite 8 · three.js via React Three Fiber + Drei · Zus
 
 ## The 3D model
 
-The garment is `public/models/honeg-raglan-tee.glb` (≈ 490 KB). It's generated from the supplied source file `men-regular-apparel-fit-sporty-t-shirt.zip → source/REGLAN TEE_4k_Pd5.glb` (Substance Painter export, 29.7k triangles, 20 MB with 4K textures):
+The garment is `public/models/raglan-tee.glb` (≈ 490 KB). It's generated from the supplied source file `men-regular-apparel-fit-sporty-t-shirt.zip → source/REGLAN TEE_4k_Pd5.glb` (Substance Painter export, 29.7k triangles, 20 MB with 4K textures):
 
 ```bash
 npm run prepare:model -- "path/to/REGLAN TEE_4k_Pd5.glb"
@@ -64,10 +64,10 @@ The adapter (`src/components/viewer/garmentModel.ts`) handles scale and orientat
 
 A garment carries up to **3** logos or photos (`MAX_LOGOS` in `src/state/design.ts`). Several files can be chosen or dropped at once; files beyond the limit are skipped with a notice.
 
-- **Where new ones go.** Each new image gets its own print position: the free chest first, then the upper back, then the larger centre prints. It never goes on the HONEG mark's chest, and if possible it doesn't cover another logo.
+- **Where new ones go.** Each new image gets its own print position: the free chest first, then the upper back, then the larger centre prints. It never goes on the brand mark's chest, and if possible it doesn't cover another logo.
 - **Which one you're editing.** The list in the Logo step shows every image, front-most first. Selecting one, from the list or by clicking it on the shirt, makes it the one the placement cards, sliders, toolbar and keyboard shortcuts edit. Where logos overlap, a click selects the one on top.
 - **Stacking.** Later images print over earlier ones. The list's arrows bring an image forward or send it backward.
-- **Chest rule.** Two logos can't take both chests while the HONEG mark needs one. The blocked chest card says so instead of moving the mark onto another logo.
+- **Chest rule.** Two logos can't take both chests while the brand mark needs one. The blocked chest card says so instead of moving the mark onto another logo.
 - **Photos.** JPG, PNG and WebP photos up to 10 MB are accepted. Images without transparency are stored as JPEG, which keeps three photos within browser storage. Transparent ones stay PNG.
 
 Designs from before multiple logos (a single `logo` + `placement`) still import, as one layer.
@@ -77,7 +77,7 @@ Designs from before multiple logos (a single `logo` + `placement`) still import,
 The **Text** step adds up to **3** text blocks (`MAX_TEXTS`), counted separately from logos. Typical uses are a team name across the chest, a number on the back, or a slogan. Each block has:
 
 - **Wording:** up to 3 lines of 32 characters, updated on the shirt as you type.
-- **Font:** 9 bundled fonts, each previewed with your own wording. Anton (bold condensed), Bebas Neue (tall caps), Graduate (varsity numbers), Unbounded (HONEG's display stand-in), Manrope, Playfair (serif), Black Ops One (stencil), Permanent Marker and Pacifico (script). All are under the SIL Open Font License and are bundled through Fontsource, so nothing loads from a font CDN.
+- **Font:** 9 bundled fonts, each previewed with your own wording. Anton (bold condensed), Bebas Neue (tall caps), Graduate (varsity numbers), Unbounded (wide display), Manrope, Playfair (serif), Black Ops One (stencil), Permanent Marker and Pacifico (script). All are under the SIL Open Font License and are bundled through Fontsource, so nothing loads from a font CDN.
 - **Letter height:** in cm (the height of capital letters, as apparel printers quote it), with a slider and S / M / L / XL shortcuts (2, 4, 7, 10 cm). Sizes that won't fit the printable width are disabled.
 - **Color:** the same palette swatches and HEX field as a logo's fill.
 - **Alignment:** left, center or right, for multi-line text.
@@ -106,12 +106,12 @@ Not ported, because it isn't needed for printed logos or needs a server: skew, f
 
 The print is a projected decal (`DecalGeometry`), so it needs no UVs and follows the fabric folds. The selection gizmo and print-area frame are flagged `uiOnly` and are hidden from exported images.
 
-## HONEG mark
+## Brand mark ("YOUR LOGO")
 
-Every garment carries the HONEG mark on the chest, the way sportswear makers place their logo. It can't be removed. In the Logo step's **HONEG mark** section the customer picks:
+Every garment carries a brand mark on the chest, the way sportswear makers place their logo. It can't be removed. In this demo it's a neutral placeholder: a star badge with a "YOUR LOGO" wordmark (`src/assets/your-logo.png`, and `your-logo-symbol.png` for the badge alone). To brand the customizer for a client, replace those two images and their aspect ratios in `config/brand.ts`. In the Logo step's **Logo de marque** section the customer picks:
 
 - **Position:** wearer's left chest, centre, or right chest (right by default). Centred, it leaves both chests free for logos.
-- **Style:** full logo or symbol only
+- **Style:** full logo (badge and wordmark) or symbol (badge only)
 - **Color:** Auto (white on dark fabric, black on light), white, black or amber
 
 The mark and the customer's own prints never collide:
@@ -124,7 +124,7 @@ The mark's position and size are set per garment (`brandMark` in `catalog.ts`). 
 
 ## Color zones
 
-The Colors and Pattern steps work on **zones**. You pick each one by picture: the card shows the real 3D garment with that zone highlighted in HONEG amber.
+The Colors and Pattern steps work on **zones**. You pick each one by picture: the card shows the real 3D garment with that zone highlighted in amber.
 
 | Group | Zones |
 | --- | --- |
@@ -137,7 +137,7 @@ Body, sleeves and collar always have a color. Every other zone is unpainted unti
 
 **How it works.** A zone is up to four planes in garment space, optionally mirrored across the centre line (side panels, centre stripe). Front and back are split by a plane that follows the side seam: the torso leans back towards the shoulders, so z = 0 would cut the shoulders wrongly. In 3D, each painted zone is drawn over its parts using the same geometry and fabric material, and a small shader addition (`zoneMask.ts`) discards fragments outside the planes. That gives crisp edges without splitting the mesh, and patterns line up with the part beneath. The 2D flats clip the same planes into polygons for each view. The picker thumbnails are rendered once per model in a separate small scene (`ZoneThumbnails.tsx`), with flat sketches as the fallback without WebGL.
 
-The HONEG mark's **Auto** ink reads the fabric under the mark, including any zone painted over it. A red sash through the chest gets a white mark.
+The brand mark's **Auto** ink reads the fabric under the mark, including any zone painted over it. A red sash through the chest gets a white mark.
 
 ## Patterns
 
@@ -168,7 +168,7 @@ src/
                                 ViewerCanvas → Scene → Garment (lazy three.js part)
                                 garmentModel.ts  GLB adapter (regions, normalisation)
                                 LogoLayer / LogoGizmo / gizmoDrag  prints + on-model handles
-                                BrandMark.tsx    the always-on HONEG chest mark
+                                BrandMark.tsx    the always-on brand mark
                                 decal.ts         projection onto the garment
                                 usePatternTextures.ts  zone pattern tiles → repeating textures
                                 zoneMask.ts      paint zones drawn over their parts (shader mask)
@@ -180,10 +180,10 @@ src/
   garments/
     types.ts                    garment contracts (regions, print areas, placements)
     catalog.ts                  product list ← edit this to add/replace models
-    brand.ts                    HONEG mark placement and keep-out zone
+    brand.ts                    brand mark placement and keep-out zone
     zones.ts                    paint zones: ids, labels, plane tests, flat-sketch polygons
     flat/                       2D silhouette for flats (not used for 3D)
-  config/                       palette, HONEG mark assets and colors, text fonts
+  config/                       Lunar 3D identity, palette, brand mark assets and colors, text fonts
   patterns/                     pattern library (adapted from inkjet) + descriptions
   state/                        design schema + validation, store (undo/redo, clamping), UI store,
                                 useActiveLogo (which logo is being edited), actions
@@ -192,20 +192,20 @@ scripts/prepare-model.mjs       garment GLB preparation (region split, texture s
 public/models/                  prepared garment models
 ```
 
-**One source of truth.** `designStore` holds product, colors, per-part patterns, painted color zones, the HONEG mark settings, and up to three logo layers, each with its image, placement and appearance (size, rotation, offset, flip, fill, opacity, lock). Which logo is being edited is UI state, not design state. The 3D scene, gizmo, toolbar, sidebar sliders, 2D flats, summary and exports all read from it. Every change is clamped to the printable area. A drag, slider move or nudge sequence is a single undo step.
+**One source of truth.** `designStore` holds product, colors, per-part patterns, painted color zones, the brand mark settings, and up to three logo layers, each with its image, placement and appearance (size, rotation, offset, flip, fill, opacity, lock). Which logo is being edited is UI state, not design state. The 3D scene, gizmo, toolbar, sidebar sliders, 2D flats, summary and exports all read from it. Every change is clamped to the printable area. A drag, slider move or nudge sequence is a single undo step.
 
 ## Feature checklist
 
 | Feature | Notes |
 | --- | --- |
 | 3D preview | Real raglan tee model; orbit, zoom, front/back/left/right views, reset, full screen |
-| Shirt color | 12 presets (HONEG palette), visual picker, HEX input with inline errors, reset |
+| Shirt color | 12 presets, visual picker, HEX input with inline errors, reset |
 | Separate sleeve / collar colors | From the model's UV-island split |
 | Color zones | 14 more zones (single sleeves, front/back, halves, side panels, shoulders, stripes, sash), each with a color and optional pattern, picked by 3D thumbnail |
 | All-over patterns | 69 patterns (from inkjet) per zone: search and categories, ink color, size, angle, density, opacity, shuffle, apply to all zones |
 | Logo upload | Up to 3 logos or photos, several at once; PNG (transparency kept), JPG, WebP, SVG (sanitized), 10 MB limit, signature check, border trim, low-res warning |
 | Placement | Left / center / right chest, upper / center back, with a printable-area frame on the shirt |
-| HONEG mark | Always printed; left chest, centre or right chest, logo or symbol, auto/white/black/amber; customer prints keep clear of it |
+| Brand mark | "YOUR LOGO" placeholder, always printed; left chest, centre or right chest, logo or symbol, auto/white/black/amber; customer prints keep clear of it |
 | Text | Up to 3 blocks, 9 fonts, letter height in cm (slider + S/M/L/XL), palette or HEX color, multi-line alignment |
 | On-model editing | Select, drag, corner resize, rotate with snaps, snap guides, toolbar, keyboard (see Logo controls) |
 | Undo / redo | Buttons + Ctrl/⌘+Z, Ctrl/⌘+Shift+Z, Ctrl+Y |
@@ -221,5 +221,5 @@ public/models/                  prepared garment models
 - **Product scope:** sleeve prints, curved or outlined text, sizes, quantities and pricing, which need a backend.
 - **Text for production:** text is rasterized for the preview; a print hand-off should send the wording and font (already in the design JSON) so the printer can set it as vectors.
 - **Persistence and sharing:** server-side saved designs, shareable links, asset storage instead of data URLs.
-- **Testing:** browser end-to-end tests in CI (the dev build exposes `window.__honeg` and `window.__honegGizmo` for this), plus visual regression tests.
+- **Testing:** browser end-to-end tests in CI (the dev build exposes `window.__lunar3d`, `window.__lunar3dGizmo` and `window.__lunar3dThree` for this), plus visual regression tests.
 - **Performance:** an adaptive pixel ratio on low-end phones, and KTX2 textures if future models ship real texture maps.

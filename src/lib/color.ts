@@ -43,7 +43,7 @@ export function isLight(hex: string) {
   return luminance(hex) > 0.82
 }
 
-/** Default pattern ink: HONEG black on light fabrics, HONEG amber on dark ones. */
+/** Default pattern ink: ink black on light fabrics, amber on dark ones. */
 export function defaultInk(base: string): string {
   return luminance(base) > 0.3 ? '#0E0E0E' : '#F2A900'
 }

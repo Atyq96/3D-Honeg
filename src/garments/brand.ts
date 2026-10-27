@@ -13,7 +13,7 @@ export interface BrandPlacement {
 /** Front-view x of a wearer's side: wearer's left is the viewer's right on the front; centre is 0. */
 export const chestX = (side: BrandSide, x: number) => (side === 'center' ? 0 : side === 'left' ? x : -x)
 
-/** Where and how big the HONEG mark prints on this garment. */
+/** Where and how big the brand mark prints on this garment. */
 export function brandPlacement(garment: GarmentDefinition, brand: { side: BrandSide; style: BrandStyle }): BrandPlacement {
   const width = garment.brandMark.widthCm / 100
   const height = width / BRAND_ASSETS[brand.style].aspect

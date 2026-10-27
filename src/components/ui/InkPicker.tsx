@@ -5,7 +5,7 @@ import { isLight, normalizeHex, onColor } from '../../lib/color'
 
 const SWATCHES = [...new Set(['#FFFFFF', '#0E0E0E', ...COLOR_PRESETS.map((p) => p.hex)])]
 
-/** Print colour: HONEG palette swatches plus a live HEX field (logo fill, text colour). */
+/** Print colour: palette swatches plus a live HEX field (logo fill, text colour). */
 export function InkPicker({ value, onChange, label, id }: { value: string | null; onChange: (hex: string) => void; label: string; id: string }) {
   const [hex, setHex] = useState(value ?? '')
   return (

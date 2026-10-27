@@ -50,7 +50,7 @@ export function offsetRange(t: LogoTransform, aspect: number, area: PrintArea, a
 
 /**
  * Clamps size first, then position, so the logo never leaves the printable
- * fabric. With `keepOut` (the HONEG mark plus clear space), a logo that would
+ * fabric. With `keepOut` (the brand mark plus clear space), a logo that would
  * overlap it moves to the nearest position that clears it, and is only shrunk
  * when no position inside the print area can.
  */

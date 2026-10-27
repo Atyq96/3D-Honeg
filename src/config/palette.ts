@@ -1,14 +1,14 @@
-/** Preset garment colours. The first block comes straight from the HONEG brand palette (honeg.fr). */
+/** Preset garment colours: neutrals and the app accent first, then team colours. */
 export interface ColorPreset {
   name: string
   hex: string
 }
 
 export const COLOR_PRESETS: ColorPreset[] = [
-  { name: 'Noir HONEG', hex: '#0E0E0E' },
+  { name: 'Noir', hex: '#0E0E0E' },
   { name: 'Craie', hex: '#F6F5F2' },
   { name: 'Blanc', hex: '#FFFFFF' },
-  { name: 'Ambre HONEG', hex: '#F2A900' },
+  { name: 'Ambre', hex: '#F2A900' },
   { name: 'Graphite', hex: '#484847' },
   { name: 'Pierre', hex: '#BCBBB9' },
   { name: 'Minuit', hex: '#001D4B' },

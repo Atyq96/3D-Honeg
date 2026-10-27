@@ -3,6 +3,7 @@ import { ChevronDown, Download, Ellipsis, FileJson, FileUp, Image, Redo2, Rotate
 import { useDesignStore } from '../../state/designStore'
 import { exportJson, exportPreviewImage, pickDesignFile, saveLocally } from '../../state/actions'
 import { ConfirmDialog, IconButton, Menu, type MenuItem } from '../ui/controls'
+import { LunarLogo } from './LunarLogo'
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.userAgent)
 const MOD = isMac ? '⌘' : 'Ctrl+'
@@ -29,11 +30,11 @@ export function TopBar() {
   return (
     <header className="topbar">
       <div className="brand">
-        <img src="/brand/honeg-logo-black.png" alt="HONEG" className="brand-logo" width={46} height={34} />
+        <LunarLogo />
         <span className="brand-divider" aria-hidden />
         <div className="brand-text">
           <span className="brand-title">Personnalisation 3D</span>
-          <span className="brand-sub">Sportswear sur mesure</span>
+          <span className="brand-sub">Démo · sportswear sur mesure</span>
         </div>
       </div>
 

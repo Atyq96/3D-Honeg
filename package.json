@@ -1,8 +1,8 @@
 {
-  "name": "honeg-3d-customizer",
+  "name": "lunar-3d",
   "private": true,
   "version": "0.1.0",
-  "description": "HONEG 3D T-shirt customizer — MVP by Lunar Innovate",
+  "description": "Lunar 3D — 3D T-shirt customizer demo by Lunar Innovate",
   "type": "module",
   "scripts": {
     "dev": "vite",

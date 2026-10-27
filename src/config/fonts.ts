@@ -22,7 +22,7 @@ export const TEXT_FONTS: TextFont[] = [
   { id: 'anton', label: 'Anton', family: 'Anton', weight: 400, hint: 'Gras condensé' },
   { id: 'bebas', label: 'Bebas Neue', family: 'Bebas Neue', weight: 400, hint: 'Capitales hautes' },
   { id: 'graduate', label: 'Graduate', family: 'Graduate', weight: 400, hint: 'Style universitaire' },
-  { id: 'unbounded', label: 'Unbounded', family: 'Unbounded Variable', weight: 800, hint: 'Large, style HONEG' },
+  { id: 'unbounded', label: 'Unbounded', family: 'Unbounded Variable', weight: 800, hint: 'Large et géométrique' },
   { id: 'manrope', label: 'Manrope', family: 'Manrope Variable', weight: 800, hint: 'Sans empattement' },
   { id: 'playfair', label: 'Playfair', family: 'Playfair Display', weight: 800, hint: 'Classique à empattements' },
   { id: 'stencil', label: 'Black Ops', family: 'Black Ops One', weight: 400, hint: 'Pochoir' },

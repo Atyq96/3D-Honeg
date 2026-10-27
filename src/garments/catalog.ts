@@ -69,7 +69,7 @@ const RAGLAN_TEE: GarmentDefinition = {
   regions: ['body', 'sleeves', 'collar'],
   source: {
     kind: 'gltf',
-    url: '/models/honeg-raglan-tee.glb',
+    url: '/models/raglan-tee.glb',
     regionMatchers: { body: /^body$/i, sleeves: /^sleeves$/i, collar: /^collar$/i },
     logoTargets: ['body'],
     targetHeight: 0.72,

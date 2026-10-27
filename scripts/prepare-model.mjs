@@ -16,7 +16,7 @@ import { NodeIO } from '@gltf-transform/core'
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions'
 import { prune, quantize } from '@gltf-transform/functions'
 
-const [, , input, output = 'public/models/honeg-raglan-tee.glb'] = process.argv
+const [, , input, output = 'public/models/raglan-tee.glb'] = process.argv
 if (!input) {
   console.error('Usage: node scripts/prepare-model.mjs <input.glb> [output.glb]')
   process.exit(1)
@@ -171,7 +171,7 @@ for (const tex of root.listTextures()) tex.dispose()
 for (const mat of root.listMaterials()) mat.dispose()
 
 const scene = root.listScenes()[0] ?? doc.createScene('Scene')
-const garment = doc.createNode('honeg_tee')
+const garment = doc.createNode('raglan_tee')
 scene.addChild(garment)
 
 for (const [name, list] of Object.entries(regions)) {

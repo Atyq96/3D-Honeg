@@ -93,11 +93,11 @@ export function DesignSummary() {
         </div>
       )}
       <div className="summary-row">
-        <dt>HONEG</dt>
+        <dt>Marque</dt>
         <dd>
           <span>{describeBrand(design.brand, brandFabric(design))}</span>
         </dd>
-        {edit('logo', 'marque HONEG')}
+        {edit('logo', 'logo de marque')}
       </div>
       <div className="summary-row">
         <dt>{images.length > 1 ? 'Logos' : 'Logo'}</dt>

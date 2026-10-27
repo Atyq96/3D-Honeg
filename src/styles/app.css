@@ -1,8 +1,7 @@
 /* ==========================================================================
-   HONEG 3D Customizer — design system
-   Palette and type direction from honeg.fr: ink #0E0E0E, paper #F6F5F2,
-   amber #F2A900, graphite greys. Manrope for UI; Unbounded stands in for
-   the brand's (commercial) Benzin display face.
+   Lunar 3D — design system
+   Ink #0E0E0E on paper #F6F5F2 with an amber #F2A900 accent and graphite
+   greys. Manrope for the UI, Unbounded for display type.
    ========================================================================== */
 
 :root {
@@ -198,8 +197,21 @@ code {
   min-width: 0;
 }
 .brand-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+.brand-logo svg {
+  flex: none;
+  width: 34px;
   height: 34px;
-  width: auto;
+}
+.brand-wordmark {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 17px;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
 }
 .brand-divider {
   width: 1px;
@@ -1629,7 +1641,8 @@ code {
   .brand {
     gap: 10px;
   }
-  .brand-logo {
+  .brand-logo svg {
+    width: 28px;
     height: 28px;
   }
   .brand-sub {
@@ -2203,7 +2216,7 @@ code {
   pointer-events: none;
 }
 
-/* HONEG mark controls */
+/* Brand mark controls */
 .brand-controls {
   display: flex;
   flex-direction: column;

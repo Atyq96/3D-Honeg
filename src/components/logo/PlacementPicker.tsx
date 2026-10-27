@@ -26,7 +26,7 @@ function PlacementGlyph({ preset, brand, others }: { preset: PlacementPreset; br
       />
       {preset.side === 'front' && (
         <rect x={gx(brand[0]) - 1.8} y={gy(brand[1]) - 0.9} width={3.6} height={1.8} rx={0.6} className="placement-glyph-brand">
-          <title>Marque HONEG</title>
+          <title>Logo de marque</title>
         </rect>
       )}
       {/* Your other logos on this side, so you can see what's already there. */}
@@ -38,11 +38,11 @@ function PlacementGlyph({ preset, brand, others }: { preset: PlacementPreset; br
   )
 }
 
-/** Tells the user when choosing a chest moved the HONEG mark to the other side. */
+/** Tells the user when choosing a chest moved the brand mark to the other side. */
 function announceBrandMove(before: BrandSide) {
   const after = useDesignStore.getState().design.brand.side
   if (after !== before && after !== 'center')
-    useUiStore.getState().notify('info', `La marque HONEG passe sur la poitrine ${after === 'left' ? 'gauche' : 'droite'} pour laisser la place.`)
+    useUiStore.getState().notify('info', `Le logo de marque passe sur la poitrine ${after === 'left' ? 'gauche' : 'droite'} pour laisser la place.`)
 }
 
 /** Side and print position of one logo or text block. */
@@ -85,10 +85,10 @@ export function PlacementPicker({ layer }: { layer: LogoLayer }) {
               aria-checked={layer.placement.placement === p.id}
               aria-disabled={blocked || undefined}
               className={`placement-card ${blocked ? 'is-blocked' : ''}`}
-              title={blocked ? 'La marque HONEG est ici, et une autre impression occupe l’autre poitrine.' : undefined}
+              title={blocked ? 'Le logo de marque est ici, et une autre impression occupe l’autre poitrine.' : undefined}
               onClick={() => {
                 if (blocked) {
-                  useUiStore.getState().notify('info', 'La marque HONEG a besoin d’une poitrine libre, et l’autre est déjà occupée. Déplacez d’abord cette impression, ou centrez la marque.')
+                  useUiStore.getState().notify('info', 'Le logo de marque a besoin d’une poitrine libre, et l’autre est déjà occupée. Déplacez d’abord cette impression, ou centrez le logo de marque.')
                   return
                 }
                 const before = useDesignStore.getState().design.brand.side
@@ -99,7 +99,7 @@ export function PlacementPicker({ layer }: { layer: LogoLayer }) {
             >
               <PlacementGlyph preset={p} brand={brand} others={others.filter((o) => o.placement.side === p.side).map((o) => logoRect(design, o))} />
               <span className="placement-label">{p.label}</span>
-              <span className="placement-hint">{blocked ? 'Marque HONEG' : p.hint}</span>
+              <span className="placement-hint">{blocked ? 'Logo de marque' : p.hint}</span>
             </button>
           )
         })}

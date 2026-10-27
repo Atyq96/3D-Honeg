@@ -151,7 +151,7 @@ function exposeForTests(camera: Camera, canvas: HTMLCanvasElement, points: (Vect
     return { x: r.left + ((v.x + 1) / 2) * r.width, y: r.top + ((1 - v.y) / 2) * r.height }
   }
   const [center, ...rest] = points.map(toScreen)
-  ;(window as unknown as { __honegGizmo: unknown }).__honegGizmo = { center, corners: rest.slice(0, 4), rotate: rest[4] }
+  ;(window as unknown as { __lunar3dGizmo: unknown }).__lunar3dGizmo = { center, corners: rest.slice(0, 4), rotate: rest[4] }
 }
 
 /** Small curved-arrow mark inside the rotate knob. */

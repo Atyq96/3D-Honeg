@@ -13,7 +13,7 @@ const WHERE: Record<BrandSide, string> = {
 }
 
 /**
- * The HONEG mark is always printed (like a sportswear maker's logo); customers
+ * The brand mark is always printed (like a sportswear maker's logo); customers
  * only pick where it sits (left chest, centre or right chest), its style and
  * its colour. Choosing the chest your own logo is on moves your logo across;
  * centred, it leaves both chests free.
@@ -34,14 +34,14 @@ export function BrandMarkControls() {
       const chest = side === 'left' ? 'droite' : 'gauche'
       useUiStore
         .getState()
-        .notify('info', `${moved.length > 1 ? 'Vos logos de poitrine passent' : 'Votre logo passe'} sur la poitrine ${chest} pour laisser la place à la marque HONEG.`)
+        .notify('info', `${moved.length > 1 ? 'Vos logos de poitrine passent' : 'Votre logo passe'} sur la poitrine ${chest} pour laisser la place au logo de marque.`)
     }
   }
 
   return (
     <div className="brand-controls">
       <Segmented<BrandSide>
-        label="Position de la marque HONEG"
+        label="Position du logo de marque"
         value={brand.side}
         onChange={changeSide}
         options={[
@@ -55,7 +55,7 @@ export function BrandMarkControls() {
         <span className="field-label" aria-hidden>
           Style
         </span>
-        <div className="brand-styles" role="radiogroup" aria-label="Style de la marque HONEG">
+        <div className="brand-styles" role="radiogroup" aria-label="Style du logo de marque">
           {(Object.keys(BRAND_ASSETS) as BrandStyle[]).map((style) => (
             <button
               key={style}
@@ -76,7 +76,7 @@ export function BrandMarkControls() {
         <span className="field-label" aria-hidden>
           Couleur
         </span>
-        <div className="brand-colors" role="radiogroup" aria-label="Couleur de la marque HONEG">
+        <div className="brand-colors" role="radiogroup" aria-label="Couleur du logo de marque">
           {BRAND_COLORS.map((c) => {
             const ink = brandInk(c.value, fabric)
             const selected = brand.color === c.value
@@ -100,7 +100,7 @@ export function BrandMarkControls() {
         </div>
       </div>
 
-      <p className="field-hint">Imprimée {WHERE[brand.side]}. Vos propres impressions restent toujours à distance.</p>
+      <p className="field-hint">Imprimé {WHERE[brand.side]}. Vos propres impressions restent toujours à distance.</p>
     </div>
   )
 }

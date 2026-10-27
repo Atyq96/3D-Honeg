@@ -22,7 +22,7 @@ interface FlatPreviewProps {
   onLogoClick?: (id: string) => void
   /** All-over patterns per zone (same library and parameters as the 3D view). */
   patterns?: Design['patterns']
-  /** HONEG chest mark; omit only for pure silhouettes. */
+  /** Brand mark; omit only for pure silhouettes. */
   brand?: Design['brand']
   /** Painted halves, panels and stripes, drawn over the parts in the garment's print order. */
   zones?: Design['zones']
@@ -68,7 +68,7 @@ export function FlatPreview({ garment, side, colors, logos = [], showPrintArea, 
 
   const area = garment.printAreas[side]
 
-  // HONEG mark (front only), recoloured with the same flood filter as a logo fill.
+  // Brand mark (front only), recoloured with the same flood filter as a logo fill.
   let brandEl = null
   let brandInkColor: string | null = null
   if (brand && side === 'front') {

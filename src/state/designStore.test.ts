@@ -166,7 +166,7 @@ describe('patterns', () => {
   })
 })
 
-describe('HONEG mark', () => {
+describe('brand mark', () => {
   const rect = () => brandPlacement(getGarment(store().design.productId), store().design.brand).rect
   const logoBox = (i = 0) => logoRect(store().design, store().design.logos[i])
   const overlaps = (a: ReturnType<typeof logoBox>, b: ReturnType<typeof rect>) => a.xMax > b.xMin && a.xMin < b.xMax && a.yMax > b.yMin && a.yMin < b.yMax
@@ -256,7 +256,7 @@ describe('multiple logos', () => {
     expect(store().addLogo(logo)).toBeNull()
     const used = store().design.logos.map((l) => l.placement.placement)
     expect(new Set(used).size).toBe(MAX_LOGOS)
-    // Never on the HONEG mark's chest.
+    // Never on the brand mark's chest.
     expect(used).not.toContain('rightChest')
   })
 
@@ -409,7 +409,7 @@ describe('paint zones', () => {
     expect(parseDesign({ version: 1, productId: 'raglan', colors: { body: '#000' } }).zones).toEqual({})
   })
 
-  it('the HONEG mark reads the fabric under it, so Auto ink follows a painted zone', () => {
+  it('the brand mark reads the fabric under it, so Auto ink follows a painted zone', () => {
     store().setColor('body', '#F6F5F2')
     expect(brandFabric(store().design)).toBe('#F6F5F2')
     // Mark on the wearer's right chest; the sash runs from the right shoulder through it.
@@ -422,7 +422,7 @@ describe('paint zones', () => {
   })
 })
 
-describe('HONEG mark centred', () => {
+describe('brand mark centred', () => {
   const rect = () => brandPlacement(getGarment(store().design.productId), store().design.brand).rect
   const overlaps = (a: ReturnType<typeof rect>, b: ReturnType<typeof rect>) => a.xMax > b.xMin && a.xMin < b.xMax && a.yMax > b.yMin && a.yMin < b.yMax
 

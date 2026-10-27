@@ -8,6 +8,7 @@ import { describePatterns } from '../patterns/describe'
 import { describeBrand } from '../garments/brand'
 import { brandFabric, describeZones } from './paint'
 import { fr } from '../lib/format'
+import { APP_NAME, CRESCENT_PATH, LUNAR_ACCENT, LUNAR_INK } from '../config/lunar'
 import { describeText } from './describeText'
 import { getGarment } from '../garments/catalog'
 import { presetName } from '../config/palette'
@@ -94,9 +95,9 @@ export async function exportPreviewImage() {
     await document.fonts.ready
     const api = viewerBridge.get()
     const renders = api ? api.capture(['front', 'back'], 900, 1100) : await renderFlats(design)
-    const [front, back, brand] = await Promise.all([loadImage(renders[0]), loadImage(renders[1]), loadImage('/brand/honeg-logo-black.png')])
+    const [front, back] = await Promise.all([loadImage(renders[0]), loadImage(renders[1])])
 
-    // One detail line each for text, pattern and the HONEG mark; the sheet grows to fit them.
+    // One detail line each for text, pattern and the brand mark; the sheet grows to fit them.
     const regions = colorRegions(design.productId, useUiStore.getState().modelRegions)
     const patternLines = describePatterns(design.patterns, regions)
     const zoneLines = describeZones(design)
@@ -104,7 +105,7 @@ export async function exportPreviewImage() {
       ...design.logos.filter((l) => l.text).map((t) => `Texte — ${describeText(design, t)}`),
       ...(patternLines.length ? [`Motif — ${patternLines.map((p) => `${p.label}\u00a0: ${p.text}`).join(' · ')}`] : []),
       ...(zoneLines.length ? [`Zones — ${zoneLines.map((z) => `${z.label}\u00a0: ${z.text}`).join('  ·  ')}`] : []),
-      `Marque HONEG — ${describeBrand(design.brand, brandFabric(design))}`,
+      `Logo de marque — ${describeBrand(design.brand, brandFabric(design))}`,
     ]
     const LINE = 28
     const W = 1800
@@ -116,8 +117,16 @@ export async function exportPreviewImage() {
     ctx.fillStyle = '#F6F5F2'
     ctx.fillRect(0, 0, W, H)
 
-    const brandH = 64
-    ctx.drawImage(brand, 72, 52, (brand.width / brand.height) * brandH, brandH)
+    // Lunar 3D tile: amber crescent on ink (the favicon artwork, scaled from its 32-unit box).
+    roundRect(ctx, 72, 52, 64, 64, 16)
+    ctx.fillStyle = LUNAR_INK
+    ctx.fill()
+    ctx.save()
+    ctx.translate(72, 52)
+    ctx.scale(2, 2)
+    ctx.fillStyle = LUNAR_ACCENT
+    ctx.fill(new Path2D(CRESCENT_PATH))
+    ctx.restore()
     ctx.fillStyle = '#0E0E0E'
     ctx.font = '700 34px "Manrope Variable", Manrope, system-ui, sans-serif'
     ctx.textBaseline = 'alphabetic'
@@ -186,11 +195,11 @@ export async function exportPreviewImage() {
     details.forEach((line, i) => ctx.fillText(line, 72, y + 50 + i * LINE, W - 144))
     ctx.fillStyle = '#6B6A67'
     ctx.font = '500 15px "Manrope Variable", Manrope, system-ui, sans-serif'
-    ctx.fillText('Aperçu prototype généré dans le navigateur — les couleurs à l’écran sont indicatives.', 72, H - 36)
+    ctx.fillText(`Démo ${APP_NAME} — aperçu généré dans le navigateur, les couleurs à l’écran sont indicatives.`, 72, H - 36)
 
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'))
     if (!blob) throw new Error('empty')
-    downloadBlob(blob, `honeg-${garment.id}-${stamp()}.png`)
+    downloadBlob(blob, `lunar-3d-${garment.id}-${stamp()}.png`)
     notify('success', 'Image d’aperçu téléchargée.')
   } catch (err) {
     console.error(err)

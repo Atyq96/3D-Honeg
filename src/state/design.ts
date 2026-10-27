@@ -108,7 +108,7 @@ export interface Design {
   patterns: Record<RegionId, PatternFill | null>
   /** Halves, panels and stripes painted over the parts; a zone is printed only when present. */
   zones: Partial<Record<PaintZoneId, ZonePaint>>
-  /** The HONEG mark — always printed; only its chest, style and colour are chosen. */
+  /** The brand mark — always printed; only its position, style and colour are chosen. */
   brand: BrandMarkSettings
 }
 
@@ -209,7 +209,7 @@ const PLACEMENTS: PlacementId[] = ['leftChest', 'centerChest', 'rightChest', 'up
  */
 export function parseDesign(raw: unknown): Design {
   const fail = (msg: string): never => {
-    throw new Error(`Ce fichier n’est pas un design HONEG valide\u00a0: ${msg}`)
+    throw new Error(`Ce fichier n’est pas un design Lunar 3D valide\u00a0: ${msg}`)
   }
   if (!raw || typeof raw !== 'object') fail('un objet JSON est attendu.')
   const d = raw as Record<string, unknown>

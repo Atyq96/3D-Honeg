@@ -95,7 +95,7 @@ export interface GarmentDefinition {
   printAreas: Record<Side, PrintArea>
   placements: PlacementPreset[]
   /**
-   * Where the HONEG brand mark sits on the front: |x| from the centre line
+   * Where the brand mark sits on the front: |x| from the centre line
    * (mirrored for the chosen chest), centre height y, and printed width.
    */
   brandMark: { x: number; y: number; widthCm: number }

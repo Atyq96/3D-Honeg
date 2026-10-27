@@ -52,7 +52,7 @@ interface DesignStore {
   updatePattern: (zone: ZoneId, patch: Partial<PatternFill>, opts?: CommitOptions) => void
   /** Copies one zone's pattern to the given zones. */
   copyPattern: (from: RegionId, to: RegionId[]) => void
-  /** HONEG mark: chest side, style, colour (it can't be removed). */
+  /** Brand mark: position, style, colour (it can't be removed). */
   setBrand: (patch: Partial<BrandMarkSettings>) => void
   /** Adds a logo or photo on a free print position. Returns its id, or null when the garment is full. */
   addLogo: (asset: LogoAsset) => string | null
@@ -113,7 +113,7 @@ export function normalizePlacement(design: Design, placement: LogoPlacement, asp
   const garment = getGarment(design.productId)
   const preset = garment.placements.find((p) => p.id === placement.placement) ?? garment.placements[0]
   const area = garment.printAreas[preset.side]
-  // Front prints always leave the HONEG mark and its clear space untouched.
+  // Front prints always leave the brand mark and its clear space untouched.
   const keepOut = preset.side === 'front' ? brandKeepOut(garment, design.brand) : undefined
   const clamped = clampTransform(placement, aspect, area, preset.anchor, keepOut)
   return { ...placement, side: preset.side, placement: preset.id, ...clamped }
@@ -160,7 +160,7 @@ const chestsUsed = (design: Design, except?: string) => new Set(design.logos.fil
 
 /**
  * Whether logo `id` (null for a new one) may take `placement`. Taking the
- * HONEG mark's chest moves the mark across, so the other chest must be free.
+ * brand mark's chest moves the mark across, so the other chest must be free.
  */
 export function canUsePlacement(design: Design, id: string | null, placement: PlacementId): boolean {
   const chest = CHEST_SIDE[placement]
@@ -169,7 +169,7 @@ export function canUsePlacement(design: Design, id: string | null, placement: Pl
 }
 
 /**
- * A chest logo and the HONEG mark never share a side: the mark moves to the
+ * A chest logo and the brand mark never share a side: the mark moves to the
  * free chest. If logos sit on both chests (only possible in hand-edited files),
  * the ones on the mark's chest move to the centre chest instead. A centred
  * mark leaves both chests free.
@@ -190,7 +190,7 @@ export function makeRoomForLogos(design: Design): Design {
   }
 }
 
-/** Fixes a loaded or imported design: HONEG mark conflicts, then print-area clamping. */
+/** Fixes a loaded or imported design: brand mark conflicts, then print-area clamping. */
 export function fixDesign(design: Design): Design {
   return normalizeLogos(makeRoomForLogos(design))
 }
@@ -226,7 +226,7 @@ const AUTO_ORDER: Record<'image' | 'text', PlacementId[]> = {
 }
 
 /**
- * Print position for a logo that's new or changing side: never the HONEG
+ * Print position for a logo that's new or changing side: never the brand
  * mark's chest, preferably a preset no other logo uses and where it doesn't
  * cover another logo.
  */
@@ -384,7 +384,7 @@ export const useDesignStore = create<DesignStore>()((set, get) => {
       const current = layer(id)
       if (!current || current.placement.placement === placement || !canUsePlacement(design, id, placement)) return
       const { rotationDeg, flipX, flipY } = current.placement
-      // Taking the HONEG mark's chest moves the mark across; every front print is then re-clamped around it.
+      // Taking the brand mark's chest moves the mark across; every front print is then re-clamped around it.
       const draft = makeRoomForLogos(withPlacement(design, id, { ...current.placement, placement }))
       const moved = { ...presetDefaults(draft, current, placement), rotationDeg, flipX, flipY }
       commit(normalizeLogos(withPlacement(draft, id, moved)))

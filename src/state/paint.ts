@@ -25,7 +25,7 @@ export function fabricColorAt(design: Pick<Design, 'productId' | 'colors' | 'zon
 /** Chest surface depth in front of the garment's centre, metres (where front prints sit). */
 const CHEST_Z = 0.1
 
-/** The fabric under the HONEG mark, which decides its "Auto" ink. */
+/** The fabric under the brand mark, which decides its "Auto" ink. */
 export function brandFabric(design: Pick<Design, 'productId' | 'colors' | 'zones' | 'brand'>): string {
   const { center } = brandPlacement(getGarment(design.productId), design.brand)
   return fabricColorAt(design, 'body', [center[0], center[1], CHEST_Z])

@@ -11,7 +11,7 @@ import { PrintMaterial } from './PrintMaterial'
 
 const NO_FLIP = { flipX: false, flipY: false }
 
-/** The always-present HONEG chest mark, printed like the customer's logo but not editable on the model. */
+/** The always-present brand mark, printed like the customer's logo but not editable on the model. */
 export function BrandMark({ def, targets }: { def: GarmentDefinition; targets: BufferGeometry[] }) {
   const brand = useDesignStore((s) => s.design.brand)
   const fabric = useDesignStore((s) => brandFabric(s.design))

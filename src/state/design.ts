@@ -2,7 +2,9 @@ import type { PlacementId, RegionId, Side } from '../garments/types'
 import { DEFAULT_GARMENT_ID, GARMENTS } from '../garments/catalog'
 import { DEFAULT_BODY_COLOR } from '../config/palette'
 import { normalizeHex } from '../lib/color'
-import { getPattern } from '../patterns/library'
+import { countLayers, getPatternType, isLayered, layerCount, SCALE_RANGE, type PatternType } from '../patterns'
+import { getPreset, type Preset } from '../patterns/presets'
+import { MAX_ARTWORK_BYTES } from '../patterns/importSvg'
 import type { BrandSide, BrandStyle } from '../config/brand'
 import { PAINT_ZONE_IDS, type PaintZoneId } from '../garments/zones'
 import { t } from '../i18n'
@@ -130,40 +132,90 @@ export interface BrandMarkSettings {
 /** Wearer's right chest by default, opposite the default left-chest club logo (as on Nike/Adidas kits). */
 export const DEFAULT_BRAND: BrandMarkSettings = { side: 'right', style: 'logo', color: 'auto' }
 
-/** An all-over pattern printed on one zone, drawn in `color` over the zone's fabric colour. */
+/**
+ * An all-over pattern on one zone: a generated sportswear pattern (or imported
+ * artwork) whose layer 0 is the zone's fabric colour and whose layers 1…n are
+ * `colors`. Type + seed + options regenerate it exactly.
+ */
 export interface PatternFill {
-  /** Pattern id from src/patterns/library.ts. */
-  id: string
-  color: string
+  /** Generator from src/patterns, or 'artwork' for imported vector art. */
+  type: PatternType | 'artwork'
+  /** Preset it was started from (names it), or null. */
+  preset: string | null
+  /** Ink colours for layers 1…n (layer 0 is the zone's fabric colour). */
+  colors: string[]
+  /** Layout seed; "Shuffle" changes it. */
+  seed: number
+  /** Generator feature size, 0.5–2. */
+  scale: number
+  /** Generator direction, degrees (types that have one). */
+  direction: number
+  /** Generator detail, 0–1. */
+  density: number
   /** Printed width of one pattern repeat, cm. */
   sizeCm: number
-  /** Clockwise, degrees. */
+  /** Rotation on the garment, clockwise, degrees. */
   angle: number
-  /** 0–1, pattern-specific. */
-  density: number
-  /** 0.1–1. */
+  /** 0.1–1: inks over the fabric colour. */
   opacity: number
-  /** Layout seed for scattered patterns (leopard, confetti…); "Shuffle" changes it. */
-  seed: number
+  /** Imported artwork only: the layered SVG with its original colours. */
+  art?: string
 }
 
-export const PATTERN_SIZE_CM: [number, number] = [1, 40]
+export const PATTERN_SIZE_CM: [number, number] = [10, 100]
 export const NO_PATTERNS: Design['patterns'] = { body: null, sleeves: null, collar: null }
 
-/** Keeps pattern values in range; returns null for unknown pattern ids. */
+/**
+ * Keeps pattern values in range and fits the colour list to the layers the
+ * pattern has; returns null for unknown types, bad colours or invalid artwork.
+ */
 export function cleanPatternFill(p: PatternFill): PatternFill | null {
-  if (!getPattern(p.id)) return null
-  const color = normalizeHex(p.color)
-  if (!color) return null
   const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, Number.isFinite(v) ? v : lo))
+  const colors = p.colors.map((c) => normalizeHex(c))
+  if (!colors.length || colors.some((c) => !c)) return null
+  let inks: number
+  if (p.type === 'artwork') {
+    if (typeof p.art !== 'string' || p.art.length > MAX_ARTWORK_BYTES || !isLayered(p.art)) return null
+    inks = countLayers(p.art) - 1
+  } else {
+    const def = getPatternType(p.type)
+    if (!def) return null
+    inks = layerCount(def, colors.length + 1) - 1
+  }
+  if (inks < 1) return null
+  const wrapDeg = (v: number) => ((((Math.round(Number.isFinite(v) ? v : 0) + 180) % 360) + 360) % 360) - 180
   return {
-    id: p.id,
-    color,
-    sizeCm: Math.round(clamp(p.sizeCm, ...PATTERN_SIZE_CM) * 10) / 10,
-    angle: ((((Math.round(p.angle) + 180) % 360) + 360) % 360) - 180,
-    density: Math.round(clamp(p.density, 0, 1) * 100) / 100,
-    opacity: Math.round(clamp(p.opacity, 0.1, 1) * 100) / 100,
+    type: p.type,
+    preset: typeof p.preset === 'string' && getPreset(p.preset)?.type === p.type ? p.preset : null,
+    // Missing colours repeat the given ones; extra ones are dropped.
+    colors: Array.from({ length: inks }, (_, i) => colors[i % colors.length]!),
     seed: Math.max(1, Math.round(clamp(p.seed, 1, 2147483646))),
+    scale: Math.round(clamp(p.scale, ...SCALE_RANGE) * 100) / 100,
+    direction: wrapDeg(p.direction),
+    density: Math.round(clamp(p.density, 0, 1) * 100) / 100,
+    sizeCm: Math.round(clamp(p.sizeCm, ...PATTERN_SIZE_CM) * 10) / 10,
+    angle: wrapDeg(p.angle),
+    opacity: Math.round(clamp(p.opacity, 0.1, 1) * 100) / 100,
+    ...(p.type === 'artwork' ? { art: p.art } : {}),
+  }
+}
+
+/** A preset as a fill, plus the fabric colour it's designed on (its layer 0). */
+export function presetFill(preset: Preset): { fill: PatternFill; base: string } {
+  return {
+    fill: {
+      type: preset.type,
+      preset: preset.id,
+      colors: preset.colors.slice(1),
+      seed: preset.seed,
+      scale: preset.scale ?? 1,
+      direction: preset.angle ?? getPatternType(preset.type)!.defaultAngle,
+      density: preset.density ?? 0.5,
+      sizeCm: preset.sizeCm,
+      angle: 0,
+      opacity: 1,
+    },
+    base: preset.colors[0],
   }
 }
 
@@ -297,20 +349,25 @@ export function parseDesign(raw: unknown): Design {
     logos.push({ id, asset: image, placement: placement(l.placement), ...(spec ? { text: spec } : {}) })
   }
 
-  // Patterns were added later too; unknown pattern ids are dropped rather than rejected.
+  // Patterns were added later too; unknown types (including the retired
+  // one-colour motif library) are dropped rather than rejected.
   const rawPatterns = (d.patterns ?? {}) as Record<string, unknown>
   const pattern = (v: unknown): PatternFill | null => {
     if (!v || typeof v !== 'object') return null
     const f = v as Record<string, unknown>
-    if (typeof f.id !== 'string' || typeof f.color !== 'string') return null
+    if (typeof f.type !== 'string' || !Array.isArray(f.colors) || !f.colors.every((c) => typeof c === 'string')) return null
     return cleanPatternFill({
-      id: f.id,
-      color: f.color,
-      sizeCm: num(f.sizeCm, 6),
-      angle: num(f.angle, 0),
+      type: f.type as PatternFill['type'],
+      preset: typeof f.preset === 'string' ? f.preset : null,
+      colors: f.colors as string[],
+      seed: num(f.seed, 1),
+      scale: num(f.scale, 1),
+      direction: num(f.direction, 0),
       density: num(f.density, 0.5),
+      sizeCm: num(f.sizeCm, 50),
+      angle: num(f.angle, 0),
       opacity: num(f.opacity, 1),
-      seed: num(f.seed, 42),
+      ...(typeof f.art === 'string' ? { art: f.art } : {}),
     })
   }
 

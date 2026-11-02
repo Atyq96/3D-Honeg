@@ -9,7 +9,7 @@ The app is branded **Lunar 3D** with the Lunar Innovate mark (`public/brand/luna
 The interface is in **English** (the default) and **French**. The **EN | FR** switch in the top bar changes everything live: the UI, toasts, validation messages, the summary and the PNG export. The choice is remembered in the browser (`localStorage`), and it sets the page `lang` and title.
 
 - **Dictionaries:** all text lives in `src/i18n/en.ts` and `src/i18n/fr.ts`. The French dictionary is typed against the English one, so a missing or misshapen translation fails the build. A test (`i18n.test.ts`) checks the same thing at runtime, and that every pattern, palette colour, zone, print position and product has a name in both languages.
-- **Labels by id:** labels that belong to data (zone names, palette colours, the 69 pattern names, print positions, the product) are keyed by id in the dictionaries; the config files hold no display text.
+- **Labels by id:** labels that belong to data (zone names, palette colours, pattern types, palettes and sports, print positions, the product) are keyed by id in the dictionaries; the config files hold no display text.
 - **Using it:** components call `useT()` and re-render when the language changes. Code outside React (toasts, exports, file and design validation) calls `t()`.
 - **Numbers and typography:** numbers show with a decimal comma in French (`lib/format.ts`). French strings use a non-breaking space (` `) before `:` `?` `!` and inside « ».
 - **Not translated:** saved and exported design files carry only ids, so a design made in one language opens in the other.
@@ -136,6 +136,14 @@ The mark's position and size are set per garment (`brandMark` in `catalog.ts`). 
 
 The Colors and Pattern steps work on **zones**. You pick each one by picture: the card shows the real 3D garment with that zone highlighted in amber.
 
+**Picking on the shirt.** You can also click or tap the 3D garment itself:
+
+- **Selection outline.** The selected zone gets an amber outline on the model, with a short pulse when it changes. Hovering shows the zone a click would select, with a tint, a lighter outline and a label that follows the pointer.
+- **What a click selects.** A painted area on top wins, because that's what you see there. Otherwise the click picks from the picker's open tab: on the Halves tab, clicking the chest selects a half. Clicking the same spot again steps through the zones that overlap there (Sleeves → Left sleeve → Sleeves), so every zone can be reached from the model.
+- **What stays the same.** Dragging to orbit never selects. Prints on top don't block picking in these two steps. The picker's tab follows the selection, and choosing a back zone in the picker turns the garment around.
+
+**How the outline is drawn.** Each vertex gets its straight-line distance to the zone's outline (`zoneEdges.ts`). The outline is the parts' open mesh edges, minus the seams where two selected parts meet within 3 mm. A small shader then draws a 1.3 cm band where that distance, or the distance to the zone's cutting planes, is short. The pick logic is a pure, tested function (`garments/pick.ts`).
+
 | Group | Zones |
 | --- | --- |
 | Parts | Body, Sleeves, Collar (from the model's own meshes), Left sleeve, Right sleeve |
@@ -151,15 +159,21 @@ The brand mark's **Auto** ink reads the fabric under the mark, including any zon
 
 ## Patterns
 
-The **Pattern** step prints an all-over pattern on each zone (body, sleeves, collar), drawn over that zone's fabric color. The library (`src/patterns/library.ts`) has 69 patterns in 9 categories: stripes, checks, dots, geometric, animal, waves, floral, retro and tech. They're curated from [inkjet](https://github.com/Dragoon0x/inkjet) (MIT, © 2025 0xDragoon), a set of 500 parametric SVG tile patterns, and adapted for garments:
+The **Pattern** step prints sportswear patterns on any zone: body, sleeves, collar or any painted area. They come from an original, dependency-free generator library in `src/patterns/`; its [README](src/patterns/README.md) covers the API, how to add a type and how to import artwork.
 
-- **Print strength.** inkjet's renderers target subtle UI backgrounds (opacity multipliers of 0.03–0.15). Here they're re-tuned to print-strength ink.
-- **Seamless tiles.** Scattered motifs wrap across tile edges and use jittered-grid placement, so the repeat isn't obvious on a garment. Hexagon-based motifs (honeycomb, tumbling blocks) use true hexagonal tiles.
-- **Houndstooth from its weave.** It's generated from the actual weave (2/2 twill with 4-end color blocks).
+- **Ten pattern types:** shattered "shards" camo, low poly, digital camo, speed chevrons, speed lines, cycling kit bands, topographic lines, mountain elevation, waves and halftone.
+- **Presets:** 30 ready-made designs, grouped by sport (cycling, triathlon, running, multisport). They use 10 named palettes and have thumbnails generated in the browser and cached.
+- **Layers:** every pattern is 3–6 flat colour layers. Layer 0 is the zone's fabric colour, so the Colors step and the pattern stay in sync. Each layer can be recolored from its chip without changing the geometry.
+- **Controls:** **Shuffle** draws a new layout in the same style (new seed). Size, angle, detail and ink opacity are adjustable, and **Apply to all parts** copies the pattern and its fabric colour.
+- **Determinism:** the same type, seed and options always produce the same SVG on every device. A design file stores only those values, and the factory regenerates the identical artwork.
+- **Your own artwork:** **Import SVG artwork** turns your vector design into recolorable layers, one per flat colour. The import is sanitized to shape geometry only.
+- **Print files:** these download one repeat as a true-size SVG (still layered) plus a PNG with its dpi recorded (up to 300 dpi, capped at 6000 px).
 
-Per zone you can set the ink color, repeat size (cm), angle, density (where the motif supports it) and opacity, re-shuffle scattered layouts, or apply one zone's pattern to every zone. Patterns are part of the design state, so undo/redo, save/load, JSON export/import, the 2D flats and the PNG export all include them.
+**How it reaches the shirt.** A pattern is a seamless 1000-unit SVG tile, drawn straight to a canvas with `Path2D`: synchronous, with no image decoding. It's mapped through the model's metre-scaled UVs, centred on the chest so compositions like kit bands land where they're designed to. Textures are 2048 px on desktop and 1024 px on phones. Rasterised tiles are cached by everything that changes their pixels, and size and angle only move the texture. Ink opacity is applied by mixing each ink with the fabric colour. That's the same picture as translucent ink, but it stays flat, so the print file matches. The 2D flats use the same tile through an `<image>`, never as inline markup.
 
-In 3D, each pattern is rasterized once into a seamless tile texture and mapped through the model's metre-scaled UVs. Size and angle only change the texture transform, so dragging those sliders never re-rasterizes. Logos are projected decals, so they sit on top of any pattern.
+**Review page.** In development, `/patterns-preview` shows every preset and every type × 4 palettes × 2 seeds, with a 2 × 2 repeat to check seams and the generation time, size and layer count of each tile. Production builds drop it.
+
+Designs saved with the previous one-colour motif library still load, without their patterns.
 
 ## Architecture
 
@@ -169,7 +183,7 @@ src/
     CustomizerPage.tsx          page shell, undo + logo shortcuts, saved-design restore
     layout/                     TopBar, CustomizerSidebar (6-step workflow)
     steps/                      ProductStep, ColorStep, PatternStep, LogoStep, TextStep, ReviewStep
-    pattern/PatternLibrary.tsx  searchable, filterable pattern swatches
+    pattern/PatternLibrary.tsx  presets by sport with generated thumbnails, search, SVG import
     color/ShirtColorPicker.tsx  presets + visual picker + validated HEX, one value
     color/ZonePicker.tsx        parts, panels, halves and stripes as 3D thumbnails
     logo/                       LogoUploader (logo list + add), PlacementPicker, LogoTransformControls,
@@ -180,7 +194,7 @@ src/
                                 LogoLayer / LogoGizmo / gizmoDrag  prints + on-model handles
                                 BrandMark.tsx    the always-on brand mark
                                 decal.ts         projection onto the garment
-                                usePatternTextures.ts  zone pattern tiles → repeating textures
+                                usePatternTextures.ts  zone pattern tiles → repeating textures, centred on the chest
                                 zoneMask.ts      paint zones drawn over their parts (shader mask)
                                 ZoneThumbnails.tsx  3D picker thumbnails, rendered once per model
                                 CameraRig.tsx    views, zoom, reset, PNG capture
@@ -195,7 +209,8 @@ src/
     flat/                       2D silhouette for flats (not used for 3D)
   config/                       Lunar 3D identity, palette, brand mark assets and colors, text fonts
   i18n/                         en.ts (main) and fr.ts dictionaries, language store, useT() / t()
-  patterns/                     pattern library (adapted from inkjet) + descriptions
+  patterns/                     sportswear pattern generators, palettes, presets, SVG import, print export (see its README)
+  dev/PatternsPreview.tsx       /patterns-preview review page (dev only)
   state/                        design schema + validation, store (undo/redo, clamping), UI store,
                                 useActiveLogo (which logo is being edited), actions
   lib/                          color, logo file processing, text rendering, transform/snap math, persistence
@@ -212,8 +227,8 @@ public/models/                  prepared garment models
 | 3D preview | Real raglan tee model; orbit, zoom, front/back/left/right views, reset, full screen |
 | Shirt color | 12 presets, visual picker, HEX input with inline errors, reset |
 | Separate sleeve / collar colors | From the model's UV-island split |
-| Color zones | 14 more zones (single sleeves, front/back, halves, side panels, shoulders, stripes, sash), each with a color and optional pattern, picked by 3D thumbnail |
-| All-over patterns | 69 patterns (from inkjet) per zone: search and categories, ink color, size, angle, density, opacity, shuffle, apply to all zones |
+| Color zones | 14 more zones (single sleeves, front/back, halves, side panels, shoulders, stripes, sash), each with a color and optional pattern, picked by 3D thumbnail or by clicking the shirt, with the selection outlined on the model |
+| All-over patterns | 10 generated sportswear pattern types, 30 presets by sport, per-layer recoloring, shuffle, size, angle, detail, ink opacity, SVG artwork import, print files (SVG + PNG) |
 | Logo upload | Up to 3 logos or photos, several at once; PNG (transparency kept), JPG, WebP, SVG (sanitized), 10 MB limit, signature check, border trim, low-res warning |
 | Placement | Left / center / right chest, upper / center back, with a printable-area frame on the shirt |
 | Brand mark | "YOUR LOGO" placeholder, always printed; left chest, centre or right chest, logo or symbol, auto/white/black/amber; customer prints keep clear of it |

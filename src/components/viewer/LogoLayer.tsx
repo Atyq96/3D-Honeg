@@ -75,6 +75,9 @@ function LogoDecal({ def, targets, layer, order, selected }: { def: GarmentDefin
         }}
         onClick={(e: ThreeEvent<MouseEvent>) => {
           if (e.delta > 6 || e.intersections.some((i) => i.object.userData.gizmoHandle)) return
+          // Picking colour zones: the click goes to the fabric under the print.
+          const { step } = useUiStore.getState()
+          if (step === 'color' || step === 'pattern') return
           // Where logos overlap, a click selects the one printed on top.
           if (topLogoAt(e.intersections) !== layer.id) return
           e.stopPropagation()

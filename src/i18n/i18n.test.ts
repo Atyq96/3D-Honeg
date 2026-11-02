@@ -2,12 +2,12 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { en } from './en'
 import { fr } from './fr'
 import { getLang, useLang } from '.'
-import { PATTERNS } from '../patterns/library'
+import { PALETTES, PATTERN_TYPES, PRESETS, SPORTS, getPreset } from '../patterns'
 import { COLOR_PRESETS, presetName } from '../config/palette'
 import { PAINT_ZONE_IDS, REGION_IDS } from '../garments/zones'
 import { GARMENTS } from '../garments/catalog'
 import { describePatterns } from '../patterns/describe'
-import { parseDesign } from '../state/design'
+import { parseDesign, presetFill } from '../state/design'
 import { num } from '../lib/format'
 
 /** Same keys and value kinds (text, function, list, group) at every level. */
@@ -31,7 +31,10 @@ describe('dictionaries', () => {
 
   it('every pattern, palette colour, zone, placement and product has a name in both languages', () => {
     for (const d of [en, fr]) {
-      for (const p of PATTERNS) expect(d.pattern.names[p.id], p.id).toBeTruthy()
+      for (const p of PATTERN_TYPES) expect(d.pattern.types[p.id], p.id).toBeTruthy()
+      for (const p of PALETTES) expect(d.pattern.palettes[p.id], p.id).toBeTruthy()
+      for (const s of SPORTS) expect(d.pattern.sports[s], s).toBeTruthy()
+      expect(PRESETS.every((p) => d.pattern.palettes[p.palette])).toBe(true)
       for (const c of COLOR_PRESETS) expect(d.palette[c.hex], c.hex).toBeTruthy()
       for (const z of [...REGION_IDS, ...PAINT_ZONE_IDS]) expect(d.zones.items[z].label, z).toBeTruthy()
       for (const g of GARMENTS) {
@@ -43,12 +46,12 @@ describe('dictionaries', () => {
 })
 
 describe('switching to French', () => {
-  const fill = { id: 'houndstooth', color: '#0E0E0E', sizeCm: 2.5, angle: 15, density: 0.5, opacity: 0.8, seed: 42 }
+  const fill = { ...presetFill(getPreset('shards-electric')!).fill, sizeCm: 52.5, angle: 15, opacity: 0.8 }
 
   it('describes designs in French, with a decimal comma', () => {
     useLang.setState({ lang: 'fr' })
     expect(describePatterns({ body: fill, sleeves: null, collar: null }, ['body'])).toEqual([
-      { zone: 'body', label: 'Corps', text: 'Pied-de-poule #0E0E0E · 2,5 cm · 15° · opacité 80\u00a0%' },
+      { zone: 'body', label: 'Corps', text: 'Éclats · Électrique, disposition n°\u00a07 · #14234A #5FB3E8 #F2762E #0E0E12 · 52,5 cm · 15° · opacité des encres 80\u00a0%' },
     ])
     expect(num(5.5)).toBe('5,5')
     expect(presetName('#ED1C24')).toBe('Rouge course')

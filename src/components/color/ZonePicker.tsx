@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { getGarment } from '../../garments/catalog'
 import { isPaintZone, ZONE_GROUPS, ZONE_INFO, type ZoneGroup, type ZoneId } from '../../garments/zones'
 import { useDesignStore } from '../../state/designStore'
@@ -23,13 +23,21 @@ interface Props {
  * Pick the part or area to color or pattern, by picture: each card shows the
  * real 3D garment with that zone highlighted (rendered once per model), or
  * the flat sketch when 3D isn't available. Grouped into parts, panels,
- * halves and stripes.
+ * halves and stripes. The same zones can be picked by clicking the 3D garment;
+ * the open tab follows whichever way the zone was chosen.
  */
 export function ZonePicker({ label, value, onChange, swatch }: Props) {
   const zones = useZones()
   const thumbs = useUiStore((s) => s.zoneThumbs)
   const m = useT()
-  const [group, setGroup] = useState<ZoneGroup>(ZONE_INFO[value].group)
+  const group = useUiStore((s) => s.zoneTab)
+  const setGroup = useUiStore((s) => s.setZoneTab)
+  const setView = useUiStore((s) => s.setView)
+  const pick = (z: ZoneId) => {
+    onChange(z)
+    // Show the zone: turn the garment when it's on the other side (e.g. the back panel).
+    if (ZONE_INFO[z].view !== ZONE_INFO[value].view) setView(ZONE_INFO[z].view)
+  }
   const groups = ZONE_GROUPS.filter((g) => zones.some((z) => ZONE_INFO[z].group === g))
   const visible = zones.filter((z) => ZONE_INFO[z].group === group)
   // Painted paint zones per group, so users can see where their colours are.
@@ -52,7 +60,7 @@ export function ZonePicker({ label, value, onChange, swatch }: Props) {
           const info = m.zones.items[z]
           const dot = swatch(z)
           return (
-            <button key={z} type="button" role="radio" aria-checked={value === z} className="zone-card" title={info.hint} onClick={() => onChange(z)}>
+            <button key={z} type="button" role="radio" aria-checked={value === z} className="zone-card" title={info.hint} onClick={() => pick(z)}>
               <span className="zone-thumb" aria-hidden>
                 {thumbs[z] ? <img src={thumbs[z]} alt="" /> : <ZoneSketch zone={z} />}
               </span>

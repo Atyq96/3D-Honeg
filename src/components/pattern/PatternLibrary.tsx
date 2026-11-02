@@ -1,36 +1,36 @@
-import { useMemo, useState } from 'react'
-import { Ban, Search } from 'lucide-react'
-import { PATTERN_CATEGORIES, PATTERNS, svgDataUrl, tileSvg, type PatternCategory, type PatternDef } from '../../patterns/library'
+import { useEffect, useReducer, useRef, useState } from 'react'
+import { Ban, FileUp, Search } from 'lucide-react'
+import { PRESETS, SPORTS, type Preset, type Sport } from '../../patterns'
+import { loadPresetThumbs, presetThumb } from '../../state/patternArt'
+import { presetLabel } from '../../i18n/labels'
 import { useT } from '../../i18n'
 
 interface Props {
-  /** Currently applied pattern id on this zone, or null. */
+  /** Preset applied to this zone, 'artwork' for imported art, or null. */
   selected: string | null
-  ink: string
-  bg: string
-  onPick: (def: PatternDef) => void
+  /** Thumbnail of the imported artwork on this zone, if any. */
+  artworkThumb?: string
+  onPick: (preset: Preset) => void
   onClear: () => void
+  onImport: (file: File) => void
 }
 
-const CATEGORIES = PATTERN_CATEGORIES
 const fold = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
 
-/** Searchable, filterable grid of live pattern swatches (ink on the zone's fabric colour). */
-export function PatternLibrary({ selected, ink, bg, onPick, onClear }: Props) {
-  const [category, setCategory] = useState<PatternCategory | 'all'>('all')
+/** The ready-made designs, by sport, with live thumbnails, plus importing your own SVG artwork. */
+export function PatternLibrary({ selected, artworkThumb, onPick, onClear, onImport }: Props) {
   const m = useT()
+  const [sport, setSport] = useState<Sport | 'all'>('all')
   const [query, setQuery] = useState('')
+  const fileInput = useRef<HTMLInputElement>(null)
+  // Thumbnails arrive in small batches; each batch re-renders the grid.
+  const [, refresh] = useReducer((n: number) => n + 1, 0)
+  useEffect(() => loadPresetThumbs(PRESETS, refresh), [])
 
-  const thumbs = useMemo(() => {
-    const out = new Map<string, string>()
-    for (const d of PATTERNS) out.set(d.id, svgDataUrl(tileSvg(d, { color: ink, bg, density: 0.5, seed: 42, opacity: 1 }, 48)))
-    return out
-  }, [ink, bg])
-
-  // Accent-insensitive, so "ecailles" finds "Écailles"; category names match too.
+  // Accent-insensitive, so "eclats" finds "Éclats"; sport and type names match too.
   const q = fold(query.trim())
-  const visible = PATTERNS.filter(
-    (d) => (category === 'all' || d.category === category) && (!q || fold(m.pattern.names[d.id] ?? d.id).includes(q) || fold(m.pattern.categories[d.category]).includes(q)),
+  const visible = PRESETS.filter(
+    (p) => (sport === 'all' || p.sport === sport) && (!q || [presetLabel(p.id), m.pattern.sports[p.sport], m.pattern.types[p.type]].some((s) => fold(s).includes(q))),
   )
 
   return (
@@ -40,46 +40,70 @@ export function PatternLibrary({ selected, ink, bg, onPick, onClear }: Props) {
         <span className="sr-only">{m.pattern.search}</span>
         <input
           type="search"
-          placeholder={m.pattern.searchPlaceholder(PATTERNS.length)}
+          placeholder={m.pattern.searchPlaceholder(PRESETS.length)}
           value={query}
           onChange={(e) => {
             setQuery(e.target.value)
-            // Search spans the whole library rather than the active category.
-            if (e.target.value) setCategory('all')
+            // Search spans the whole library rather than the active sport.
+            if (e.target.value) setSport('all')
           }}
         />
       </label>
 
-      <div className="chips" role="group" aria-label={m.pattern.categoryAria}>
-        {(['all', ...CATEGORIES] as const).map((c) => (
-          <button key={c} type="button" className="chip" aria-pressed={category === c} onClick={() => setCategory(c)}>
-            {c === 'all' ? m.pattern.all : m.pattern.categories[c]}
+      <div className="chips" role="group" aria-label={m.pattern.sportAria}>
+        {(['all', ...SPORTS] as const).map((s) => (
+          <button key={s} type="button" className="chip" aria-pressed={sport === s} onClick={() => setSport(s)}>
+            {s === 'all' ? m.pattern.all : m.pattern.sports[s]}
           </button>
         ))}
       </div>
 
       <div className="pattern-grid" role="radiogroup" aria-label={m.pattern.aria}>
         <button type="button" role="radio" aria-checked={selected === null} className="pattern-tile" onClick={onClear}>
-          <span className="pattern-thumb pattern-none" style={{ background: bg }} aria-hidden>
+          <span className="pattern-thumb pattern-none" aria-hidden>
             <Ban size={18} />
           </span>
           <span className="pattern-name">{m.pattern.none}</span>
         </button>
-        {visible.map((d) => {
-          const [w, h] = d.tile
+        {visible.map((p) => {
+          const thumb = presetThumb(p.id)
           return (
-            <button key={d.id} type="button" role="radio" aria-checked={selected === d.id} className="pattern-tile" onClick={() => onPick(d)}>
+            <button key={p.id} type="button" role="radio" aria-checked={selected === p.id} className="pattern-tile" onClick={() => onPick(p)} title={presetLabel(p.id)}>
               <span
-                className="pattern-thumb"
+                className={`pattern-thumb ${thumb ? '' : 'is-loading'}`}
                 aria-hidden
-                style={{ backgroundImage: `url("${thumbs.get(d.id)}")`, backgroundSize: `22px ${(22 * h) / w}px`, backgroundColor: bg }}
+                style={thumb ? { backgroundImage: `url("${thumb}")`, backgroundSize: 'cover' } : { background: p.colors[0] }}
               />
-              <span className="pattern-name">{m.pattern.names[d.id] ?? d.id}</span>
+              <span className="pattern-name">{presetLabel(p.id)}</span>
             </button>
           )
         })}
         {!visible.length && <p className="muted pattern-empty">{m.pattern.noMatch(query)}</p>}
+        <button
+          type="button"
+          role="radio"
+          aria-checked={selected === 'artwork'}
+          className="pattern-tile pattern-import"
+          onClick={() => fileInput.current?.click()}
+          title={m.pattern.importHint}
+        >
+          <span className="pattern-thumb" aria-hidden style={artworkThumb ? { backgroundImage: `url("${artworkThumb}")`, backgroundSize: 'cover' } : undefined}>
+            {!artworkThumb && <FileUp size={18} />}
+          </span>
+          <span className="pattern-name">{m.pattern.importArt}</span>
+        </button>
       </div>
+      <input
+        ref={fileInput}
+        type="file"
+        accept=".svg,image/svg+xml"
+        hidden
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          e.target.value = ''
+          if (file) onImport(file)
+        }}
+      />
     </div>
   )
 }

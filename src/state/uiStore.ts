@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { RegionId } from '../garments/types'
-import type { ZoneId } from '../garments/zones'
+import { ZONE_INFO, type ZoneGroup, type ZoneId } from '../garments/zones'
 
 export type StepId = 'product' | 'color' | 'pattern' | 'logo' | 'text' | 'review'
 export type ViewId = 'front' | 'back' | 'left' | 'right'
@@ -19,6 +19,12 @@ interface UiStore {
   viewNonce: number
   colorZone: ZoneId
   patternZone: ZoneId
+  /** The zone picker's open tab (parts, panels, halves, stripes); it follows the selected zone. */
+  zoneTab: ZoneGroup
+  /** Zone under the pointer on the 3D garment (Colors and Pattern steps), or null. */
+  hoverZone: ZoneId | null
+  /** The user has picked a zone on the 3D garment at least once (hides the hint). */
+  zonePicked: boolean
   viewerStatus: ViewerStatus
   viewerError: string | null
   /** The logo the sidebar, toolbar and gizmo edit (falls back to the newest logo when unset or removed). */
@@ -35,6 +41,10 @@ interface UiStore {
   setView: (view: ViewId) => void
   setColorZone: (zone: ZoneId) => void
   setPatternZone: (zone: ZoneId) => void
+  /** Selects a zone in whichever of the Colors / Pattern steps is open. */
+  selectZone: (zone: ZoneId) => void
+  setZoneTab: (tab: ZoneGroup) => void
+  setHoverZone: (zone: ZoneId | null) => void
   selectLogo: (selected: boolean) => void
   /** Makes a logo the active one; `select` also shows its handles on the garment. */
   setActiveLogo: (id: string | null, select?: boolean) => void
@@ -51,6 +61,9 @@ export const useUiStore = create<UiStore>()((set, get) => ({
   viewNonce: 0,
   colorZone: 'body',
   patternZone: 'body',
+  zoneTab: 'parts',
+  hoverZone: null,
+  zonePicked: false,
   viewerStatus: 'loading',
   viewerError: null,
   modelRegions: null,
@@ -60,10 +73,26 @@ export const useUiStore = create<UiStore>()((set, get) => ({
   toasts: [],
 
   // On-garment handles and the toolbar belong to the step that edits that print; changing step deselects.
-  setStep: (step) => set((s) => ({ step, logoSelected: step === s.step && s.logoSelected })),
+  setStep: (step) =>
+    set((s) => ({
+      step,
+      logoSelected: step === s.step && s.logoSelected,
+      hoverZone: null,
+      // The picker opens on the tab of the zone that step has selected.
+      zoneTab: step === 'color' ? ZONE_INFO[s.colorZone].group : step === 'pattern' ? ZONE_INFO[s.patternZone].group : s.zoneTab,
+    })),
   setView: (view) => set((s) => ({ view, viewNonce: s.viewNonce + 1 })),
-  setColorZone: (colorZone) => set({ colorZone }),
-  setPatternZone: (patternZone) => set({ patternZone }),
+  setColorZone: (colorZone) => set({ colorZone, zoneTab: ZONE_INFO[colorZone].group }),
+  setPatternZone: (patternZone) => set({ patternZone, zoneTab: ZONE_INFO[patternZone].group }),
+  selectZone: (zone) => {
+    const { step, setColorZone, setPatternZone } = get()
+    if (step === 'color') setColorZone(zone)
+    else if (step === 'pattern') setPatternZone(zone)
+  },
+  setZoneTab: (zoneTab) => set({ zoneTab }),
+  setHoverZone: (hoverZone) => {
+    if (get().hoverZone !== hoverZone) set({ hoverZone })
+  },
   selectLogo: (logoSelected) => set({ logoSelected }),
   setActiveLogo: (activeLogoId, select = false) => set((s) => ({ activeLogoId, logoSelected: select || s.logoSelected })),
   setViewerStatus: (viewerStatus, viewerError = null) => set({ viewerStatus, viewerError }),

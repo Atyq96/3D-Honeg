@@ -1422,6 +1422,37 @@ code {
   animation: fadeIn 0.5s 0.6s var(--ease) both;
 }
 
+/* Zone under the pointer on the 3D garment (Colors and Pattern steps). */
+.zone-hover-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 10px 7px;
+  border-radius: 10px;
+  background: rgba(14, 14, 14, 0.82);
+  box-shadow: 0 6px 18px rgba(14, 14, 14, 0.18);
+  color: #fff;
+  font-size: 13px;
+  line-height: 1.25;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.zone-hover-label[hidden] {
+  display: none;
+}
+.zone-hover-label strong {
+  font-weight: 700;
+}
+.zone-hover-label span {
+  color: #f2c75c;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
 .stage-fallback {
   position: absolute;
   inset: 0;
@@ -2194,6 +2225,72 @@ code {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+/* Preset thumbnails fade in as they're generated. */
+.pattern-thumb.is-loading {
+  opacity: 0.55;
+}
+.pattern-thumb {
+  background-position: center;
+  transition: opacity 0.2s var(--ease);
+}
+.pattern-import .pattern-thumb {
+  background-color: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  border: 1px dashed transparent;
+}
+.pattern-shuffle {
+  justify-content: flex-start;
+  gap: 10px;
+}
+.pattern-shuffle .muted {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Pattern colour layers: pick one, recolour it below. */
+.layer-colors {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.layer-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.layer-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 10px 0 5px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--graphite);
+  font-size: 12.5px;
+  font-weight: 650;
+}
+.layer-chip:hover {
+  border-color: var(--subtle);
+  color: var(--ink);
+}
+.layer-chip[aria-checked='true'] {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 1px var(--ink);
+  color: var(--ink);
+}
+.layer-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(14, 14, 14, 0.2);
+}
+.layer-hint {
+  margin: 0;
+  font-size: 12px;
 }
 .color-editor.is-compact {
   gap: 10px;

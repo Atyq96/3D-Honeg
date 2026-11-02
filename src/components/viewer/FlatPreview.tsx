@@ -4,7 +4,7 @@ import type { V2 } from '../../garments/flat/geom2d'
 import { resolvedColor, type Design, type PatternFill } from '../../state/design'
 import { brandFabric } from '../../state/paint'
 import { zonePolygons, type ZoneId } from '../../garments/zones'
-import { getPattern } from '../../patterns/library'
+import { fillSvgUrl } from '../../state/patternArt'
 import { brandPlacement } from '../../garments/brand'
 import { BRAND_ASSETS, brandInk } from '../../config/brand'
 
@@ -43,7 +43,7 @@ export function FlatPreview({ garment, side, colors, logos = [], showPrintArea, 
   const viewBox = `${minX - pad} ${-maxY - pad} ${maxX - minX + pad * 2} ${maxY + pad * 2}`
 
   // A zone's paint is its pattern (if any) or its plain colour.
-  const paint = (region: RegionId) => (patterns?.[region] && getPattern(patterns[region]!.id) ? `url(#pat-${uid}-${region})` : resolvedColor(colors, region))
+  const paint = (region: RegionId) => (patterns?.[region] ? `url(#pat-${uid}-${region})` : resolvedColor(colors, region))
   const body = paint('body')
   const sleeves = paint('sleeves')
   const collar = paint('collar')
@@ -52,19 +52,22 @@ export function FlatPreview({ garment, side, colors, logos = [], showPrintArea, 
     ...(['body', 'sleeves', 'collar'] as RegionId[]).flatMap((r) => (patterns?.[r] ? [{ key: r, fill: patterns[r]!, bg: resolvedColor(colors, r) }] : [])),
     ...garment.paintZones.flatMap((z) => (zones[z.id]?.pattern ? [{ key: z.id, fill: zones[z.id]!.pattern!, bg: zones[z.id]!.color }] : [])),
   ]
-  const patternDefs = patterned.map(({ key, fill, bg }) => {
-    const def = getPattern(fill.id)
-    if (!def) return null
-    const [w, h] = def.tile
-    // Tile units → metres: one repeat is sizeCm wide, rotated clockwise like the 3D print.
-    return (
-      <pattern key={key} id={`pat-${uid}-${key}`} patternUnits="userSpaceOnUse" width={w} height={h} patternTransform={`rotate(${fill.angle}) scale(${fill.sizeCm / 100 / w})`}>
-        <rect width={w} height={h} fill={bg} />
-        {/* Library output is generated from validated values only (hex colours, numbers). */}
-        <g opacity={fill.opacity} dangerouslySetInnerHTML={{ __html: def.render({ color: fill.color, bg, density: fill.density, seed: fill.seed }) }} />
-      </pattern>
-    )
-  })
+  // One repeat is sizeCm wide, rotated clockwise and centred on the garment's pattern origin, like the 3D print.
+  const [ox, oy] = garment.patternOrigin
+  const patternDefs = patterned.map(({ key, fill, bg }) => (
+    <pattern
+      key={key}
+      id={`pat-${uid}-${key}`}
+      patternUnits="userSpaceOnUse"
+      width={1000}
+      height={1000}
+      patternTransform={`translate(${ox} ${-oy}) rotate(${fill.angle}) scale(${fill.sizeCm / 100 / 1000}) translate(-500 -500)`}
+    >
+      <rect width={1000} height={1000} fill={bg} />
+      {/* An image, not inline markup: imported artwork never becomes live DOM. */}
+      <image href={fillSvgUrl(fill, bg)} width={1000} height={1000} />
+    </pattern>
+  ))
 
   const area = garment.printAreas[side]
 
@@ -92,7 +95,7 @@ export function FlatPreview({ garment, side, colors, logos = [], showPrintArea, 
     const paint = zones[z.id]
     const polygons = paint ? zonePolygons(z, side) : []
     if (!paint || !polygons.length) return []
-    const fill = paint.pattern && getPattern(paint.pattern.id) ? `url(#pat-${uid}-${z.id})` : paint.color
+    const fill = paint.pattern ? `url(#pat-${uid}-${z.id})` : paint.color
     return [{ id: z.id, polygons, fill, body: z.parts.includes('body'), sleeves: z.parts.includes('sleeves') }]
   })
 

@@ -63,9 +63,9 @@ export function DesignSummary() {
         </dd>
         {edit('product', m.summary.editProduct)}
       </div>
-      {colorRow('Corps', 'body')}
-      {regions.includes('sleeves') && colorRow('Manches', 'sleeves')}
-      {regions.includes('collar') && colorRow('Col', 'collar')}
+      {colorRow(m.summary.body, 'body')}
+      {regions.includes('sleeves') && colorRow(m.summary.sleeves, 'sleeves')}
+      {regions.includes('collar') && colorRow(m.summary.collar, 'collar')}
       <div className="summary-row">
         <dt>{m.summary.pattern}</dt>
         <dd className="summary-stack">

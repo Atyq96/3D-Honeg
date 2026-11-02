@@ -1,8 +1,8 @@
 import { Suspense, useEffect, useMemo } from 'react'
-import { useThree } from '@react-three/fiber'
+import { useThree, type ThreeEvent } from '@react-three/fiber'
 import { ContactShadows } from '@react-three/drei'
 import { CanvasTexture, type BufferGeometry, type MeshPhysicalMaterial } from 'three'
-import type { GarmentDefinition, GarmentModelData } from '../../garments/types'
+import type { GarmentDefinition, GarmentModelData, RegionId } from '../../garments/types'
 import { useDesignStore } from '../../state/designStore'
 import { resolvedColor, type PatternFill } from '../../state/design'
 import { useUiStore } from '../../state/uiStore'
@@ -17,6 +17,9 @@ import { applyZoneMask } from './zoneMask'
 import { ZoneThumbnails } from './ZoneThumbnails'
 import { isPaintZone, REGION_IDS, type ZoneId } from '../../garments/zones'
 import { CameraRig } from './CameraRig'
+import { ZoneHighlight } from './ZoneHighlight'
+import { pickZone } from '../../garments/pick'
+import { useZones } from '../../state/useColorRegions'
 
 /** Picks the right loader for the garment's source; both feed the same renderer. */
 export function Garment({ def }: { def: GarmentDefinition }) {
@@ -48,6 +51,7 @@ function GarmentStage({ def, data }: { def: GarmentDefinition; data: GarmentMode
       <CameraRig bounds={data.bounds} />
       <GarmentMeshes def={def} data={data} uvScale={def.source.uvScale ?? 1} />
       <ZoneThumbnails def={def} data={data} />
+      <ZoneHighlight def={def} data={data} />
       <BrandMark def={def} targets={targets} />
       <LogoLayers def={def} targets={targets} />
       <PrintAreaOverlay def={def} targets={targets} />
@@ -87,10 +91,10 @@ function RedrawOnChange() {
 type MaterialKey = `${ZoneId}:${'jersey' | 'rib'}`
 
 /** Shows a zone's colour, or its pattern tile (which already contains the colour under the ink). */
-function paintMaterial(m: MeshPhysicalMaterial, color: string, fill: PatternFill | null, texture: CanvasTexture | undefined, uvScale: number) {
+function paintMaterial(m: MeshPhysicalMaterial, color: string, fill: PatternFill | null, texture: CanvasTexture | undefined, uvScale: number, origin: [number, number]) {
   applyFabricColor(m, color)
   if (fill && texture) {
-    placePattern(texture, fill, uvScale)
+    placePattern(texture, fill, uvScale, origin)
     m.color.set('#ffffff')
     if (m.map !== texture) {
       m.map = texture
@@ -125,6 +129,7 @@ function GarmentMeshes({ def, data, uvScale }: { def: GarmentDefinition; data: G
     return out
   }, [colors, patterns, zones, def])
   const patternTextures = usePatternTextures(sources)
+  const picking = useZonePicking(def)
 
   const finishes = useMemo(() => [...new Set(data.parts.map((p) => p.finish))], [data])
   const materials = useMemo(() => {
@@ -144,16 +149,16 @@ function GarmentMeshes({ def, data, uvScale }: { def: GarmentDefinition; data: G
       const zone = key.split(':')[0] as ZoneId
       if (isPaintZone(zone)) {
         const paint = zones[zone]
-        if (paint) paintMaterial(m, paint.color, paint.pattern, patternTextures[zone], uvScale)
-      } else paintMaterial(m, resolvedColor(colors, zone), patterns[zone], patternTextures[zone], uvScale)
+        if (paint) paintMaterial(m, paint.color, paint.pattern, patternTextures[zone], uvScale, def.patternOrigin)
+      } else paintMaterial(m, resolvedColor(colors, zone), patterns[zone], patternTextures[zone], uvScale, def.patternOrigin)
     })
     invalidate()
-  }, [colors, patterns, zones, patternTextures, materials, uvScale, invalidate])
+  }, [colors, patterns, zones, patternTextures, materials, uvScale, invalidate, def.patternOrigin])
 
   return (
     <group>
       {data.parts.map((p, i) => (
-        <mesh key={i} geometry={p.geometry} material={materials.get(`${p.region}:${p.finish}`)} />
+        <mesh key={i} geometry={p.geometry} material={materials.get(`${p.region}:${p.finish}`)} userData={{ part: p.region }} {...picking} />
       ))}
       {def.paintZones.map((z, order) =>
         zones[z.id]
@@ -166,6 +171,55 @@ function GarmentMeshes({ def, data, uvScale }: { def: GarmentDefinition; data: G
       )}
     </group>
   )
+}
+
+/**
+ * Colors and Pattern steps: hovering the garment previews the zone a click
+ * would select (the highlight and a label follow the pointer), and a click or
+ * tap selects it. Dragging to orbit never selects.
+ */
+function useZonePicking(def: GarmentDefinition) {
+  const active = useUiStore((s) => s.step === 'color' || s.step === 'pattern')
+  const gl = useThree((s) => s.gl)
+  const zones = useZones()
+  if (!active) return {}
+
+  const zoneAt = (e: ThreeEvent<PointerEvent | MouseEvent>) => {
+    const ui = useUiStore.getState()
+    const p = e.object.worldToLocal(e.point.clone())
+    return pickZone({
+      garment: def,
+      zones,
+      painted: useDesignStore.getState().design.zones,
+      part: e.object.userData.part as RegionId,
+      point: [p.x, p.y, p.z],
+      group: ui.zoneTab,
+      current: ui.step === 'color' ? ui.colorZone : ui.patternZone,
+    })
+  }
+  // The nearest garment surface under the pointer (prints on top don't block picking).
+  const nearest = (e: ThreeEvent<PointerEvent | MouseEvent>) => e.intersections.find((i) => i.object.userData.part)?.object === e.object
+  const hover = (zone: ReturnType<typeof zoneAt>) => {
+    useUiStore.getState().setHoverZone(zone)
+    gl.domElement.style.cursor = zone ? 'pointer' : ''
+  }
+  return {
+    onPointerMove: (e: ThreeEvent<PointerEvent>) => {
+      // Only the nearest surface counts, and nothing while a button is held (orbiting).
+      if (!nearest(e)) return
+      hover(e.buttons ? null : zoneAt(e))
+    },
+    onPointerOut: () => hover(null),
+    onClick: (e: ThreeEvent<MouseEvent>) => {
+      if (e.delta > 6 || !nearest(e)) return
+      const zone = zoneAt(e)
+      if (!zone) return
+      useUiStore.getState().selectZone(zone)
+      useUiStore.setState({ zonePicked: true })
+      // Preview what another click here would select next.
+      hover((e.nativeEvent as PointerEvent).pointerType === 'mouse' ? zoneAt(e) : null)
+    },
+  }
 }
 
 /** Corner marks + faint dashed frame showing the printable zone while the Logo step is open. */

@@ -1,5 +1,5 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { Hand, LoaderCircle, MonitorX, RefreshCw } from 'lucide-react'
+import { lazy, Suspense, useEffect, useRef, useState, type RefObject } from 'react'
+import { Hand, LoaderCircle, MonitorX, MousePointerClick, RefreshCw } from 'lucide-react'
 import { useUiStore } from '../../state/uiStore'
 import { useDesignStore } from '../../state/designStore'
 import { getGarment } from '../../garments/catalog'
@@ -39,6 +39,8 @@ export function ProductViewer3D() {
   const setViewerStatus = useUiStore((s) => s.setViewerStatus)
   const logoSelected = useUiStore((s) => s.logoSelected)
   const hasLogo = useDesignStore((s) => s.design.logos.length > 0)
+  const picking = useUiStore((s) => s.step === 'color' || s.step === 'pattern')
+  const zonePicked = useUiStore((s) => s.zonePicked)
 
   useEffect(() => {
     if (!supported) setViewerStatus('unsupported')
@@ -80,12 +82,60 @@ export function ProductViewer3D() {
       {logoSelected && hasLogo ? <LogoToolbar /> : <StageSummary />}
       {!fallback && <ViewerToolbar stageRef={stageRef} />}
       <ViewControls />
-      {!fallback && status === 'ready' && !interacted && (
+      {!fallback && status === 'ready' && picking && !zonePicked ? (
+        // Colors and Pattern steps: parts can be picked on the shirt itself (until the user has done it once).
         <p className="stage-hint" aria-hidden>
-          <Hand size={14} /> {coarsePointer ? m.viewer.hintTouch : m.viewer.hintMouse}
+          <MousePointerClick size={14} /> {coarsePointer ? m.viewer.pickHintTouch : m.viewer.pickHintMouse}
         </p>
+      ) : (
+        !fallback &&
+        status === 'ready' &&
+        !interacted && (
+          <p className="stage-hint" aria-hidden>
+            <Hand size={14} /> {coarsePointer ? m.viewer.hintTouch : m.viewer.hintMouse}
+          </p>
+        )
       )}
+      {!fallback && <ZoneHoverLabel stageRef={stageRef} />}
     </section>
+  )
+}
+
+/** Name of the zone under the pointer and what a click does, following the pointer. */
+function ZoneHoverLabel({ stageRef }: { stageRef: RefObject<HTMLElement | null> }) {
+  const hover = useUiStore((s) => s.hoverZone)
+  const selected = useUiStore((s) => (s.step === 'color' ? s.colorZone : s.patternZone))
+  const m = useT()
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const stage = stageRef.current
+    if (!stage) return
+    // Positioned straight from pointer events: no re-render per move.
+    const move = (e: PointerEvent) => {
+      const el = ref.current
+      if (!el) return
+      const r = stage.getBoundingClientRect()
+      const x = e.clientX - r.left
+      const y = e.clientY - r.top
+      // Flip to the pointer's other side near the right and bottom edges.
+      const left = x + 16 + el.offsetWidth > r.width - 8 ? x - 12 - el.offsetWidth : x + 16
+      const top = y + 18 + el.offsetHeight > r.height - 8 ? y - 12 - el.offsetHeight : y + 18
+      el.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`
+    }
+    stage.addEventListener('pointermove', move)
+    return () => stage.removeEventListener('pointermove', move)
+  }, [stageRef])
+
+  return (
+    <div ref={ref} className="zone-hover-label" hidden={!hover} aria-hidden>
+      {hover && (
+        <>
+          <strong>{m.zones.items[hover].label}</strong>
+          <span>{hover === selected ? m.viewer.pickSelected : m.viewer.pickSelect}</span>
+        </>
+      )}
+    </div>
   )
 }
 

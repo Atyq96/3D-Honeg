@@ -87,6 +87,7 @@ const RAGLAN_TEE: GarmentDefinition = {
   // Same chest height as the left/right chest presets, slightly smaller than a club crest.
   brandMark: { x: 0.085, y: 0.53, widthCm: 6 },
   paintZones: RAGLAN_ZONES,
+  patternOrigin: [0, 0.42],
   flat: buildTeeFlat(RAGLAN_TEE_FLAT),
 }
 

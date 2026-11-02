@@ -18,7 +18,9 @@ import {
   type LogoPlacement,
   type PatternFill,
   type TextSpec,
+  resolvedColor,
 } from './design'
+import { normalizeHex } from '../lib/color'
 import { brandKeepOut } from '../garments/brand'
 import { isPaintZone, type PaintZoneId, type ZoneId } from '../garments/zones'
 import type { ChestSide } from '../config/brand'
@@ -49,8 +51,10 @@ interface DesignStore {
   resetColors: () => void
   /** Sets or clears the all-over pattern on a part or paint zone (painting an unpainted zone in the body colour). */
   setPattern: (zone: ZoneId, fill: PatternFill | null, opts?: CommitOptions) => void
+  /** Sets a pattern together with the fabric colour under it (its layer 0) — one undo step. */
+  applyPattern: (zone: ZoneId, fill: PatternFill, base: string) => void
   updatePattern: (zone: ZoneId, patch: Partial<PatternFill>, opts?: CommitOptions) => void
-  /** Copies one zone's pattern to the given zones. */
+  /** Copies one part's pattern, and the fabric colour under it, to the given parts. */
   copyPattern: (from: RegionId, to: RegionId[]) => void
   /** Brand mark: position, style, colour (it can't be removed). */
   setBrand: (patch: Partial<BrandMarkSettings>) => void
@@ -85,7 +89,8 @@ const sameLayer = (a: LogoLayer, b: LogoLayer) =>
   shallowEqual(a.placement, b.placement) &&
   (a.text === b.text || (!!a.text && !!b.text && shallowEqual(a.text, b.text)))
 
-const samePattern = (a: PatternFill | null, b: PatternFill | null) => a === b || (!!a && !!b && shallowEqual(a, b))
+const samePattern = (a: PatternFill | null, b: PatternFill | null) =>
+  a === b || (!!a && !!b && shallowEqual({ ...a, colors: null }, { ...b, colors: null }) && a.colors.length === b.colors.length && a.colors.every((c, i) => c === b.colors[i]))
 
 const sameZones = (a: Design['zones'], b: Design['zones']) => {
   const ids = new Set([...Object.keys(a), ...Object.keys(b)]) as Set<PaintZoneId>
@@ -104,7 +109,7 @@ export function sameDesign(a: Design, b: Design) {
     a.logos.every((l, i) => sameLayer(l, b.logos[i])) &&
     shallowEqual(a.colors, b.colors) &&
     shallowEqual(a.brand, b.brand) &&
-    (Object.keys(a.patterns) as RegionId[]).every((r) => a.patterns[r] === b.patterns[r] || (!!a.patterns[r] && !!b.patterns[r] && shallowEqual(a.patterns[r]!, b.patterns[r]!)))
+    (Object.keys(a.patterns) as RegionId[]).every((r) => samePattern(a.patterns[r], b.patterns[r]))
   )
 }
 
@@ -293,6 +298,17 @@ export const useDesignStore = create<DesignStore>()((set, get) => {
       commit({ ...design, patterns: { ...design.patterns, [zone]: pattern } }, opts)
     },
 
+    applyPattern: (zone, fill, base) => {
+      const { design } = get()
+      const pattern = cleanPatternFill(fill)
+      const color = normalizeHex(base)
+      if (!pattern || !color) return
+      if (isPaintZone(zone)) return commit({ ...design, zones: { ...design.zones, [zone]: { color, pattern } } })
+      // Sleeves or collar on the body colour keep following it.
+      const colors = { ...design.colors, [zone]: zone !== 'body' && color === design.colors.body ? null : color }
+      commit({ ...design, colors, patterns: { ...design.patterns, [zone]: pattern } })
+    },
+
     updatePattern: (zone, patch, opts) => {
       const { design } = get()
       if (isPaintZone(zone)) {
@@ -309,8 +325,19 @@ export const useDesignStore = create<DesignStore>()((set, get) => {
       const { design } = get()
       const fill = design.patterns[from]
       const patterns = { ...design.patterns }
-      for (const r of to) patterns[r] = fill ? { ...fill } : null
-      commit({ ...design, patterns })
+      const colors = { ...design.colors }
+      // Layer 0 is the fabric colour, so the parts take that too to look the same.
+      const base = resolvedColor(design.colors, from)
+      for (const r of to) {
+        patterns[r] = fill ? { ...fill } : null
+        if (fill) {
+          if (r === 'body') colors.body = base
+          else colors[r] = base
+        }
+      }
+      // Sleeves or collar that now match the body follow it again.
+      for (const r of ['sleeves', 'collar'] as const) if (colors[r] === colors.body) colors[r] = null
+      commit({ ...design, colors, patterns })
     },
 
     resetColors: () => {

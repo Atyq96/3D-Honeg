@@ -96,5 +96,11 @@ export interface GarmentDefinition {
   brandMark: { x: number; y: number; widthCm: number }
   /** Halves, panels and stripes that can be painted over the parts, in print order (later on top). */
   paintZones: PaintZoneDef[]
+  /**
+   * Garment point (x, y metres, front view) where the centre of a pattern
+   * repeat lands — the chest, so bands, chevrons and other compositions sit
+   * where they're designed to.
+   */
+  patternOrigin: [number, number]
   flat: FlatOutline
 }

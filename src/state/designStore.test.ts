@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { logoRect, useDesignStore } from './designStore'
-import { cleanTextContent, createDefaultDesign, letterHeightCm, MAX_LOGOS, MAX_TEXT_LINE_CHARS, MAX_TEXTS, parseDesign, type LogoAsset } from './design'
+import { cleanTextContent, createDefaultDesign, letterHeightCm, MAX_LOGOS, MAX_TEXT_LINE_CHARS, MAX_TEXTS, parseDesign, presetFill, type LogoAsset } from './design'
+import { getPreset } from '../patterns'
+import { importSvg } from '../patterns/importSvg'
 import { DEFAULT_GARMENT_ID, getGarment } from '../garments/catalog'
 import { brandPlacement, describeBrand } from '../garments/brand'
 import { brandFabric, describeZones } from './paint'
@@ -128,41 +130,77 @@ describe('parseDesign', () => {
 })
 
 describe('patterns', () => {
-  const fill = { id: 'breton', color: '#001d4b', sizeCm: 4, angle: 0, density: 0.5, opacity: 1, seed: 42 }
+  const electric = () => presetFill(getPreset('shards-electric')!)
+  const fill = () => electric().fill
 
   it('sets, adjusts (clamped) and removes a zone pattern with undo', () => {
-    store().setPattern('body', fill)
-    expect(store().design.patterns.body).toMatchObject({ id: 'breton', color: '#001D4B' })
-    store().updatePattern('body', { sizeCm: 999, angle: 270, opacity: 0 })
-    expect(store().design.patterns.body).toMatchObject({ sizeCm: 40, angle: -90, opacity: 0.1 })
+    store().setPattern('body', fill())
+    expect(store().design.patterns.body).toMatchObject({ type: 'shards', preset: 'shards-electric', colors: ['#14234A', '#5FB3E8', '#F2762E', '#0E0E12'] })
+    store().updatePattern('body', { sizeCm: 999, angle: 270, opacity: 0, density: 7 })
+    expect(store().design.patterns.body).toMatchObject({ sizeCm: 100, angle: -90, opacity: 0.1, density: 1 })
     store().setPattern('body', null)
     expect(store().design.patterns.body).toBeNull()
     store().undo()
     store().undo()
-    expect(store().design.patterns.body).toMatchObject({ sizeCm: 4 })
+    expect(store().design.patterns.body).toMatchObject({ sizeCm: 55 })
   })
 
-  it('copies a zone pattern to other zones', () => {
-    store().setPattern('sleeves', { ...fill, id: 'houndstooth' })
-    store().copyPattern('sleeves', ['body', 'collar'])
-    expect(store().design.patterns.body?.id).toBe('houndstooth')
-    expect(store().design.patterns.collar?.id).toBe('houndstooth')
-    expect(store().design.patterns.body).not.toBe(store().design.patterns.sleeves)
-  })
-
-  it('ignores unknown pattern ids', () => {
-    store().setPattern('body', { ...fill, id: 'does-not-exist' })
+  it('fits the colour list to the layers the pattern type has', () => {
+    store().setPattern('body', { ...fill(), colors: ['#ff0000'] })
+    // Shards need at least 3 layers (fabric + 2 inks): the one ink repeats.
+    expect(store().design.patterns.body?.colors).toEqual(['#FF0000', '#FF0000'])
+    store().setPattern('body', { ...fill(), colors: Array.from({ length: 9 }, () => '#00ff00') })
+    expect(store().design.patterns.body?.colors).toHaveLength(5)
+    store().setPattern('body', { ...fill(), colors: ['#00ff00', 'red'] })
     expect(store().design.patterns.body).toBeNull()
   })
 
-  it('round-trips patterns through export and drops unknown ones on import', () => {
-    const d = { ...createDefaultDesign(), patterns: { body: fill, sleeves: { ...fill, id: 'nope' }, collar: null } }
+  it('applying a preset sets its fabric colour too, as one undo step', () => {
+    const { fill: f, base } = electric()
+    store().applyPattern('body', f, base)
+    expect(store().design.colors.body).toBe('#1F5BD8')
+    expect(store().design.patterns.body?.preset).toBe('shards-electric')
+    store().undo()
+    expect(store().design.colors.body).toBe('#0E0E0E')
+    expect(store().design.patterns.body).toBeNull()
+  })
+
+  it('copies a part pattern and its fabric colour to other parts', () => {
+    store().setColor('sleeves', '#FF0000')
+    store().applyPattern('body', fill(), '#1F5BD8')
+    store().copyPattern('body', ['sleeves', 'collar'])
+    expect(store().design.patterns.sleeves).toEqual(store().design.patterns.body)
+    expect(store().design.patterns.sleeves).not.toBe(store().design.patterns.body)
+    // Same fabric as the body again, so the sleeves follow it.
+    expect(store().design.colors.sleeves).toBeNull()
+    expect(store().design.colors.collar).toBeNull()
+  })
+
+  it('ignores unknown pattern types and invalid artwork', () => {
+    store().setPattern('body', { ...fill(), type: 'does-not-exist' as never })
+    expect(store().design.patterns.body).toBeNull()
+    store().setPattern('body', { ...fill(), type: 'artwork', art: '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>' })
+    expect(store().design.patterns.body).toBeNull()
+  })
+
+  it('round-trips patterns through export and drops old or unknown ones on import', () => {
+    const d = { ...createDefaultDesign(), patterns: { body: fill(), sleeves: { ...fill(), type: 'nope' }, collar: { id: 'breton', color: '#001D4B', sizeCm: 4 } } }
     const parsed = parseDesign(JSON.parse(JSON.stringify(d)))
-    expect(parsed.patterns.body).toMatchObject({ id: 'breton', color: '#001D4B', seed: 42 })
+    expect(parsed.patterns.body).toEqual(fill())
     expect(parsed.patterns.sleeves).toBeNull()
+    // Fills from the retired one-colour motif library are dropped.
+    expect(parsed.patterns.collar).toBeNull()
     // Exports from before patterns existed still load.
     const old = parseDesign({ version: 1, productId: 'raglan', colors: { body: '#000' } })
     expect(old.patterns).toEqual({ body: null, sleeves: null, collar: null })
+  })
+
+  it('round-trips imported artwork', () => {
+    const art = importSvg('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10" fill="#fff"/><circle cx="5" cy="5" r="3" fill="#e4002b"/></svg>')
+    store().applyPattern('body', { ...fill(), type: 'artwork', preset: null, colors: art.colors.slice(1), art: art.svg }, art.colors[0])
+    const parsed = parseDesign(JSON.parse(JSON.stringify(store().design)))
+    expect(parsed.patterns.body).toMatchObject({ type: 'artwork', colors: ['#E4002B'], art: art.svg })
+    expect(parsed.colors.body).toBe('#FFFFFF')
   })
 })
 
@@ -384,10 +422,10 @@ describe('paint zones', () => {
 
   it('a pattern on an unpainted zone takes the body colour underneath', () => {
     store().setColor('body', '#003A96')
-    store().setPattern('halfBottom', { id: 'pinstripe', color: '#ffffff', sizeCm: 2, angle: 0, density: 0.5, opacity: 1, seed: 42 })
-    expect(store().design.zones.halfBottom).toMatchObject({ color: '#003A96', pattern: { id: 'pinstripe', color: '#FFFFFF' } })
-    store().updatePattern('halfBottom', { sizeCm: 3 })
-    expect(store().design.zones.halfBottom?.pattern?.sizeCm).toBe(3)
+    store().setPattern('halfBottom', { ...presetFill(getPreset('waves-lagoon')!).fill, colors: ['#ffffff', '#00a6a6'] })
+    expect(store().design.zones.halfBottom).toMatchObject({ color: '#003A96', pattern: { type: 'waves', colors: ['#FFFFFF', '#00A6A6'] } })
+    store().updatePattern('halfBottom', { sizeCm: 30 })
+    expect(store().design.zones.halfBottom?.pattern?.sizeCm).toBe(30)
     // Removing the pattern keeps the zone's colour.
     store().setPattern('halfBottom', null)
     expect(store().design.zones.halfBottom).toEqual({ color: '#003A96', pattern: null })

@@ -13,9 +13,7 @@ export function presetLabel(id: string): string {
   return m.presetName(m.types[p.type], m.palettes[p.palette] ?? p.palette)
 }
 
-/** A zone pattern's name: its preset, else its type ("Imported artwork" for SVG imports). */
+/** A zone pattern's name: its preset, else its type. */
 export function patternName(fill: Pick<PatternFill, 'type' | 'preset'>): string {
-  if (fill.preset) return presetLabel(fill.preset)
-  const m = t().pattern
-  return fill.type === 'artwork' ? m.imported : m.types[fill.type]
+  return fill.preset ? presetLabel(fill.preset) : t().pattern.types[fill.type]
 }

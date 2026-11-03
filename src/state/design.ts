@@ -2,9 +2,8 @@ import type { PlacementId, RegionId, Side } from '../garments/types'
 import { DEFAULT_GARMENT_ID, GARMENTS } from '../garments/catalog'
 import { DEFAULT_BODY_COLOR } from '../config/palette'
 import { normalizeHex } from '../lib/color'
-import { countLayers, getPatternType, isLayered, layerCount, SCALE_RANGE, type PatternType } from '../patterns'
+import { getPatternType, layerCount, SCALE_RANGE, type PatternType } from '../patterns'
 import { getPreset, type Preset } from '../patterns/presets'
-import { MAX_ARTWORK_BYTES } from '../patterns/importSvg'
 import type { BrandSide, BrandStyle } from '../config/brand'
 import { PAINT_ZONE_IDS, type PaintZoneId } from '../garments/zones'
 import { t } from '../i18n'
@@ -133,13 +132,13 @@ export interface BrandMarkSettings {
 export const DEFAULT_BRAND: BrandMarkSettings = { side: 'right', style: 'logo', color: 'auto' }
 
 /**
- * An all-over pattern on one zone: a generated sportswear pattern (or imported
- * artwork) whose layer 0 is the zone's fabric colour and whose layers 1…n are
- * `colors`. Type + seed + options regenerate it exactly.
+ * An all-over pattern on one zone: a generated sportswear pattern whose layer
+ * 0 is the zone's fabric colour and whose layers 1…n are `colors`. Type + seed
+ * + options regenerate it exactly.
  */
 export interface PatternFill {
-  /** Generator from src/patterns, or 'artwork' for imported vector art. */
-  type: PatternType | 'artwork'
+  /** Generator from src/patterns. */
+  type: PatternType
   /** Preset it was started from (names it), or null. */
   preset: string | null
   /** Ink colours for layers 1…n (layer 0 is the zone's fabric colour). */
@@ -158,8 +157,6 @@ export interface PatternFill {
   angle: number
   /** 0.1–1: inks over the fabric colour. */
   opacity: number
-  /** Imported artwork only: the layered SVG with its original colours. */
-  art?: string
 }
 
 export const PATTERN_SIZE_CM: [number, number] = [10, 100]
@@ -167,22 +164,15 @@ export const NO_PATTERNS: Design['patterns'] = { body: null, sleeves: null, coll
 
 /**
  * Keeps pattern values in range and fits the colour list to the layers the
- * pattern has; returns null for unknown types, bad colours or invalid artwork.
+ * pattern has; returns null for unknown types or bad colours.
  */
 export function cleanPatternFill(p: PatternFill): PatternFill | null {
   const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, Number.isFinite(v) ? v : lo))
   const colors = p.colors.map((c) => normalizeHex(c))
   if (!colors.length || colors.some((c) => !c)) return null
-  let inks: number
-  if (p.type === 'artwork') {
-    if (typeof p.art !== 'string' || p.art.length > MAX_ARTWORK_BYTES || !isLayered(p.art)) return null
-    inks = countLayers(p.art) - 1
-  } else {
-    const def = getPatternType(p.type)
-    if (!def) return null
-    inks = layerCount(def, colors.length + 1) - 1
-  }
-  if (inks < 1) return null
+  const def = getPatternType(p.type)
+  if (!def) return null
+  const inks = layerCount(def, colors.length + 1) - 1
   const wrapDeg = (v: number) => ((((Math.round(Number.isFinite(v) ? v : 0) + 180) % 360) + 360) % 360) - 180
   return {
     type: p.type,
@@ -196,7 +186,6 @@ export function cleanPatternFill(p: PatternFill): PatternFill | null {
     sizeCm: Math.round(clamp(p.sizeCm, ...PATTERN_SIZE_CM) * 10) / 10,
     angle: wrapDeg(p.angle),
     opacity: Math.round(clamp(p.opacity, 0.1, 1) * 100) / 100,
-    ...(p.type === 'artwork' ? { art: p.art } : {}),
   }
 }
 
@@ -367,7 +356,6 @@ export function parseDesign(raw: unknown): Design {
       sizeCm: num(f.sizeCm, 50),
       angle: num(f.angle, 0),
       opacity: num(f.opacity, 1),
-      ...(typeof f.art === 'string' ? { art: f.art } : {}),
     })
   }
 

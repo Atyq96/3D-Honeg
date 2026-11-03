@@ -64,7 +64,7 @@ export function FlatPreview({ garment, side, colors, logos = [], showPrintArea, 
       patternTransform={`translate(${ox} ${-oy}) rotate(${fill.angle}) scale(${fill.sizeCm / 100 / 1000}) translate(-500 -500)`}
     >
       <rect width={1000} height={1000} fill={bg} />
-      {/* An image, not inline markup: imported artwork never becomes live DOM. */}
+      {/* The cached tile as an image: cheap to re-render, and never live markup. */}
       <image href={fillSvgUrl(fill, bg)} width={1000} height={1000} />
     </pattern>
   ))

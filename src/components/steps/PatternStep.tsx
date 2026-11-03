@@ -10,7 +10,6 @@ import { isPaintZone, type ZoneId } from '../../garments/zones'
 import { useT } from '../../i18n'
 import { patternName } from '../../i18n/labels'
 import { exportForPrint, getPatternType, getPreset, randomSeed, type Preset } from '../../patterns'
-import { ArtworkError, importSvg, MAX_IMPORT_BYTES } from '../../patterns/importSvg'
 import { downloadBlob, stamp } from '../../lib/persistence'
 import { RangeField } from '../ui/controls'
 import { ZonePicker } from '../color/ZonePicker'
@@ -35,24 +34,12 @@ export function PatternStep() {
   const fill = paint?.pattern ?? null
   // An unpainted half or stripe takes the body colour when it gets a pattern.
   const base = paint?.color ?? design.colors.body
-  const def = fill && fill.type !== 'artwork' ? getPatternType(fill.type) : undefined
+  const def = fill ? getPatternType(fill.type) : undefined
 
   // A preset brings its own fabric colour (layer 0) as well as its inks.
   const pick = (p: Preset) => {
     const { fill: next, base: b } = presetFill(p)
     applyPattern(zone, next, b)
-  }
-
-  const importArt = async (file: File) => {
-    try {
-      if (file.size > MAX_IMPORT_BYTES) throw new ArtworkError('tooBig')
-      const art = importSvg(await file.text())
-      const next: PatternFill = { type: 'artwork', preset: null, colors: art.colors.slice(1), seed: 1, scale: 1, direction: 0, density: 0.5, sizeCm: 50, angle: 0, opacity: 1, art: art.svg }
-      applyPattern(zone, next, art.colors[0])
-      notify('success', [m.pattern.importedOk(art.layers), ...art.warnings.map((w) => m.pattern.importWarn[w])].join(' '))
-    } catch (e) {
-      notify('error', e instanceof ArtworkError ? m.pattern.importErr[e.code] : m.pattern.importErr.notSvg)
-    }
   }
 
   const printFiles = async (f: PatternFill) => {
@@ -88,11 +75,9 @@ export function PatternStep() {
           </p>
         )}
         <PatternLibrary
-          selected={fill ? (fill.type === 'artwork' ? 'artwork' : fill.preset) : null}
-          artworkThumb={fill?.type === 'artwork' ? fillThumb(fill, base) : undefined}
+          selected={fill?.preset ?? null}
           onPick={pick}
           onClear={() => setPattern(zone, null)}
-          onImport={(file) => void importArt(file)}
         />
       </Section>
 

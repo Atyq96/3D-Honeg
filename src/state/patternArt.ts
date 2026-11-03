@@ -1,4 +1,4 @@
-import { generatePattern, recolor, svgDataUrl, toCanvas, type Preset } from '../patterns'
+import { generatePattern, svgDataUrl, toCanvas, type Preset } from '../patterns'
 import type { PatternFill } from './design'
 import { hexToRgb } from '../lib/color'
 
@@ -8,17 +8,9 @@ import { hexToRgb } from '../lib/color'
  * doesn't regenerate or re-rasterise anything.
  */
 
-/** Imported artwork can be large; it's identified by a short id rather than hashed on every render. */
-const artIds = new Map<string, number>()
-const artId = (art: string) => {
-  let id = artIds.get(art)
-  if (id === undefined) artIds.set(art, (id = artIds.size + 1))
-  return id
-}
-
 /** Everything that changes the tile's pixels (size and angle only move it). */
 export const fillKey = (fill: PatternFill, bg: string) =>
-  [fill.type, fill.seed, fill.scale, fill.direction, fill.density, fill.opacity, bg, ...fill.colors, fill.art ? artId(fill.art) : ''].join('|')
+  [fill.type, fill.seed, fill.scale, fill.direction, fill.density, fill.opacity, bg, ...fill.colors].join('|')
 
 /** `ink` printed at `alpha` over `bg`, as the flat colour it looks like. */
 function mix(bg: string, ink: string, alpha: number): string {
@@ -34,7 +26,6 @@ function mix(bg: string, ink: string, alpha: number): string {
  */
 export function fillSvg(fill: PatternFill, bg: string): string {
   const colors = [bg, ...fill.colors.map((c) => (fill.opacity < 1 ? mix(bg, c, fill.opacity) : c))]
-  if (fill.type === 'artwork') return recolor(fill.art ?? '', colors)
   return generatePattern(fill.type, { colors, seed: fill.seed, scale: fill.scale, angle: fill.direction, density: fill.density }).svg
 }
 

@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { logoRect, useDesignStore } from './designStore'
 import { cleanTextContent, createDefaultDesign, letterHeightCm, MAX_LOGOS, MAX_TEXT_LINE_CHARS, MAX_TEXTS, parseDesign, presetFill, type LogoAsset } from './design'
 import { getPreset } from '../patterns'
-import { importSvg } from '../patterns/importSvg'
 import { DEFAULT_GARMENT_ID, getGarment } from '../garments/catalog'
 import { brandPlacement, describeBrand } from '../garments/brand'
 import { brandFabric, describeZones } from './paint'
@@ -176,10 +175,8 @@ describe('patterns', () => {
     expect(store().design.colors.collar).toBeNull()
   })
 
-  it('ignores unknown pattern types and invalid artwork', () => {
+  it('ignores unknown pattern types', () => {
     store().setPattern('body', { ...fill(), type: 'does-not-exist' as never })
-    expect(store().design.patterns.body).toBeNull()
-    store().setPattern('body', { ...fill(), type: 'artwork', art: '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>' })
     expect(store().design.patterns.body).toBeNull()
   })
 
@@ -195,13 +192,6 @@ describe('patterns', () => {
     expect(old.patterns).toEqual({ body: null, sleeves: null, collar: null })
   })
 
-  it('round-trips imported artwork', () => {
-    const art = importSvg('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10" fill="#fff"/><circle cx="5" cy="5" r="3" fill="#e4002b"/></svg>')
-    store().applyPattern('body', { ...fill(), type: 'artwork', preset: null, colors: art.colors.slice(1), art: art.svg }, art.colors[0])
-    const parsed = parseDesign(JSON.parse(JSON.stringify(store().design)))
-    expect(parsed.patterns.body).toMatchObject({ type: 'artwork', colors: ['#E4002B'], art: art.svg })
-    expect(parsed.colors.body).toBe('#FFFFFF')
-  })
 })
 
 describe('brand mark', () => {

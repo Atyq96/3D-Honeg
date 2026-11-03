@@ -159,14 +159,13 @@ The brand mark's **Auto** ink reads the fabric under the mark, including any zon
 
 ## Patterns
 
-The **Pattern** step prints sportswear patterns on any zone: body, sleeves, collar or any painted area. They come from an original, dependency-free generator library in `src/patterns/`; its [README](src/patterns/README.md) covers the API, how to add a type and how to import artwork.
+The **Pattern** step prints sportswear patterns on any zone: body, sleeves, collar or any painted area. They come from an original, dependency-free generator library in `src/patterns/`; its [README](src/patterns/README.md) covers the API and how to add a type.
 
 - **Ten pattern types:** shattered "shards" camo, low poly, digital camo, speed chevrons, speed lines, cycling kit bands, topographic lines, mountain elevation, waves and halftone.
 - **Presets:** 30 ready-made designs, grouped by sport (cycling, triathlon, running, multisport). They use 10 named palettes and have thumbnails generated in the browser and cached.
 - **Layers:** every pattern is 3–6 flat colour layers. Layer 0 is the zone's fabric colour, so the Colors step and the pattern stay in sync. Each layer can be recolored from its chip without changing the geometry.
 - **Controls:** **Shuffle** draws a new layout in the same style (new seed). Size, angle, detail and ink opacity are adjustable, and **Apply to all parts** copies the pattern and its fabric colour.
 - **Determinism:** the same type, seed and options always produce the same SVG on every device. A design file stores only those values, and the factory regenerates the identical artwork.
-- **Your own artwork:** **Import SVG artwork** turns your vector design into recolorable layers, one per flat colour. The import is sanitized to shape geometry only.
 - **Print files:** these download one repeat as a true-size SVG (still layered) plus a PNG with its dpi recorded (up to 300 dpi, capped at 6000 px).
 
 **How it reaches the shirt.** A pattern is a seamless 1000-unit SVG tile, drawn straight to a canvas with `Path2D`: synchronous, with no image decoding. It's mapped through the model's metre-scaled UVs, centred on the chest so compositions like kit bands land where they're designed to. Textures are 2048 px on desktop and 1024 px on phones. Rasterised tiles are cached by everything that changes their pixels, and size and angle only move the texture. Ink opacity is applied by mixing each ink with the fabric colour. That's the same picture as translucent ink, but it stays flat, so the print file matches. The 2D flats use the same tile through an `<image>`, never as inline markup.
@@ -209,7 +208,7 @@ src/
     flat/                       2D silhouette for flats (not used for 3D)
   config/                       Lunar 3D identity, palette, brand mark assets and colors, text fonts
   i18n/                         en.ts (main) and fr.ts dictionaries, language store, useT() / t()
-  patterns/                     sportswear pattern generators, palettes, presets, SVG import, print export (see its README)
+  patterns/                     sportswear pattern generators, palettes, presets, print export (see its README)
   dev/PatternsPreview.tsx       /patterns-preview review page (dev only)
   state/                        design schema + validation, store (undo/redo, clamping), UI store,
                                 useActiveLogo (which logo is being edited), actions
@@ -228,7 +227,7 @@ public/models/                  prepared garment models
 | Shirt color | 12 presets, visual picker, HEX input with inline errors, reset |
 | Separate sleeve / collar colors | From the model's UV-island split |
 | Color zones | 14 more zones (single sleeves, front/back, halves, side panels, shoulders, stripes, sash), each with a color and optional pattern, picked by 3D thumbnail or by clicking the shirt, with the selection outlined on the model |
-| All-over patterns | 10 generated sportswear pattern types, 30 presets by sport, per-layer recoloring, shuffle, size, angle, detail, ink opacity, SVG artwork import, print files (SVG + PNG) |
+| All-over patterns | 10 generated sportswear pattern types, 30 presets by sport, per-layer recoloring, shuffle, size, angle, detail, ink opacity, print files (SVG + PNG) |
 | Logo upload | Up to 3 logos or photos, several at once; PNG (transparency kept), JPG, WebP, SVG (sanitized), 10 MB limit, signature check, border trim, low-res warning |
 | Placement | Left / center / right chest, upper / center back, with a printable-area frame on the shirt |
 | Brand mark | "YOUR LOGO" placeholder, always printed; left chest, centre or right chest, logo or symbol, auto/white/black/amber; customer prints keep clear of it |

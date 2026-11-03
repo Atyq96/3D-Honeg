@@ -1,8 +1,7 @@
 /**
- * Reader for the layered pattern format (what generatePattern and importSvg
- * produce). It accepts that format only — anything else (scripts, links,
- * styles, unknown elements or attributes) is rejected — so it doubles as the
- * validator for artwork stored in saved designs.
+ * Reader for the layered pattern format (what generatePattern produces). It
+ * accepts that format only — anything else (scripts, links, styles, unknown
+ * elements or attributes) is rejected — so it doubles as a validator.
  */
 
 export interface LayeredItem {

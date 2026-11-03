@@ -10,7 +10,7 @@ Seeded, layered, print-ready patterns for the configurator. The code is original
 ## API
 
 ```ts
-import { generatePattern, recolor, toCanvas, exportForPrint, importSvg } from './patterns'
+import { generatePattern, recolor, toCanvas, exportForPrint } from './patterns'
 
 const { svg, layers } = generatePattern('shards', {
   colors: ['#1F5BD8', '#14234A', '#5FB3E8', '#F2762E', '#0E0E12'], // base first, 3–6 used
@@ -79,20 +79,3 @@ The type tests run automatically for every entry in `PATTERN_TYPES`. They check:
 - clamping of options
 - file size
 
-## Importing your own artwork
-
-`importSvg(text)` turns a vector design (for example an AI-generated image vectorised with a limited palette) into a recolourable pattern:
-
-1. **Parsing.** A built-in XML reader parses the SVG, so no DOM is needed. It resolves:
-   - `<style>` class rules
-   - `style=""` attributes
-   - inherited fills
-   - transforms
-   - `<use>`/`<symbol>`
-   - nested groups
-2. **Colour conversion.** Every flat fill or stroke colour is read: hex, `rgb()`, `hsl()` and common colour names. Gradients flatten to their middle stop. Colours closer than a small perceptual distance are merged, and the total is capped at 8.
-3. **Layer order.** Colours become layers in order of painted area, so the most used one is layer 0, the base. Single-colour art gets a contrasting base.
-4. **Fitting and stacking.** The artwork is scaled to cover the 1000 × 1000 tile, and document order is kept. When colours interleave, a layer appears as several groups with the same `data-layer`, and recolouring treats them as one.
-5. **Sanitising.** Only shape geometry is written out. Scripts, event handlers, links, images, text, filters and unknown elements never reach the output, which is in the same strict format `parseLayered` validates. Saved designs are re-validated on load.
-
-In the configurator, use **Pattern → Import SVG artwork**. Each colour becomes a layer chip you can recolour like a generated pattern. Text must be converted to outlines first; the import message says so if it was skipped.

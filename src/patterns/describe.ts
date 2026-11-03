@@ -11,8 +11,7 @@ import { patternName } from '../i18n/labels'
 export function describeFill(fill: PatternFill): string {
   const extras = [fill.colors.join(' '), `${num(fill.sizeCm)} cm`, `${fill.angle}°`]
   if (fill.opacity < 1) extras.push(t().pattern.opacityPct(Math.round(fill.opacity * 100)))
-  const name = fill.type === 'artwork' ? patternName(fill) : `${patternName(fill)}, ${t().pattern.seed(fill.seed)}`
-  return `${name} · ${extras.join(' · ')}`
+  return `${patternName(fill)}, ${t().pattern.seed(fill.seed)} · ${extras.join(' · ')}`
 }
 
 /** One human-readable line per patterned zone, e.g. "Body — Shards · Electric, layout #7 · …". */

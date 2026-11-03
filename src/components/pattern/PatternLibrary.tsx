@@ -1,28 +1,24 @@
-import { useEffect, useReducer, useRef, useState } from 'react'
-import { Ban, FileUp, Search } from 'lucide-react'
+import { useEffect, useReducer, useState } from 'react'
+import { Ban, Search } from 'lucide-react'
 import { PRESETS, SPORTS, type Preset, type Sport } from '../../patterns'
 import { loadPresetThumbs, presetThumb } from '../../state/patternArt'
 import { presetLabel } from '../../i18n/labels'
 import { useT } from '../../i18n'
 
 interface Props {
-  /** Preset applied to this zone, 'artwork' for imported art, or null. */
+  /** Preset applied to this zone, or null. */
   selected: string | null
-  /** Thumbnail of the imported artwork on this zone, if any. */
-  artworkThumb?: string
   onPick: (preset: Preset) => void
   onClear: () => void
-  onImport: (file: File) => void
 }
 
 const fold = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
 
-/** The ready-made designs, by sport, with live thumbnails, plus importing your own SVG artwork. */
-export function PatternLibrary({ selected, artworkThumb, onPick, onClear, onImport }: Props) {
+/** The ready-made designs, by sport, with live thumbnails. */
+export function PatternLibrary({ selected, onPick, onClear }: Props) {
   const m = useT()
   const [sport, setSport] = useState<Sport | 'all'>('all')
   const [query, setQuery] = useState('')
-  const fileInput = useRef<HTMLInputElement>(null)
   // Thumbnails arrive in small batches; each batch re-renders the grid.
   const [, refresh] = useReducer((n: number) => n + 1, 0)
   useEffect(() => loadPresetThumbs(PRESETS, refresh), [])
@@ -79,31 +75,7 @@ export function PatternLibrary({ selected, artworkThumb, onPick, onClear, onImpo
           )
         })}
         {!visible.length && <p className="muted pattern-empty">{m.pattern.noMatch(query)}</p>}
-        <button
-          type="button"
-          role="radio"
-          aria-checked={selected === 'artwork'}
-          className="pattern-tile pattern-import"
-          onClick={() => fileInput.current?.click()}
-          title={m.pattern.importHint}
-        >
-          <span className="pattern-thumb" aria-hidden style={artworkThumb ? { backgroundImage: `url("${artworkThumb}")`, backgroundSize: 'cover' } : undefined}>
-            {!artworkThumb && <FileUp size={18} />}
-          </span>
-          <span className="pattern-name">{m.pattern.importArt}</span>
-        </button>
       </div>
-      <input
-        ref={fileInput}
-        type="file"
-        accept=".svg,image/svg+xml"
-        hidden
-        onChange={(e) => {
-          const file = e.target.files?.[0]
-          e.target.value = ''
-          if (file) onImport(file)
-        }}
-      />
     </div>
   )
 }
